@@ -1,11 +1,12 @@
 .PHONY: clean all
 
-srcs := $(wildcard *.c)
-targets := $(patsubst %.c,%,$(srcs))
+srcs := $(wildcard *.cpp)
+targets := $(patsubst %.cpp,%,$(srcs))
 
 
-CC=gcc
+CC=g++
 CFLAGS=-g
+CLDFLAGS:=-levent
 
 all: ${targets}
 
