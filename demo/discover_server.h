@@ -9,6 +9,10 @@
 
 #include <unistd.h>
 
+#include <event2/event.h>
+#include <event2/buffer.h>
+#include <event2/bufferevent.h>
+
 #include "sdn_share_protocol.h"
 
 using namespace std;
@@ -16,11 +20,12 @@ using namespace std;
 class DiscoverServer
 {
 private:
-    enum state st;
     vector<local_inf_info> inf_infos;
 
 public:
-    DiscoverServer(/* args */);
+    enum state st;
+    struct event_base *base;
+    DiscoverServer(struct event_base *base);
     ~DiscoverServer();
     void start();
 };

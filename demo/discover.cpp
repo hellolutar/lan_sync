@@ -86,12 +86,6 @@ int send_to(int sock, const sockaddr_in &target_sock_addr, string data)
     return ret;
 }
 
-void *thread_cb(void *arg)
-{
-    // todo
-    return nullptr;
-}
-
 bool Discover::handle_hello_recv(struct bufferevent *bev)
 {
     struct evbuffer *input, *output;
@@ -112,9 +106,6 @@ bool Discover::handle_hello_recv(struct bufferevent *bev)
             this->st = STATE_SYNC_READY;
         }
         printf("[DEBUG] todo : add a tcp bufferevent to sync request!");
-
-        
-        
 
         return true;
     }
@@ -145,6 +136,7 @@ static void errorcb(struct bufferevent *bev, short error, void *ctx)
 
 void readcb(struct bufferevent *bev, void *ctx)
 {
+    printf("recive msg \n");
     Discover *dis = (Discover *)ctx;
     dis->handle_hello_recv(bev);
 }
@@ -164,6 +156,8 @@ void Discover::start()
 
     int optval = 1; // 这个值一定要设置，否则可能导致sendto()失败
     setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(int));
+    setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(int));
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
 
     struct event *write_event;
 
@@ -201,4 +195,3 @@ int main(int argc, char const *argv[])
     discover.start();
     return 0;
 }
-// gcc -fdiagnostics-color=always -g discover.cpp -levent -o discover
