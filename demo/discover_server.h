@@ -17,7 +17,7 @@ class DiscoverServer
 {
 private:
     enum state st;
-    vector<local_inf_info> infos;
+    vector<local_inf_info> inf_infos;
 
 public:
     DiscoverServer(/* args */);

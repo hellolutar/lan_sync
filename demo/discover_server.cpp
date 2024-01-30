@@ -2,7 +2,7 @@
 
 DiscoverServer::DiscoverServer(/* args */)
 {
-    st = DISCOVERING;
+    st = STATE_DISCOVERING;
 }
 
 DiscoverServer::~DiscoverServer()
@@ -38,24 +38,24 @@ void DiscoverServer::start()
 
         if (len > 0)
         {
-            struct sdn_share_proto_header *header = (sdn_share_proto_header_t *)buf;
+            struct lan_discover_header *header = (lan_discover_header_t *)buf;
             debug_print_header(header, cli_addr.sin_addr);
 
             // 这里可以适用设计模式
-            if (header->type == HELLO)
+            if (header->type == LAN_DISCOVER_TYPE_HELLO)
             {
                 // 启动HTTPS Server
-                if (this->st == DISCOVERING)
+                if (this->st == STATE_DISCOVERING)
                 {
                     // todo 开线程，建立HTTP服务器
                     pthread_t other_thread_id;
                     pthread_create(&other_thread_id, nullptr, thread_cb, nullptr);
                 }
-                this->st = SYNC_READY;
+                this->st = STATE_SYNC_READY;
                 uint16_t msg = DISCOVER_SERVER_HTTP_PORT;
 
-                sdn_share_proto_header_t reply_header = {v0_1, HELLO_ACK, sizeof(msg)};
-                sdn_share_proto_header_t *header = (sdn_share_proto_header_t *)encapsulate(reply_header, &msg, sizeof(msg));
+                lan_discover_header_t reply_header = {LAN_DISCOVER_VER_0_1, LAN_DISCOVER_TYPE_HELLO_ACK, sizeof(msg)};
+                lan_discover_header_t *header = (lan_discover_header_t *)encapsulate(reply_header, &msg, sizeof(msg));
                 int ret = sendto(fd, header, sizeof(header) + sizeof(msg), 0, (struct sockaddr *)&cli_addr, sizeof(cli_addr));
                 free(header);
                 assert(ret > 0);

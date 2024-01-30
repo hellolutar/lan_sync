@@ -3,15 +3,20 @@
 srcs := $(wildcard *.cpp)
 targets := $(patsubst %.cpp,%,$(srcs))
 
-
 CC=g++
+CXXFLAGS=-g
 CFLAGS=-g
-CLDFLAGS:=-levent
+LDFLAGS:=
+LIBS:=-levent
 
 all: ${targets}
 
-%.out: %.c build
-	${CC} ${CFLAGS} -o $@ $< 
+discover: discover.cpp
+	$(CC) $(CFLAGS) $(LDFLAGS) $< $(LIBS) -o $@
+
+discover_server: discover_server.cpp
+	$(CC) $(CFLAGS) $(LDFLAGS) $< $(LIBS) -o $@
+
 
 clean:
-	rm -rf $(targets)
+	rm -rf $(targets) *.o *.so *.a *.dll
