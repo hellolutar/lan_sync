@@ -97,7 +97,7 @@ void connect_http_server(struct cb_arg *arg)
     }
 
     struct bufferevent *bev = bufferevent_socket_new(base, tcpsock, BEV_OPT_CLOSE_ON_FREE);
-    bufferevent_setcb(bev, tcp_readcb, tcp_writecb, NULL, base);
+    bufferevent_setcb(bev, tcp_readcb, tcp_writecb, nullptr, base);
     bufferevent_enable(bev, EV_READ | EV_WRITE);
     cb_arg_free(arg);
 }
@@ -153,7 +153,7 @@ void udp_sent_hello(evutil_socket_t fd, short events, void *ctx)
     evbuffer_add(arg->buf, msg.data(), msg.size());
 
     struct event *write_e = event_new(base, fd, EV_WRITE, writecb, arg);
-    event_add(write_e, NULL);
+    event_add(write_e, nullptr);
 }
 
 void Discover::start()
