@@ -72,17 +72,45 @@ void configure_sock(sockaddr_in *const target_sock_addr, const struct local_inf_
     target_sock_addr->sin_port = htons(DISCOVER_SERVER_UDP_PORT);
 }
 
-void readcb(evutil_socket_t fd, short events, void *ctx)
+void tcp_readcb(struct bufferevent *bev, void *ctx)
 {
+    printf("receive tcp msg! \n");
+}
 
+void tcp_writecb(struct bufferevent *bev, void *ctx)
+{
+    printf("can write msg to peer tcp server! \n");
+}
+
+void connect_http_server(struct cb_arg *arg)
+{
+    struct sockaddr_in sin;
+    sin.sin_family = AF_INET;
+    sin.sin_addr.s_addr = 0;
+
+    int tcpsock = socket(AF_INET, SOCK_STREAM, 0);
+    int ret = connect(tcpsock, (struct sockaddr *)arg->target_addr, sizeof(struct sockaddr_in));
+    if (ret < 0)
+    {
+        printf("[DEBUG] TCP ERROR: %s \n", strerror(errno));
+        libevent_global_shutdown();
+    }
+
+    struct bufferevent *bev = bufferevent_socket_new(base, tcpsock, BEV_OPT_CLOSE_ON_FREE);
+    bufferevent_setcb(bev, tcp_readcb, tcp_writecb, NULL, base);
+    bufferevent_enable(bev, EV_READ | EV_WRITE);
+    cb_arg_free(arg);
+}
+
+void udp_readcb(evutil_socket_t fd, short events, void *ctx)
+{
     struct event_base *base = (struct event_base *)ctx;
 
-    struct cb_arg *arg = cb_arg_new(base);
-
+    struct sockaddr_in target_addr;
     socklen_t addrlen = sizeof(struct sockaddr_in);
     char data[4096] = {0};
 
-    int receive = recvfrom(fd, data, 4096, 0, (struct sockaddr *)arg->target_addr, &addrlen);
+    int receive = recvfrom(fd, data, 4096, 0, (struct sockaddr *)&target_addr, &addrlen);
     if (receive <= 0)
     {
         printf("warning: cannot receive anything !\n");
@@ -90,7 +118,8 @@ void readcb(evutil_socket_t fd, short events, void *ctx)
     }
 
     struct lan_discover_header *header = (lan_discover_header_t *)data;
-    printf("recive msg, data_len:%d \n", header->data_len);
+    uint16_t peer_tcp_port = *(uint16_t *)(header + 1);
+    printf("recive msg, data_len:%d , port: %d\n", header->data_len, peer_tcp_port);
 
     if (header->type == LAN_DISCOVER_TYPE_HELLO_ACK)
     {
@@ -98,14 +127,22 @@ void readcb(evutil_socket_t fd, short events, void *ctx)
         if (discover->st == STATE_DISCOVERING)
         {
             discover->st = STATE_SYNC_READY;
+
+            // todo(lutar) 形成 RESOURCE_TABLE, 这里是不是也可以引入状态机
+
+            struct cb_arg *arg = cb_arg_new(base);
+            memcpy(arg->target_addr, &target_addr, sizeof(target_addr));
+            arg->target_addr->sin_port = htons(peer_tcp_port);
+
+            connect_http_server(arg);
+            printf("[DEBUG] todo : add a tcp bufferevent to sync request!\n");
         }
-        printf("[DEBUG] todo : add a tcp bufferevent to sync request!");
     }
     else
         printf("%s : %d", "unsupport type, do not reply \n", header->type);
 }
 
-void sent_udp_hello(evutil_socket_t fd, short events, void *ctx)
+void udp_sent_hello(evutil_socket_t fd, short events, void *ctx)
 {
     // todo (lutar) 引入定时器
     struct cb_arg *arg = (struct cb_arg *)ctx;
@@ -123,13 +160,13 @@ void Discover::start()
 {
     struct event *write_event, *read_event;
 
-    sock = socket(AF_INET, SOCK_DGRAM, 0);
-    assert(sock > 0);
+    udp_sock = socket(AF_INET, SOCK_DGRAM, 0);
+    assert(udp_sock > 0);
 
     int optval = 1; // 这个值一定要设置，否则可能导致sendto()失败
-    setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(int));
-    setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(int));
-    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
+    setsockopt(udp_sock, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(int));
+    setsockopt(udp_sock, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(int));
+    setsockopt(udp_sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
 
     struct cb_arg *arg = cb_arg_new(base);
 
@@ -142,14 +179,14 @@ void Discover::start()
 
         configure_sock(arg->target_addr, info);
 
-        write_event = event_new(base, sock, EV_WRITE, sent_udp_hello, arg); // todo(lutar) 实现周期发送
+        write_event = event_new(base, udp_sock, EV_WRITE, udp_sent_hello, arg); // todo(lutar) 实现周期发送
         assert(write_event);
         event_add(write_event, nullptr);
 
         break;
     }
 
-    read_event = event_new(base, sock, EV_READ | EV_PERSIST, readcb, base); // todo(lutar) 实现周期发送
+    read_event = event_new(base, udp_sock, EV_READ | EV_PERSIST, udp_readcb, base); // todo(lutar) 实现周期发送
     assert(read_event);
     event_add(read_event, nullptr);
 

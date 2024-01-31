@@ -13,8 +13,7 @@ DiscoverServer::~DiscoverServer()
 {
 }
 
-
-void readcb(evutil_socket_t fd, short events, void *ctx)
+void udp_readcb(evutil_socket_t fd, short events, void *ctx)
 {
     struct event_base *base = (struct event_base *)ctx;
 
@@ -23,7 +22,8 @@ void readcb(evutil_socket_t fd, short events, void *ctx)
     char data[4096] = {0};
 
     int receive = recvfrom(fd, data, 4096, 0, (struct sockaddr *)arg->target_addr, &addrlen);
-    if (receive <= 0){
+    if (receive <= 0)
+    {
         printf("[WARNING]: cannot receive anything !\n");
         return;
     }
@@ -36,15 +36,13 @@ void readcb(evutil_socket_t fd, short events, void *ctx)
         if (disconverServer->st == STATE_DISCOVERING)
         {
             printf("[DEBUG] state is STATE_DISCOVERING \n");
-            disconverServer->st = STATE_SYNC_READY;
-            uint16_t msg = DISCOVER_SERVER_HTTP_PORT;
-            lan_discover_header_t reply_header = {LAN_DISCOVER_VER_0_1, LAN_DISCOVER_TYPE_HELLO_ACK, sizeof(msg)};
-
-            evbuffer_add(arg->buf, &reply_header, sizeof(lan_discover_header_t));
-            evbuffer_add(arg->buf, &msg, sizeof(msg));
         }
-        else
-            printf("%s : %d", "unsupport type, do not reply \n", header->type);
+        disconverServer->st = STATE_SYNC_READY;
+        uint16_t msg = DISCOVER_SERVER_HTTP_PORT;
+        lan_discover_header_t reply_header = {LAN_DISCOVER_VER_0_1, LAN_DISCOVER_TYPE_HELLO_ACK, sizeof(msg)};
+        
+        evbuffer_add(arg->buf, &reply_header, sizeof(lan_discover_header_t));
+        evbuffer_add(arg->buf, &msg, sizeof(msg));
     }
 
     struct event *write_e = event_new(base, fd, EV_WRITE, writecb, arg);
@@ -70,7 +68,7 @@ void DiscoverServer::start()
 
     printf("listen: %d\n", DISCOVER_SERVER_UDP_PORT);
 
-    struct event *read_e = event_new(base, sock, EV_READ | EV_PERSIST, readcb, base);
+    struct event *read_e = event_new(base, sock, EV_READ | EV_PERSIST, udp_readcb, base);
     event_add(read_e, NULL);
 
     event_base_dispatch(base);

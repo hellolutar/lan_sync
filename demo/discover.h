@@ -31,7 +31,7 @@ public:
     struct local_inf_info *inf_infos;
     uint8_t inf_infos_len = 0;
     struct sockaddr_in *target_sock_addrs;
-    int sock;
+    int udp_sock;
     Discover(struct event_base *base);
     ~Discover();
     void start();

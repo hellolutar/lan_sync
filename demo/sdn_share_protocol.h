@@ -13,7 +13,6 @@
 
 #include <event2/buffer.h>
 
-
 #define DISCOVER_SERVER_UDP_PORT 58080
 #define DISCOVER_SERVER_HTTP_PORT 58081
 
