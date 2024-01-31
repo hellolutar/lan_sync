@@ -4,11 +4,8 @@
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
 
-typedef struct cb_arg
-{
-    Discover dis;
-    size_t index;
-} cb_arg_t;
+struct event_base *base = event_base_new();
+Discover *discover = new Discover(base);
 
 int getLoclInfo(struct local_inf_info *inf_infos)
 {
@@ -75,82 +72,57 @@ void configure_sock(sockaddr_in *const target_sock_addr, const struct local_inf_
     target_sock_addr->sin_port = htons(DISCOVER_SERVER_UDP_PORT);
 }
 
-int send_to(int sock, const sockaddr_in &target_sock_addr, string data)
+void readcb(evutil_socket_t fd, short events, void *ctx)
 {
-    lan_discover_header_t tmp_header = {LAN_DISCOVER_VER_0_1, LAN_DISCOVER_TYPE_HELLO, (uint16_t)data.size()};
-    lan_discover_header_t *header = (lan_discover_header_t *)encapsulate(tmp_header, data.data(), data.size());
 
-    int ret = sendto(sock, header, sizeof(header) + data.size(), 0, (struct sockaddr *)&target_sock_addr, sizeof(target_sock_addr));
-    free(header);
-    printf("udp send result :%d \n", ret);
-    return ret;
-}
+    struct event_base *base = (struct event_base *)ctx;
 
-bool Discover::handle_hello_recv(struct bufferevent *bev)
-{
-    struct evbuffer *input, *output;
-    input = bufferevent_get_input(bev);
+    struct cb_arg *arg = cb_arg_new(base);
 
-    char buf[evbuffer_get_length(input)] = {0};
-    evbuffer_copyout(input, buf, evbuffer_get_length(input));
+    socklen_t addrlen = sizeof(struct sockaddr_in);
+    char data[4096] = {0};
 
-    struct lan_discover_header *header = (lan_discover_header_t *)buf;
+    int receive = recvfrom(fd, data, 4096, 0, (struct sockaddr *)arg->target_addr, &addrlen);
+    if (receive <= 0)
+    {
+        printf("warning: cannot receive anything !\n");
+        return;
+    }
 
-    // 这里可以适用设计模式
+    struct lan_discover_header *header = (lan_discover_header_t *)data;
+    printf("recive msg, data_len:%d \n", header->data_len);
+
     if (header->type == LAN_DISCOVER_TYPE_HELLO_ACK)
     {
         // 启动HTTPS Server
-        if (this->st == STATE_DISCOVERING)
+        if (discover->st == STATE_DISCOVERING)
         {
-            output = bufferevent_get_output(bev);
-            this->st = STATE_SYNC_READY;
+            discover->st = STATE_SYNC_READY;
         }
         printf("[DEBUG] todo : add a tcp bufferevent to sync request!");
-
-        return true;
     }
     else
         printf("%s : %d", "unsupport type, do not reply \n", header->type);
-    return false;
 }
 
-static void errorcb(struct bufferevent *bev, short error, void *ctx)
-{
-    if (error & BEV_EVENT_EOF)
-    {
-        /* connection has been closed, do any clean up here */
-        /* ... */
-    }
-    else if (error & BEV_EVENT_ERROR)
-    {
-        /* check errno to see what error occurred */
-        /* ... */
-    }
-    else if (error & BEV_EVENT_TIMEOUT)
-    {
-        /* must be a timeout event handle, handle it */
-        /* ... */
-    }
-    bufferevent_free(bev);
-}
-
-void readcb(struct bufferevent *bev, void *ctx)
-{
-    printf("recive msg \n");
-    Discover *dis = (Discover *)ctx;
-    dis->handle_hello_recv(bev);
-}
-
-void write_frequence_cb(evutil_socket_t fd, short events, void *arg)
+void sent_udp_hello(evutil_socket_t fd, short events, void *ctx)
 {
     // todo (lutar) 引入定时器
-    const sockaddr_in *target_sock_addr = (const sockaddr_in *)arg;
-    printf("want to send udp to %s \n", inet_ntoa(target_sock_addr->sin_addr));
-    send_to(fd, *target_sock_addr, "hello");
+    struct cb_arg *arg = (struct cb_arg *)ctx;
+
+    string msg = "hello";
+    lan_discover_header_t reply_header = {LAN_DISCOVER_VER_0_1, LAN_DISCOVER_TYPE_HELLO, sizeof(msg.data())};
+    evbuffer_add(arg->buf, &reply_header, sizeof(lan_discover_header_t));
+    evbuffer_add(arg->buf, msg.data(), msg.size());
+
+    struct event *write_e = event_new(base, fd, EV_WRITE, writecb, arg);
+    event_add(write_e, NULL);
 }
 
 void Discover::start()
 {
+    struct event *write_event, *read_event;
+
     sock = socket(AF_INET, SOCK_DGRAM, 0);
     assert(sock > 0);
 
@@ -159,7 +131,7 @@ void Discover::start()
     setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(int));
     setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
 
-    struct event *write_event;
+    struct cb_arg *arg = cb_arg_new(base);
 
     for (size_t i = 0; i < inf_infos_len; i++)
     {
@@ -168,30 +140,27 @@ void Discover::start()
         if (info.broad_addr.sin_addr.s_addr == 0)
             continue;
 
-        struct sockaddr_in *target_sock_addr = &target_sock_addrs[i];
-        configure_sock(target_sock_addr, info);
+        configure_sock(arg->target_addr, info);
 
-        write_event = event_new(base, sock, EV_WRITE, write_frequence_cb, target_sock_addr); // todo(lutar) 注意这里的&arg，这里应该会被释放，所以应该使用malloc，但现在没有
+        write_event = event_new(base, sock, EV_WRITE, sent_udp_hello, arg); // todo(lutar) 实现周期发送
         assert(write_event);
-        event_add(write_event, nullptr); // todo(lutar) 当接收到server的相应后，立即释放该event
-
-        struct bufferevent *bev;
-        evutil_make_socket_nonblocking(sock);
-        bev = bufferevent_socket_new(base, sock, BEV_OPT_CLOSE_ON_FREE);
-        bufferevent_setcb(bev, readcb, nullptr, errorcb, target_sock_addr); // todo(lutar) 注意这里的&arg，这里应该会被释放，所以应该使用malloc，但现在没有
-        bufferevent_enable(bev, EV_READ | EV_WRITE | EV_PERSIST);
+        event_add(write_event, nullptr);
 
         break;
     }
+
+    read_event = event_new(base, sock, EV_READ | EV_PERSIST, readcb, base); // todo(lutar) 实现周期发送
+    assert(read_event);
+    event_add(read_event, nullptr);
+
     event_base_dispatch(base);
-    // event_free(write_event);
+    event_free(read_event); // todo(lutar): 这里应该不用释放
 }
 
 int main(int argc, char const *argv[])
 {
-    struct event_base *base = event_base_new();
-    assert(base);
-    Discover discover(base);
-    discover.start();
+    discover->start();
+    event_base_free(base);
+    free(discover);
     return 0;
 }

@@ -9,13 +9,13 @@ CFLAGS=-g
 LDFLAGS:=
 LIBS:=-levent
 
-all: ${targets}
+all: discover discover_server
 
-discover: discover.cpp
-	$(CC) $(CFLAGS) $(LDFLAGS) $< $(LIBS) -o $@
+discover: discover.cpp sdn_share_protocol.cpp
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
-discover_server: discover_server.cpp
-	$(CC) $(CFLAGS) $(LDFLAGS) $< $(LIBS) -o $@
+discover_server: discover_server.cpp sdn_share_protocol.cpp
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 
 clean:

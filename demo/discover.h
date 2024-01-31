@@ -36,7 +36,6 @@ public:
     ~Discover();
     void start();
     void do_connect(evutil_socket_t sock, short event, void *arg);
-    bool handle_hello_recv(struct bufferevent *bev);
 };
 
 #endif
