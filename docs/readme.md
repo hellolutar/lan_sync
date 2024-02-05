@@ -84,6 +84,21 @@ discover
 ### p2p阶段 TODO 
 一个中央资源服务器，其余都是客户端，各终端之前的资源在中央服务器形成
 
+| 名字 | 大小 | sha256 | uri | 存储地址 |
+| ---- | ---- | ------ | --- | -------- |
+| name | size | digest | uri | path     |
+
+
+1. 形成resource table
+   - 扫描指定路径，要求递归扫描
+   - 计算sha256
+2. 比较resource table
+3. 请求resource
+   请求uri
+4. 回传resource
+5. 保存resource
+   - 边接收边保存
+
 
 ### 断开连接阶段
 
