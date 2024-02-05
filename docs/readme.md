@@ -1,22 +1,21 @@
 
 
 
-``` mermaid 
+``` mermaid
 sequenceDiagram
 
 CLI ->> SER : HELLO
 SER -->> CLI : ACK, SYNC_READY状态
-CLI收到ACK后，进入SYNC_READY状态
 
-// 建立 TCP连接
+note left of CLI: CLI收到ACK后，进入SYNC_READY状态
+note left of CLI: 建立 TCP连接
+
 CLI ->> SER: GET RES_TABLE
 SER -->> CLI: GET RES_TABLE
 
 CLI ->> SER: GET RESOURCE
 SER -->> CLI: GET RESOURCE
-
-// 断开 TCP连接
-
+note left of CLI: 断开 TCP连接
 ```
 
 
@@ -87,5 +86,4 @@ discover
 
 
 ### 断开连接阶段
-
 
