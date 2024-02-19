@@ -1,11 +1,14 @@
-#ifndef __SDN_SHARE_PROTOCOL_H
-#define __SDN_SHARE_PROTOCOL_H
+#ifndef __LAN_SHARE_PROTOCOL_H
+#define __LAN_SHARE_PROTOCOL_H
 
 #include <cstdint>
 #include <cstring>
 #include <cstdlib>
 #include <cstdio>
 #include <cassert>
+#include <malloc.h>
+
+#include <vector>
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -13,8 +16,12 @@
 
 #include <event2/buffer.h>
 
+#include "resource.h"
+
+using namespace std;
+
 #define DISCOVER_SERVER_UDP_PORT 58080
-#define DISCOVER_SERVER_HTTP_PORT 58081
+#define DISCOVER_SERVER_TCP_PORT 58081
 
 struct local_inf_info
 {
@@ -48,7 +55,7 @@ typedef struct lan_discover_header
     uint16_t data_len;
 } lan_discover_header_t;
 
-void *encapsulate(lan_discover_header_t header, void *data, int data_len);
+void *lan_discover_encapsulate(lan_discover_header_t header, void *data, int data_len);
 
 void debug_print_header(struct lan_discover_header *header, struct in_addr addr);
 
@@ -60,6 +67,7 @@ enum lan_sync_version : uint8_t
 enum lan_sync_type_enum : uint8_t
 {
     LAN_SYNC_TYPE_GET_TABLE_INDEX = 1,
+    LAN_SYNC_TYPE_REPLY_TABLE_INDEX,
     LAN_SYNC_TYPE_GET_RESOURCE,
     LAN_SYNC_TYPE_UPDATE_RESOURCE,
     LAN_SYNC_TYPE_CLOSE,
@@ -72,6 +80,10 @@ typedef struct lan_sync_header
     uint16_t header_len;
     uint64_t data_len;
 } lan_sync_header_t;
+
+void lan_sync_encapsulate(struct evbuffer *out, lan_sync_header_t header, void *data, int data_len);
+
+struct Resource *lan_sync_parseTableToData(vector<struct Resource *> table);
 
 struct cb_arg
 {

@@ -17,7 +17,7 @@
 
 #include <event2/event.h>
 
-#include "sdn_share_protocol.h"
+#include "lan_share_protocol.h"
 
 using namespace std;
 

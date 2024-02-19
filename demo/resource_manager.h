@@ -2,27 +2,39 @@
 #define __RESOURCE_MANAGER_H
 
 #include <cstdint>
+#include <cstring>
+#include <malloc.h>
+#include <vector>
+#include <string>
+#include <filesystem>
 
-#define RESOURCE_HOME / home / lutar / code / libevent / mine / sdn_sync / resources
+#include "utils/openssl_utils.h"
+#include "resource.h"
 
-/**
- * | name | size | digest | uri | path     |
- */
-struct Resource
-{
-    char name[256];
-    uint64_t size;
-    // digest
-    char uri[2048];
-    char path[2048];
-};
+using namespace std;
+
+
 
 class ResourceManager
 {
 private:
+    vector<struct Resource *> table;
+    vector<struct Resource *> recurPath(filesystem::path p);
+    vector<struct Resource *> genResources(string p);
+    void freeTable();
+    string rsHome = nullptr;
+
+    OpensslUtil opensslUtil;
+
 public:
-    ResourceManager(/* args */);
+    ResourceManager(string path):rsHome(path){};
     ~ResourceManager();
+
+    vector<struct Resource *> getTable();
+
+    void refreshTable();
+
+    void setRsHomePath(string path);
 };
 
 #endif

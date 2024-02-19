@@ -72,17 +72,64 @@ void configure_sock(sockaddr_in *const target_sock_addr, const struct local_inf_
     target_sock_addr->sin_port = htons(DISCOVER_SERVER_UDP_PORT);
 }
 
+void handleLanSyncReplyTableIndex(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
+{
+    int total_len = try_header->header_len + try_header->data_len;
+    if (recvLen < total_len)
+    {
+        return;
+    }
+    printf("[DEBUG] [TCP] cli recive table index!\n");
+
+    char *bufp = (char *)malloc(total_len);
+    memset(bufp, 0, total_len);
+
+    recvLen = evbuffer_remove(in, bufp, total_len);
+    assert(recvLen == total_len);
+
+    lan_sync_header_t *header = (lan_sync_header_t *)bufp;
+
+    // 提取记录数量
+    uint64_t num = header->data_len / sizeof(struct Resource);
+
+    struct Resource *table = (struct Resource *)(++header);
+
+    for (size_t i = 0; i < num; i++)
+    {
+        printf("\n");
+        printf("name: %s\n", table[i].name);
+        printf("size: %ld\n", table[i].size);
+        printf("uri: %s\n", table[i].uri);
+        printf("path: %s\n", table[i].path);
+        printf("hash: %s\n", table[i].hash);
+    }
+
+    free(bufp);
+}
+
 void tcp_readcb(struct bufferevent *bev, void *ctx)
 {
-    printf("receive tcp msg! \n");
+    printf("[DEBUG] receive tcp msg! \n");
+    printf("[DEBUG] [TCP] : receive msg!\n");
+    struct evbuffer *in = bufferevent_get_input(bev);
+    struct evbuffer *out = bufferevent_get_output(bev);
+
+    int recvLen = evbuffer_get_length(in);
+    char buf[128] = {0};
+    evbuffer_copyout(in, buf, 128);
+    lan_sync_header_t *try_header = (lan_sync_header_t *)buf;
+    if (try_header->type == LAN_SYNC_TYPE_REPLY_TABLE_INDEX)
+    {
+        handleLanSyncReplyTableIndex(in, out, try_header, recvLen);
+    }
 }
 
 void tcp_writecb(struct bufferevent *bev, void *ctx)
 {
-    printf("can write msg to peer tcp server! \n");
+    printf("[DEBUG] can write msg to peer tcp server! \n");
 }
 
-void connect_http_server(struct cb_arg *arg)
+void connect_tcp_server(struct cb_arg *arg)
 {
     struct sockaddr_in sin;
     sin.sin_family = AF_INET;
@@ -100,6 +147,15 @@ void connect_http_server(struct cb_arg *arg)
     bufferevent_setcb(bev, tcp_readcb, tcp_writecb, nullptr, base);
     bufferevent_enable(bev, EV_READ | EV_WRITE);
     cb_arg_free(arg);
+
+    struct evbuffer *out = bufferevent_get_output(bev);
+    lan_sync_header_t header = {
+        .version = LAN_SYNC_VER_0_1,
+        .type = LAN_SYNC_TYPE_GET_TABLE_INDEX,
+        .header_len = (uint16_t)sizeof(lan_sync_header_t),
+        .data_len = 0};
+    lan_sync_encapsulate(out, header, nullptr, 0);
+    printf("[INFO ] [TCP] [lan sync] req resource!\n");
 }
 
 void udp_readcb(evutil_socket_t fd, short events, void *ctx)
@@ -134,7 +190,7 @@ void udp_readcb(evutil_socket_t fd, short events, void *ctx)
             memcpy(arg->target_addr, &target_addr, sizeof(target_addr));
             arg->target_addr->sin_port = htons(peer_tcp_port);
 
-            connect_http_server(arg);
+            connect_tcp_server(arg);
             printf("[DEBUG] todo : add a tcp bufferevent to sync request!\n");
         }
     }

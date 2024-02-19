@@ -9,13 +9,41 @@ DiscoverServer::DiscoverServer(struct event_base *base)
     this->base = base;
 }
 
-DiscoverServer::~DiscoverServer()
-{
-}
+// DiscoverServer::~DiscoverServer()
+// {
+// }
 
 void tcp_readcb(struct bufferevent *bev, void *ctx)
 {
-    printf("[DEBUG] TCP : receive msg!\n");
+    printf("[DEBUG] [TCP] : receive msg!\n");
+    struct evbuffer *in = bufferevent_get_input(bev);
+    int len = evbuffer_get_length(in);
+    char buf[2048] = {0};
+    int ret = evbuffer_remove(in, buf, len);
+    if (ret >= 0)
+    {
+        // TODO  取data中的数据时：数据量过大，无法一次取完，该如何处理。
+        lan_sync_header_t *header = (lan_sync_header_t *)buf;
+        if (header->type == LAN_SYNC_TYPE_GET_TABLE_INDEX)
+        {
+            printf("[DEBUG] [TCP] cli req table index!\n");
+            vector<struct Resource *> table = disconverServer->rm.getTable();
+            // 将table 转为 data
+            struct Resource *data = lan_sync_parseTableToData(table);
+
+            struct evbuffer *out = bufferevent_get_output(bev);
+            lan_sync_header_t header = {
+                .version = LAN_SYNC_VER_0_1,
+                .type = LAN_SYNC_TYPE_REPLY_TABLE_INDEX,
+                .header_len = (uint16_t)sizeof(lan_sync_header_t),
+                .data_len = sizeof(struct Resource) * table.size()};
+            lan_sync_encapsulate(out, header, data, header.data_len);
+        }
+    }
+    else
+    {
+        printf("[WARNING] [TCP] cannot recive data from evbuffer!");
+    }
 }
 
 void tcp_writecb(struct bufferevent *bev, void *ctx)
@@ -51,7 +79,7 @@ void start_tcp_server(struct event_base *base)
 
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(DISCOVER_SERVER_HTTP_PORT);
+    addr.sin_port = htons(DISCOVER_SERVER_TCP_PORT);
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     assert(bind(tcp_sock, (struct sockaddr *)&addr, sizeof(addr)) == 0);
@@ -85,19 +113,17 @@ void udp_readcb(evutil_socket_t fd, short events, void *ctx)
 
     if (header->type == LAN_DISCOVER_TYPE_HELLO)
     {
-        // 启动HTTPS Server
+        // 启动TCP Server
         if (disconverServer->st == STATE_DISCOVERING)
         {
             start_tcp_server(base);
         }
         disconverServer->st = STATE_SYNC_READY;
-        uint16_t msg = DISCOVER_SERVER_HTTP_PORT;
+        uint16_t msg = DISCOVER_SERVER_TCP_PORT;
         lan_discover_header_t reply_header = {LAN_DISCOVER_VER_0_1, LAN_DISCOVER_TYPE_HELLO_ACK, sizeof(msg)};
 
         evbuffer_add(arg->buf, &reply_header, sizeof(lan_discover_header_t));
         evbuffer_add(arg->buf, &msg, sizeof(msg));
-
-        // todo(lutar) 检查并形成RESOURCE TABLE
     }
 
     struct event *write_e = event_new(base, fd, EV_WRITE, writecb, arg);
@@ -121,7 +147,7 @@ void DiscoverServer::start()
 
     assert(bind(udp_sock, (struct sockaddr *)&addr, sizeof(addr)) >= 0);
 
-    printf("listen: %d\n", DISCOVER_SERVER_UDP_PORT);
+    printf("[UDP] listen: %d\n", DISCOVER_SERVER_UDP_PORT);
 
     struct event *read_e = event_new(base, udp_sock, EV_READ | EV_PERSIST, udp_readcb, base);
     event_add(read_e, nullptr);
