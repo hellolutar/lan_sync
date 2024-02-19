@@ -24,6 +24,21 @@ vector<struct Resource *> ResourceManager::getTable()
     return table;
 }
 
+const struct Resource *ResourceManager::queryByUri(string uri)
+{
+    auto table = getTable();
+
+    for (int i = 0; i < table.size(); i++)
+    {
+        struct Resource *item = table.at(i);
+        if (item->uri == uri)
+        {
+            return item;
+        }
+    }
+    return nullptr;
+}
+
 void ResourceManager::refreshTable()
 {
     freeTable();
@@ -80,4 +95,9 @@ vector<struct Resource *> ResourceManager::recurPath(filesystem::path p)
         return paths;
     }
     return {};
+}
+
+string ResourceManager::getRsHome()
+{
+    return rsHome;
 }

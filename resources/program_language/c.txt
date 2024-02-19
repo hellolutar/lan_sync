@@ -1,3 +1,0 @@
-hello go
-end
-中文c

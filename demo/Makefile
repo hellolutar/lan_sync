@@ -19,6 +19,8 @@ discover: discover.cpp ${proto_srcs} ${srcutils}
 discover_server: discover_server.cpp ${proto_srcs} ${srcutils}
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
+wc:
+	git ls-files | xargs cat | wc -l
 clean:
 	rm -rf $(targets) *.o *.so *.a *.dll \
 	 discover discover_server 

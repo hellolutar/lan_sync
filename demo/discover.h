@@ -9,6 +9,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -18,13 +19,13 @@
 #include <event2/event.h>
 
 #include "lan_share_protocol.h"
+#include "resource_manager.h"
 
 using namespace std;
 
 class Discover
 {
 private:
-
 public:
     enum state st;
     struct event_base *base;
@@ -32,6 +33,8 @@ public:
     uint8_t inf_infos_len = 0;
     struct sockaddr_in *target_sock_addrs;
     int udp_sock;
+    ResourceManager rm = ResourceManager("resources/cli");
+
     Discover(struct event_base *base);
     ~Discover();
     void start();

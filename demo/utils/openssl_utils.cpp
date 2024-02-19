@@ -45,6 +45,7 @@ string OpensslUtil::mdEncodeWithSHA3_512(string f)
         assert(EVP_DigestUpdate(digest_ctx, buf, strlen(buf)) == 1);
         memset(buf, 0, 4096);
     }
+    ifs.close();
     assert(EVP_DigestFinal(digest_ctx, digest_value, &digest_len));
 
     stringstream iss;

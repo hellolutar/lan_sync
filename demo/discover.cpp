@@ -72,6 +72,26 @@ void configure_sock(sockaddr_in *const target_sock_addr, const struct local_inf_
     target_sock_addr->sin_port = htons(DISCOVER_SERVER_UDP_PORT);
 }
 
+void requestResource(struct evbuffer *out)
+{
+    vector<struct Resource *> localTables = discover->rm.getTable();
+
+    vector<string> wantToReq;
+    wantToReq.push_back("/network/TCPIP详解卷2.txt");
+    for (size_t i = 0; i < wantToReq.size(); i++)
+    {
+        string data = wantToReq[i];
+        lan_sync_header_t header = {
+            .version = LAN_SYNC_VER_0_1,
+            .type = LAN_SYNC_TYPE_GET_RESOURCE,
+            .header_len = (uint16_t)sizeof(lan_sync_header_t),
+            .data_len = data.size(),
+        };
+
+        lan_sync_encapsulate(out, header, data.data(), data.size());
+    }
+}
+
 void handleLanSyncReplyTableIndex(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
 {
     int total_len = try_header->header_len + try_header->data_len;
@@ -85,6 +105,7 @@ void handleLanSyncReplyTableIndex(struct evbuffer *in, struct evbuffer *out, lan
     memset(bufp, 0, total_len);
 
     recvLen = evbuffer_remove(in, bufp, total_len);
+    printf("[DEBUG] EVBUFFER REMAIN: %ld \n", evbuffer_get_length(in));
     assert(recvLen == total_len);
 
     lan_sync_header_t *header = (lan_sync_header_t *)bufp;
@@ -104,17 +125,63 @@ void handleLanSyncReplyTableIndex(struct evbuffer *in, struct evbuffer *out, lan
         printf("hash: %s\n", table[i].hash);
     }
 
+    requestResource(out);
+
+    free(bufp);
+}
+
+void handleLanSyncReplyResource(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
+{
+    int total_len = try_header->header_len + try_header->data_len;
+    if (recvLen < total_len)
+    {
+        return;
+    }
+    printf("[DEBUG] [TCP] cli recive resource!\n");
+
+    char *bufp = (char *)malloc(total_len);
+    memset(bufp, 0, total_len);
+
+    recvLen = evbuffer_remove(in, bufp, total_len);
+    assert(recvLen == total_len);
+
+    lan_sync_header_t *header = (lan_sync_header_t *)bufp;
+    string dataStr((char *)(header + 1));
+    string splitflag = "\r\n";
+    int index = dataStr.find(splitflag);
+
+    string uri = dataStr.substr(strlen("uri:"), index - strlen("uri:"));
+
+    string fileContent = dataStr.substr(index + splitflag.size());
+    printf("[DEBUG] recv file size:%ld \n", fileContent.size());
+
+    // 提取内容
+    string pathstr = discover->rm.getRsHome() + uri;
+    auto path = filesystem::path(pathstr);
+    if (!filesystem::exists(path.parent_path()))
+    {
+        filesystem::create_directories(path.parent_path());
+    }
+
+    ofstream ofs(pathstr);
+    ofs << fileContent;
+    ofs.close();
+
     free(bufp);
 }
 
 void tcp_readcb(struct bufferevent *bev, void *ctx)
 {
-    printf("[DEBUG] receive tcp msg! \n");
     printf("[DEBUG] [TCP] : receive msg!\n");
     struct evbuffer *in = bufferevent_get_input(bev);
     struct evbuffer *out = bufferevent_get_output(bev);
 
     int recvLen = evbuffer_get_length(in);
+    if (recvLen == 0)
+    {
+        return;
+    }
+
     char buf[128] = {0};
     evbuffer_copyout(in, buf, 128);
     lan_sync_header_t *try_header = (lan_sync_header_t *)buf;
@@ -122,11 +189,15 @@ void tcp_readcb(struct bufferevent *bev, void *ctx)
     {
         handleLanSyncReplyTableIndex(in, out, try_header, recvLen);
     }
+    else if (try_header->type == LAN_SYNC_TYPE_REPLY_RESOURCE)
+    {
+        handleLanSyncReplyResource(in, out, try_header, recvLen);
+    }
 }
 
 void tcp_writecb(struct bufferevent *bev, void *ctx)
 {
-    printf("[DEBUG] can write msg to peer tcp server! \n");
+    // printf("[DEBUG] can write msg to peer tcp server! \n");
 }
 
 void connect_tcp_server(struct cb_arg *arg)

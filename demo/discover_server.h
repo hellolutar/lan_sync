@@ -1,3 +1,5 @@
+#include <fcntl.h>
+
 #include <cstring>
 #include <cstdio>
 #include <cassert>
@@ -31,5 +33,5 @@ public:
     DiscoverServer(struct event_base *base);
     ~DiscoverServer();
     void start();
-    ResourceManager rm = ResourceManager("../resources");
+    ResourceManager rm = ResourceManager("resources/server");
 };

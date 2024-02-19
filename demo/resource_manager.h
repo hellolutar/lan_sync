@@ -32,6 +32,12 @@ public:
 
     vector<struct Resource *> getTable();
 
+    const struct Resource* queryByUri(string uri);
+    string getRsHome();
+
+
+
+
     void refreshTable();
 
     void setRsHomePath(string path);

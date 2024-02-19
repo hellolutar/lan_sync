@@ -26,15 +26,16 @@ void debug_print_header(struct lan_discover_header *header, struct in_addr addr)
 
 void evbuffer_cb_for_free(struct evbuffer *buffer, const struct evbuffer_cb_info *info, void *arg)
 {
-    printf("[DEBUG] buffer add size: %ld \n", info->n_added);
-    printf("[DEBUG] buffer last size: %ld \n", info->orig_size);
-
     if (evbuffer_get_length(buffer) == 0)
     {
-        lan_sync_header_t *ret_header = (lan_sync_header_t *)arg;
-        printf("[DEBUG] evbuffer is clear! \n");
-        free(ret_header);
-        printf("[DEBUG] free header! \n");
+        if (arg)
+        {
+            printf("[DEBUG] evbuffer is clear! \n");
+            printf("[DEBUG] free header! \n");
+            evbuffer_remove_cb(buffer, evbuffer_cb_for_free, arg);
+            free(arg);
+            arg = nullptr;
+        }
     }
 }
 
@@ -47,11 +48,11 @@ void lan_sync_encapsulate(struct evbuffer *out, lan_sync_header_t header, void *
     if (data_len > 0)
     {
         memcpy(ret_header + 1, data, data_len);
-        free(data);
     }
     evbuffer_add(out, (void *)ret_header, total_len);
 
-    // evbuffer_add(out, data, data_len);
+    // 这里有些疑问，多次add_cb, 不知道会发生什么
+    printf("[DEBUG] lan_sync_encapsulate");
     evbuffer_add_cb(out, evbuffer_cb_for_free, ret_header);
 }
 
