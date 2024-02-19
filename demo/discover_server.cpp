@@ -44,23 +44,27 @@ void replyResource(struct evbuffer *out, char *uri)
     int xheaderlen = strlen(xheader);
 
     // 读取文件内容
-    ifstream ifs(rs->path);
-    stringstream ss;
-    ss << ifs.rdbuf();
-    ifs.close();
+    int fd = open(rs->path, O_RDONLY);
+    char *data = (char *)malloc(xheaderlen + rs->size);
+    strcpy(data,xheader);
 
-    printf("[DEBUG] send file size:%ld \n", ss.str().size());
-
-    string data(xheader);
-    data.append(ss.str());
+    char *buf = data +xheaderlen;
+    uint64_t readed = read(fd, buf, rs->size);
+    while (readed != rs->size)
+    {
+        readed += read(fd, buf, rs->size);
+    }
+    close(fd);
+    printf("[DEBUG] send file size:%ld \n", readed);
 
     lan_sync_header_t header = {
         .version = LAN_SYNC_VER_0_1,
         .type = LAN_SYNC_TYPE_REPLY_RESOURCE,
         .header_len = (uint16_t)sizeof(lan_sync_header_t),
-        .data_len = data.size(),
+        .data_len = readed,
     };
-    lan_sync_encapsulate(out, header, data.data(), data.size());
+    lan_sync_encapsulate(out, header, data, readed);
+    free(data);
 }
 
 void handleLanSyncGetResource(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
@@ -160,6 +164,7 @@ void start_tcp_server(struct event_base *base)
     event_add(listener_event, nullptr);
 }
 
+// TODO(lutar, 20240219)  优化有限状态机
 void udp_readcb(evutil_socket_t fd, short events, void *ctx)
 {
     struct event_base *base = (struct event_base *)ctx;

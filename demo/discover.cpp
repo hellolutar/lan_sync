@@ -77,7 +77,7 @@ void requestResource(struct evbuffer *out)
     vector<struct Resource *> localTables = discover->rm.getTable();
 
     vector<string> wantToReq;
-    wantToReq.push_back("/network/TCPIP详解卷2.txt");
+    wantToReq.push_back("/network/http权威指南.pdf");
     for (size_t i = 0; i < wantToReq.size(); i++)
     {
         string data = wantToReq[i];
@@ -146,14 +146,22 @@ void handleLanSyncReplyResource(struct evbuffer *in, struct evbuffer *out, lan_s
     assert(recvLen == total_len);
 
     lan_sync_header_t *header = (lan_sync_header_t *)bufp;
-    string dataStr((char *)(header + 1));
-    string splitflag = "\r\n";
-    int index = dataStr.find(splitflag);
 
-    string uri = dataStr.substr(strlen("uri:"), index - strlen("uri:"));
+    char *raw = (char *)(header + 1);
+    char xheader[NAME_MAX_SIZE + strlen("uri:") + strlen("\r\n")];
+    strncpy(xheader, raw + strlen("uri:"), NAME_MAX_SIZE);
 
-    string fileContent = dataStr.substr(index + splitflag.size());
-    printf("[DEBUG] recv file size:%ld \n", fileContent.size());
+    char uri[2048] = {0};
+    for (size_t i = 0; i < NAME_MAX_SIZE; i++)
+    {
+        if (xheader[i] == '\r')
+        {
+            memcpy(uri, xheader, i);
+            break;
+        }
+    }
+
+    // printf("[DEBUG] recv file size:%ld \n", fileContent.size());
 
     // 提取内容
     string pathstr = discover->rm.getRsHome() + uri;
@@ -163,9 +171,18 @@ void handleLanSyncReplyResource(struct evbuffer *in, struct evbuffer *out, lan_s
         filesystem::create_directories(path.parent_path());
     }
 
-    ofstream ofs(pathstr);
-    ofs << fileContent;
-    ofs.close();
+    int fd = open(pathstr.data(), O_RDWR | O_CREAT);
+    if (fd < 0)
+    {
+        printf("[ERROR] %s \n", strerror(errno));
+        return;
+    }
+
+    char *data = strpbrk(raw, "\r\n") + strlen("\r\n");
+    // TODO(lutar) 这里需要对写出的数量进行处理
+    int writed = write(fd, raw, header->data_len);
+    printf("writed: %d \n", writed);
+    close(fd);
 
     free(bufp);
 }
