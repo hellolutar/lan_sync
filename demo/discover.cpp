@@ -189,14 +189,21 @@ void handleLanSyncReplyResource(struct evbuffer *in, struct evbuffer *out, lan_s
 
 void checkHash(lan_sync_header_t *header, string pathstr)
 {
+    auto p = filesystem::path(pathstr);
+    if (!filesystem::exists(p))
+    {
+        printf("[ERROR] [HASHCHECK] not exists: %s\n",pathstr.data());
+        return;
+    }
+
     string hash = lan_sync_header_query_xheader(header, "hash");
     OpensslUtil opensslUtil;
     string theFileHash = opensslUtil.mdEncodeWithSHA3_512(pathstr.data());
 
     if (hash.compare(theFileHash) != 0)
-        printf("[ERROR] hash is conflict\n");
+        printf("[ERROR] [HASHCHECK] hash is conflict\n");
     else
-        printf("[INFO ] hash is valid\n");
+        printf("[INFO ] [HASHCHECK] hash is valid\n");
 }
 
 void tcp_readcb(struct bufferevent *bev, void *ctx)
