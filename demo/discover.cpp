@@ -81,20 +81,16 @@ void requestResource(struct evbuffer *out)
     for (size_t i = 0; i < wantToReq.size(); i++)
     {
         string data = wantToReq[i];
-        lan_sync_header_t header = {
-            .version = LAN_SYNC_VER_0_1,
-            .type = LAN_SYNC_TYPE_GET_RESOURCE,
-            .header_len = (uint16_t)sizeof(lan_sync_header_t),
-            .data_len = data.size(),
-        };
 
-        lan_sync_encapsulate(out, header, data.data(), data.size());
+        lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_RESOURCE); // free in lan_sync_encapsulate --> evbuffer_cb_for_free
+        header = lan_sync_header_set_data(header, data.data(), data.size());
+        lan_sync_encapsulate(out, header);
     }
 }
 
 void handleLanSyncReplyTableIndex(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
 {
-    int total_len = try_header->header_len + try_header->data_len;
+    int total_len = try_header->total_len;
     if (recvLen < total_len)
     {
         return;
@@ -111,11 +107,12 @@ void handleLanSyncReplyTableIndex(struct evbuffer *in, struct evbuffer *out, lan
     lan_sync_header_t *header = (lan_sync_header_t *)bufp;
 
     // 提取记录数量
-    uint64_t num = header->data_len / sizeof(struct Resource);
+    int data_len = header->total_len - header->header_len;
+    uint64_t res_num = data_len / sizeof(struct Resource);
 
     struct Resource *table = (struct Resource *)(++header);
 
-    for (size_t i = 0; i < num; i++)
+    for (size_t i = 0; i < res_num; i++)
     {
         printf("\n");
         printf("name: %s\n", table[i].name);
@@ -130,9 +127,11 @@ void handleLanSyncReplyTableIndex(struct evbuffer *in, struct evbuffer *out, lan
     free(bufp);
 }
 
+void checkHash(lan_sync_header_t *header, string pathstr);
+
 void handleLanSyncReplyResource(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
 {
-    int total_len = try_header->header_len + try_header->data_len;
+    int total_len = try_header->total_len;
     if (recvLen < total_len)
     {
         return;
@@ -147,44 +146,57 @@ void handleLanSyncReplyResource(struct evbuffer *in, struct evbuffer *out, lan_s
 
     lan_sync_header_t *header = (lan_sync_header_t *)bufp;
 
-    char *raw = (char *)(header + 1);
-    char xheader[NAME_MAX_SIZE + strlen("uri:") + strlen("\r\n")];
-    strncpy(xheader, raw + strlen("uri:"), NAME_MAX_SIZE);
-
-    char uri[2048] = {0};
-    for (size_t i = 0; i < NAME_MAX_SIZE; i++)
+    string uri = lan_sync_header_query_xheader(header, "uri");
+    if (uri == "")
     {
-        if (xheader[i] == '\r')
-        {
-            memcpy(uri, xheader, i);
-            break;
-        }
+        printf("[ERROR] [TCP] handleLanSyncReplyResource() query header is failed! \n");
+        free(bufp);
+        return;
     }
 
-    // printf("[DEBUG] recv file size:%ld \n", fileContent.size());
-
-    // 提取内容
+    // 写
     string pathstr = discover->rm.getRsHome() + uri;
+
     auto path = filesystem::path(pathstr);
-    if (!filesystem::exists(path.parent_path()))
+    auto ppath = filesystem::absolute(path).parent_path();
+    if (!filesystem::exists(ppath))
     {
         filesystem::create_directories(path.parent_path());
     }
 
-    int fd = open(pathstr.data(), O_RDWR | O_CREAT);
+    int fd = open(pathstr.data(), O_RDWR | O_CREAT, 0644);
     if (fd < 0)
     {
         printf("[ERROR] %s \n", strerror(errno));
+        free(bufp);
         return;
     }
 
-    char *data = strpbrk(raw, "\r\n") + strlen("\r\n");
+    int data_len = header->total_len - header->header_len;
+    char *data = (char *)malloc(data_len);
+    lan_sync_header_extract_data(header, data);
     // TODO(lutar) 这里需要对写出的数量进行处理
-    int writed = write(fd, raw, header->data_len);
+    int writed = write(fd, data, data_len); // todo
     printf("writed: %d \n", writed);
+
     close(fd);
 
+    checkHash(header, pathstr);
+
+    free(data);
     free(bufp);
+}
+
+void checkHash(lan_sync_header_t *header, string pathstr)
+{
+    string hash = lan_sync_header_query_xheader(header, "hash");
+    OpensslUtil opensslUtil;
+    string theFileHash = opensslUtil.mdEncodeWithSHA3_512(pathstr.data());
+
+    if (hash.compare(theFileHash) != 0)
+        printf("[ERROR] hash is conflict\n");
+    else
+        printf("[INFO ] hash is valid\n");
 }
 
 void tcp_readcb(struct bufferevent *bev, void *ctx)
@@ -199,8 +211,8 @@ void tcp_readcb(struct bufferevent *bev, void *ctx)
         return;
     }
 
-    char buf[128] = {0};
-    evbuffer_copyout(in, buf, 128);
+    char buf[lan_sync_header_len + 1] = {0};
+    evbuffer_copyout(in, buf, lan_sync_header_len);
     lan_sync_header_t *try_header = (lan_sync_header_t *)buf;
     if (try_header->type == LAN_SYNC_TYPE_REPLY_TABLE_INDEX)
     {
@@ -237,12 +249,10 @@ void connect_tcp_server(struct cb_arg *arg)
     cb_arg_free(arg);
 
     struct evbuffer *out = bufferevent_get_output(bev);
-    lan_sync_header_t header = {
-        .version = LAN_SYNC_VER_0_1,
-        .type = LAN_SYNC_TYPE_GET_TABLE_INDEX,
-        .header_len = (uint16_t)sizeof(lan_sync_header_t),
-        .data_len = 0};
-    lan_sync_encapsulate(out, header, nullptr, 0);
+
+    lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_TABLE_INDEX); // free in lan_sync_encapsulate --> evbuffer_cb_for_free
+
+    lan_sync_encapsulate(out, header);
     printf("[INFO ] [TCP] [lan sync] req resource!\n");
 }
 

@@ -13,6 +13,8 @@
                 "-lssl",
                 "-lcrypto",
                 "-lgtest",
+                "-Wno-write-strings",
+                "-Wno-format-contains-nul",
                 "-o",
                 "${fileDirname}/${fileBasenameNoExtension}"
             ],

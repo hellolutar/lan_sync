@@ -19,14 +19,13 @@ void handleLanSyncGetTableIndex(struct evbuffer *in, struct evbuffer *out, lan_s
     char useless[1024];
     evbuffer_remove(in, useless, try_header->header_len);
 
-    auto table = disconverServer->rm.getTable();
-    lan_sync_header_t header = {
-        .version = LAN_SYNC_VER_0_1,
-        .type = LAN_SYNC_TYPE_REPLY_TABLE_INDEX,
-        .header_len = (uint16_t)sizeof(lan_sync_header_t),
-        .data_len = sizeof(struct Resource) * table.size()};
-    auto data = lan_sync_parseTableToData(table);
-    lan_sync_encapsulate(out, header, data, header.data_len);
+    vector<struct Resource *> table = disconverServer->rm.getTable();
+
+    int data_len = sizeof(struct Resource) * table.size();
+    lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_REPLY_TABLE_INDEX); // free in lan_sync_encapsulate --> evbuffer_cb_for_free
+    struct Resource *data = lan_sync_parseTableToData(table);
+    header = lan_sync_header_set_data(header, data, data_len);
+    lan_sync_encapsulate(out, header);
     free(data);
 }
 
@@ -34,42 +33,32 @@ void replyResource(struct evbuffer *out, char *uri)
 {
     const struct Resource *rs = disconverServer->rm.queryByUri(uri);
 
-    // 读取内容
-    // int fd = open(rs->path, O_RDONLY);
+    lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_REPLY_RESOURCE);
+    header = lan_sync_header_add_xheader(header, "uri", uri);
 
-    // evbuffer_add_file(out, fd, 0, rs->size);
-
-    char xheader[NAME_MAX_SIZE + 4 + 2];
-    sprintf(xheader, "uri:%s\r\n", uri);
-    int xheaderlen = strlen(xheader);
+    const char *hash = rs->hash;
+    header = lan_sync_header_add_xheader(header, "hash", hash);
 
     // 读取文件内容
     int fd = open(rs->path, O_RDONLY);
-    char *data = (char *)malloc(xheaderlen + rs->size);
-    strcpy(data,xheader);
+    char *data = (char *)malloc(rs->size); // free in lan_sync_encapsulate --> evbuffer_cb_for_free
 
-    char *buf = data +xheaderlen;
-    uint64_t readed = read(fd, buf, rs->size);
+    uint64_t readed = read(fd, data, rs->size);
     while (readed != rs->size)
     {
-        readed += read(fd, buf, rs->size);
+        readed += read(fd, data, rs->size);
     }
     close(fd);
-    printf("[DEBUG] send file size:%ld \n", readed);
 
-    lan_sync_header_t header = {
-        .version = LAN_SYNC_VER_0_1,
-        .type = LAN_SYNC_TYPE_REPLY_RESOURCE,
-        .header_len = (uint16_t)sizeof(lan_sync_header_t),
-        .data_len = readed,
-    };
-    lan_sync_encapsulate(out, header, data, readed);
+    header = lan_sync_header_set_data(header, data, readed);
+    lan_sync_encapsulate(out, header);
     free(data);
+    printf("[DEBUG] [TCP] send file size:%ld \n", readed);
 }
 
 void handleLanSyncGetResource(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
 {
-    int total_len = try_header->header_len + try_header->data_len;
+    int total_len = try_header->total_len;
     if (recvLen < total_len)
     {
         return;
@@ -85,7 +74,9 @@ void handleLanSyncGetResource(struct evbuffer *in, struct evbuffer *out, lan_syn
     lan_sync_header_t *header = (lan_sync_header_t *)bufp;
     char *data = (char *)(header + 1);
     char reqUri[NAME_MAX_SIZE] = {0};
-    memcpy(reqUri, data, header->data_len);
+
+    int data_len = header->total_len - header->header_len;
+    memcpy(reqUri, data, data_len);
     printf("[DEBUG] [TCP] req uri: [%s] \n", reqUri);
 
     // todo 回发数据
@@ -101,17 +92,17 @@ void tcp_readcb(struct bufferevent *bev, void *ctx)
     struct evbuffer *out = bufferevent_get_output(bev);
 
     int recvLen = evbuffer_get_length(in);
-    char buf[128] = {0};
-    evbuffer_copyout(in, buf, 128);
+    char buf[lan_sync_header_len + 1] = {0};
+    evbuffer_copyout(in, buf, lan_sync_header_len);
     lan_sync_header_t *try_header = (lan_sync_header_t *)buf;
     if (try_header->type == LAN_SYNC_TYPE_GET_TABLE_INDEX)
     {
-        printf("[DEBUG] handleLanSyncGetTableIndex\n");
+        printf("[DEBUG] [TCP] handleLanSyncGetTableIndex\n");
         handleLanSyncGetTableIndex(in, out, try_header, recvLen);
     }
     else if (try_header->type == LAN_SYNC_TYPE_GET_RESOURCE)
     {
-        printf("[DEBUG] handleLanSyncGetResource\n");
+        printf("[DEBUG] [TCP] handleLanSyncGetResource\n");
         handleLanSyncGetResource(in, out, try_header, recvLen);
     }
 }

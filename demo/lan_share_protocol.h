@@ -8,6 +8,7 @@
 #include <cassert>
 #include <malloc.h>
 
+#include <string>
 #include <vector>
 
 #include <arpa/inet.h>
@@ -22,6 +23,9 @@ using namespace std;
 
 #define DISCOVER_SERVER_UDP_PORT 58080
 #define DISCOVER_SERVER_TCP_PORT 58081
+
+#define FLAG_KEY_VALUE_SPLIT 2 // 2 is: ':' and '\0'
+
 
 struct local_inf_info
 {
@@ -79,10 +83,13 @@ typedef struct lan_sync_header
     enum lan_sync_version version;
     enum lan_sync_type_enum type;
     uint16_t header_len;
-    uint64_t data_len;
+    uint64_t total_len;
 } lan_sync_header_t;
 
-void lan_sync_encapsulate(struct evbuffer *out, lan_sync_header_t header, void *data, int data_len);
+
+#define  lan_sync_header_len sizeof(lan_sync_header_t)
+
+void lan_sync_encapsulate(struct evbuffer *out, lan_sync_header_t * header);
 
 struct Resource *lan_sync_parseTableToData(vector<struct Resource *> table);
 
@@ -97,6 +104,20 @@ struct cb_arg *cb_arg_new(struct event_base *base);
 
 void cb_arg_free(struct cb_arg *arg);
 
+lan_sync_header_t *lan_sync_header_new(enum lan_sync_version version, enum lan_sync_type_enum type);
+
 void writecb(evutil_socket_t fd, short events, void *ctx);
+
+lan_sync_header_t * lan_sync_header_set_data(lan_sync_header_t *header, void *data, int datalen);
+
+lan_sync_header_t * lan_sync_header_add_xheader(lan_sync_header_t *header, const char *key, const char *value);
+
+void lan_sync_header_extract_xheader(const lan_sync_header_t *header, char *to);
+
+string lan_sync_header_query_xheader(const lan_sync_header_t *header, char *key);
+
+void lan_sync_header_extract_data(const lan_sync_header_t  *header, char *to);
+
+
 
 #endif

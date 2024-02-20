@@ -6,8 +6,8 @@ srcutils := $(wildcard utils/*.cpp)
 proto_srcs := resource_manager.cpp lan_share_protocol.cpp
 
 CC=g++
-CXXFLAGS=-g
-CFLAGS=-g
+CXXFLAGS=-g -Wno-format-contains-nul -Wno-write-strings
+CFLAGS=-g -Wno-format-contains-nul -Wno-write-strings
 LDFLAGS:=
 LIBS:=-levent -lcrypto -lssl -lgtest #-lspdlog
 

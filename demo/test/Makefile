@@ -7,16 +7,18 @@ targets := $(patsubst %.cpp,%,$($(base_src)/srcs))
 srcutils := $(wildcard $(base_src)/utils/*.cpp)
 
 CC=g++
-CXXFLAGS=-g -I$(base_src)
-CFLAGS=-g -I$(base_src)
+CXXFLAGS=-g -I$(base_src) -Wno-write-strings -Wno-format-contains-nul
+CFLAGS=-g -I$(base_src) -Wno-write-strings -Wno-format-contains-nul
 LDFLAGS:=
 LIBS:=-levent -lcrypto -lssl -lgtest #-lspdlog
 
-all: resource_manager_test
+all: resource_manager_test lan_share_protocol_test
 
 resource_manager_test: resource_manager_test.cpp $(base_src)/resource_manager.cpp ${srcutils}
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
+lan_share_protocol_test: lan_share_protocol_test.cpp  $(base_src)/lan_share_protocol.cpp ${srcutils}
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 clean:
 	rm -rf $(targets) *.o *.so *.a *.dll \
