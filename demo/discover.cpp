@@ -83,7 +83,7 @@ void requestResource(struct evbuffer *out)
         string data = wantToReq[i];
 
         lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_RESOURCE); // free in lan_sync_encapsulate --> evbuffer_cb_for_free
-        header = lan_sync_header_set_data(header, data.data(), data.size());
+        header = lan_sync_header_add_xheader(header, XHEADER_URI, data.data());
         lan_sync_encapsulate(out, header);
     }
 }
@@ -146,7 +146,7 @@ void handleLanSyncReplyResource(struct evbuffer *in, struct evbuffer *out, lan_s
 
     lan_sync_header_t *header = (lan_sync_header_t *)bufp;
 
-    string uri = lan_sync_header_query_xheader(header, "uri");
+    string uri = lan_sync_header_query_xheader(header, XHEADER_URI);
     if (uri == "")
     {
         printf("[ERROR] [TCP] handleLanSyncReplyResource() query header is failed! \n");
@@ -192,11 +192,11 @@ void checkHash(lan_sync_header_t *header, string pathstr)
     auto p = filesystem::path(pathstr);
     if (!filesystem::exists(p))
     {
-        printf("[ERROR] [HASHCHECK] not exists: %s\n",pathstr.data());
+        printf("[ERROR] [HASHCHECK] not exists: %s\n", pathstr.data());
         return;
     }
 
-    string hash = lan_sync_header_query_xheader(header, "hash");
+    string hash = lan_sync_header_query_xheader(header, XHEADER_HASH);
     OpensslUtil opensslUtil;
     string theFileHash = opensslUtil.mdEncodeWithSHA3_512(pathstr.data());
 

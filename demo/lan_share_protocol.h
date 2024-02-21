@@ -26,6 +26,8 @@ using namespace std;
 
 #define FLAG_KEY_VALUE_SPLIT 2 // 2 is: ':' and '\0'
 
+#define XHEADER_URI "uri"
+#define XHEADER_HASH "hash"
 
 struct local_inf_info
 {
@@ -110,11 +112,11 @@ void writecb(evutil_socket_t fd, short events, void *ctx);
 
 lan_sync_header_t * lan_sync_header_set_data(lan_sync_header_t *header, void *data, int datalen);
 
-lan_sync_header_t * lan_sync_header_add_xheader(lan_sync_header_t *header, const char *key, const char *value);
+lan_sync_header_t * lan_sync_header_add_xheader(lan_sync_header_t *header, const string key, const char *value);
 
 void lan_sync_header_extract_xheader(const lan_sync_header_t *header, char *to);
 
-string lan_sync_header_query_xheader(const lan_sync_header_t *header, char *key);
+string lan_sync_header_query_xheader(const lan_sync_header_t *header, string key);
 
 void lan_sync_header_extract_data(const lan_sync_header_t  *header, char *to);
 

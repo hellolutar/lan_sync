@@ -121,7 +121,7 @@ lan_sync_header_t *lan_sync_header_set_data(lan_sync_header_t *header, void *dat
     return newHeader;
 }
 
-lan_sync_header_t *lan_sync_header_add_xheader(lan_sync_header_t *header, const char *key, const char *value)
+lan_sync_header_t *lan_sync_header_add_xheader(lan_sync_header_t *header, const string key, const char *value)
 {
     int ori_total_len = header->total_len;
     int ori_header_len = header->header_len;
@@ -130,7 +130,7 @@ lan_sync_header_t *lan_sync_header_add_xheader(lan_sync_header_t *header, const 
 
     char *ori_data_point = (char *)((char *)header + ori_header_len);
 
-    int append_x_header_len = strlen(key) + strlen(value) + FLAG_KEY_VALUE_SPLIT;
+    int append_x_header_len = key.size() + strlen(value) + FLAG_KEY_VALUE_SPLIT;
 
     // update header 信息
     header->total_len = ori_total_len + append_x_header_len;
@@ -143,7 +143,7 @@ lan_sync_header_t *lan_sync_header_add_xheader(lan_sync_header_t *header, const 
 
     // 然后添加新xheader
     char *append_xheader = (char *)malloc(append_x_header_len);
-    sprintf(append_xheader, "%s:%s\0", key, value);
+    sprintf(append_xheader, "%s:%s\0", key.data(), value);
 
     char *append_xheader_point = (char *)((char *)newHeader + ori_header_len);
     memcpy(append_xheader_point, append_xheader, append_x_header_len);
@@ -173,14 +173,13 @@ void lan_sync_header_extract_xheader(const lan_sync_header_t *header, char *to)
     memcpy(to, xheader, xheader_len);
 }
 
-string lan_sync_header_query_xheader(const lan_sync_header_t *header, char *key)
+string lan_sync_header_query_xheader(const lan_sync_header_t *header, string keystr)
 {
     int xheader_len = header->header_len - lan_sync_header_len;
     char *xhd = (char *)malloc(xheader_len);
 
     lan_sync_header_extract_xheader(header, xhd);
 
-    string keystr(key);
     int start = 0;
     for (int i = 0; i < xheader_len; i++)
     {

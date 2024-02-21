@@ -34,10 +34,10 @@ void replyResource(struct evbuffer *out, char *uri)
     const struct Resource *rs = disconverServer->rm.queryByUri(uri);
 
     lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_REPLY_RESOURCE);
-    header = lan_sync_header_add_xheader(header, "uri", uri);
+    header = lan_sync_header_add_xheader(header, XHEADER_URI, uri);
 
     const char *hash = rs->hash;
-    header = lan_sync_header_add_xheader(header, "hash", hash);
+    header = lan_sync_header_add_xheader(header, XHEADER_HASH, hash);
 
     // 读取文件内容
     int fd = open(rs->path, O_RDONLY);
@@ -72,14 +72,10 @@ void handleLanSyncGetResource(struct evbuffer *in, struct evbuffer *out, lan_syn
     assert(recvLen == total_len);
 
     lan_sync_header_t *header = (lan_sync_header_t *)bufp;
-    char *data = (char *)(header + 1);
-    char reqUri[NAME_MAX_SIZE] = {0};
-
-    int data_len = header->total_len - header->header_len;
-    memcpy(reqUri, data, data_len);
+    string xhd_uri = lan_sync_header_query_xheader(header, XHEADER_URI);
+    char *reqUri = xhd_uri.data();
     printf("[DEBUG] [TCP] req uri: [%s] \n", reqUri);
 
-    // todo 回发数据
     replyResource(out, reqUri);
 
     free(bufp);

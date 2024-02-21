@@ -30,11 +30,11 @@ TEST(lan_sync_header_test, set_data_test)
 TEST(lan_sync_header_test, add_xheader_test)
 {
     char *data = "hello world, nihao shijie!\r\n\0";
-    char *key = "uri";
+    string key = XHEADER_URI;
     char *value = "/network/TCPIP卷1.txt";
     char *expect_xheader = "uri:/network/TCPIP卷1.txt\0";
     int data_len = strlen(data);
-    int key_len = strlen(key);
+    int key_len = key.size();
     int value_len = strlen(value);
     int xheader_len = data_len + key_len + value_len + FLAG_KEY_VALUE_SPLIT;
     int expect_total_len = lan_sync_header_len + xheader_len;
@@ -69,7 +69,7 @@ TEST(lan_sync_header_test, add_xheader_test)
 TEST(lan_sync_header_test, extract_xheader_test)
 {
     char *data = "hello world, nihao shijie!\r\n\0";
-    char *key = "uri";
+    char *key = XHEADER_URI;
     char *value = "/network/TCPIP卷1.txt";
     char *key2 = "path";
     char *value2 = "/home/lutar/code/c/lan_sync/demo/resources/server/network";
@@ -91,9 +91,9 @@ TEST(lan_sync_header_test, extract_xheader_test)
 TEST(lan_sync_header_test, query_xheader_test)
 {
     char *data = "hello world, nihao shijie!\r\n\0";
-    char *key = "uri";
+    string key = XHEADER_URI;
     char *value = "/network/TCPIP卷1.txt";
-    char *key2 = "path";
+    string key2 = "path";
     char *value2 = "/home/lutar/code/c/lan_sync/demo/resources/server/network";
 
     lan_sync_header_t *hd = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_REPLY_TABLE_INDEX);
