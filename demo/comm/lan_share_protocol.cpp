@@ -97,7 +97,7 @@ void writecb(evutil_socket_t fd, short events, void *ctx)
 {
     struct cb_arg *arg = (struct cb_arg *)ctx;
     int datalen = evbuffer_get_length(arg->buf);
-    char data[datalen+1];
+    char data[datalen + 1];
     assert(evbuffer_copyout(arg->buf, data, datalen) == datalen);
     data[datalen] = '\0';
     int sent = sendto(fd, data, datalen, 0, (struct sockaddr *)arg->target_addr, sizeof(struct sockaddr_in));
@@ -110,7 +110,7 @@ void writecb(evutil_socket_t fd, short events, void *ctx)
         return;
     }
 
-    printf("sent to [%s:%d]: %d , data_len:%d \n", inet_ntoa(arg->target_addr->sin_addr), ntohs(arg->target_addr->sin_port), sent, datalen);
+    printf("\t>> sent to [%s:%d]: %d , data_len:%d \n", inet_ntoa(arg->target_addr->sin_addr), ntohs(arg->target_addr->sin_port), sent, datalen);
 
     cb_arg_free(arg);
 }
@@ -135,7 +135,7 @@ lan_sync_header_t *lan_sync_header_set_data(lan_sync_header_t *header, void *dat
     return newHeader;
 }
 
-lan_sync_header_t *lan_sync_header_add_xheader(lan_sync_header_t *header, const string key, const char *value)
+lan_sync_header_t *lan_sync_header_add_xheader(lan_sync_header_t *header, const string key, const string value)
 {
     int ori_total_len = header->total_len;
     int ori_header_len = header->header_len;
@@ -144,7 +144,7 @@ lan_sync_header_t *lan_sync_header_add_xheader(lan_sync_header_t *header, const 
 
     char *ori_data_point = (char *)((char *)header + ori_header_len);
 
-    int append_x_header_len = key.size() + strlen(value) + FLAG_KEY_VALUE_SPLIT;
+    int append_x_header_len = key.size() + value.size() + FLAG_KEY_VALUE_SPLIT;
 
     // update header 信息
     header->total_len = ori_total_len + append_x_header_len;
@@ -157,7 +157,7 @@ lan_sync_header_t *lan_sync_header_add_xheader(lan_sync_header_t *header, const 
 
     // 然后添加新xheader
     char *append_xheader = (char *)malloc(append_x_header_len);
-    sprintf(append_xheader, "%s:%s\0", key.data(), value);
+    sprintf(append_xheader, "%s:%s\0", key.data(), value.data());
 
     char *append_xheader_point = (char *)((char *)newHeader + ori_header_len);
     memcpy(append_xheader_point, append_xheader, append_x_header_len);

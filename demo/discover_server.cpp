@@ -32,11 +32,17 @@ void handleLanSyncGetTableIndex(struct evbuffer *in, struct evbuffer *out, lan_s
 void replyResource(struct evbuffer *out, char *uri)
 {
     const struct Resource *rs = disconverServer->rm.queryByUri(uri);
+    if (rs ==nullptr)
+    {
+        return;
+    }
 
     lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_REPLY_RESOURCE);
-    header = lan_sync_header_add_xheader(header, XHEADER_URI, uri);
 
-    const char *hash = rs->hash;
+    string uristr(uri);
+    header = lan_sync_header_add_xheader(header, XHEADER_URI, uristr);
+
+    string hash(rs->hash);
     header = lan_sync_header_add_xheader(header, XHEADER_HASH, hash);
 
     // 读取文件内容

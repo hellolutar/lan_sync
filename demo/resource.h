@@ -2,6 +2,11 @@
 #define __REOURCE_H_
 
 #include <cstdint>
+#include <string>
+
+#include <malloc.h>
+
+using namespace std;
 
 #define NAME_MAX_SIZE 2048
 
@@ -16,5 +21,23 @@ struct Resource
     char hash[NAME_MAX_SIZE];
     uint64_t size;
 };
+
+enum WantSyncResourceStatusEnum
+{
+    PENDING = 1,
+    SYNCING,
+    SUCCESS,
+    FAIL,
+};
+
+struct WantSyncResource
+{
+    struct evbuffer *out;
+    string uri;
+    enum WantSyncResourceStatusEnum status;
+    time_t last_update_time;
+};
+
+struct WantSyncResource *WantSyncResource_new(struct evbuffer *out, string uri, enum WantSyncResourceStatusEnum status);
 
 #endif

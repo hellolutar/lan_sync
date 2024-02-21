@@ -59,22 +59,6 @@ Discover::~Discover()
     inf_infos = nullptr;
 }
 
-void requestResource(struct evbuffer *out)
-{
-    vector<struct Resource *> localTables = discover->rm.getTable();
-
-    vector<string> wantToReq;
-    wantToReq.push_back("/network/http权威指南.pdf");
-    for (size_t i = 0; i < wantToReq.size(); i++)
-    {
-        string data = wantToReq[i];
-
-        lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_RESOURCE); // free in lan_sync_encapsulate --> evbuffer_cb_for_free
-        header = lan_sync_header_add_xheader(header, XHEADER_URI, data.data());
-        lan_sync_encapsulate(out, header);
-    }
-}
-
 void handleLanSyncReplyTableIndex(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
 {
     int total_len = try_header->total_len;
@@ -98,23 +82,38 @@ void handleLanSyncReplyTableIndex(struct evbuffer *in, struct evbuffer *out, lan
     uint64_t res_num = data_len / sizeof(struct Resource);
 
     struct Resource *table = (struct Resource *)(++header);
+    map<string, Resource> total_table;
 
     for (size_t i = 0; i < res_num; i++)
     {
-        printf("\n");
         printf("name: %s\n", table[i].name);
         printf("size: %ld\n", table[i].size);
         printf("uri: %s\n", table[i].uri);
-        printf("path: %s\n", table[i].path);
         printf("hash: %s\n", table[i].hash);
+        total_table[table[i].name] = table[i];
+        printf("\n");
     }
 
-    requestResource(out);
+    vector<struct Resource *> local_table = discover->rm.getTable();
+    for (size_t i = 0; i < local_table.size(); i++)
+    {
+        struct Resource *local_rs = local_table[i];
+        struct Resource rs = total_table[local_rs->name];
+        if (strlen(rs.name) == 0 || rs.size <= local_rs->size)
+        {
+            // I have the resource.
+            total_table.erase(local_rs->name);
+        }
+    }
 
+    for (auto iter = total_table.begin(); iter != total_table.end(); iter++)
+    {
+        discover->syncTable.push_back(WantSyncResource_new(out, iter->second.uri, PENDING));
+    }
     free(bufp);
 }
 
-void checkHash(lan_sync_header_t *header, string pathstr);
+bool checkHash(lan_sync_header_t *header, string pathstr);
 
 void handleLanSyncReplyResource(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
 {
@@ -168,19 +167,32 @@ void handleLanSyncReplyResource(struct evbuffer *in, struct evbuffer *out, lan_s
 
     close(fd);
 
-    checkHash(header, pathstr);
+    bool valid = checkHash(header, pathstr);
+    if (valid)
+    {
+        auto table = discover->syncTable;
+        for (auto iter = table.end() - 1; iter >= table.begin(); iter--)
+        {
+            WantSyncResource *rs = (*iter);
+            if (rs->uri == uri)
+            {
+                rs->status = SUCCESS;
+                break;
+            }
+        }
+    }
 
     free(data);
     free(bufp);
 }
 
-void checkHash(lan_sync_header_t *header, string pathstr)
+bool checkHash(lan_sync_header_t *header, string pathstr)
 {
     auto p = filesystem::path(pathstr);
     if (!filesystem::exists(p))
     {
-        printf("[ERROR] [HASH CHECK] not exists: %s\n", pathstr.data());
-        return;
+        printf("[ERROR] [HASH CHECK] not exists: [%s]\n", pathstr.data());
+        return false;
     }
 
     string hash = lan_sync_header_query_xheader(header, XHEADER_HASH);
@@ -188,9 +200,15 @@ void checkHash(lan_sync_header_t *header, string pathstr)
     string theFileHash = opensslUtil.mdEncodeWithSHA3_512(pathstr.data());
 
     if (hash.compare(theFileHash) != 0)
-        printf("[ERROR] [HASH CHECK] hash is conflict\n");
+    {
+        printf("[ERROR] [HASH CHECK] hash is conflict! [%s]\n", pathstr.data());
+        return false;
+    }
     else
-        printf("[INFO ] [HASH CHECK] hash is valid\n");
+    {
+        printf("[INFO ] [HASH CHECK] hash is valid! [%s]\n", pathstr.data());
+        return true;
+    }
 }
 
 void tcp_readcb(struct bufferevent *bev, void *ctx)
@@ -318,6 +336,73 @@ void Discover::config_send_udp_periodically(struct local_inf_info info)
     event_add(timeout_event, &tv);
 }
 
+void handle_sync_status_pending(WantSyncResource *rs)
+{
+    printf("[INFO ] [SYNC] [%s] sync req rs! \n", rs->uri.data());
+    rs->status = PENDING;
+    lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_RESOURCE); // free in lan_sync_encapsulate --> evbuffer_cb_for_free
+    header = lan_sync_header_add_xheader(header, XHEADER_URI, rs->uri);
+    lan_sync_encapsulate(rs->out, header);
+}
+
+void handle_sync_status_syncing(WantSyncResource *rs)
+{
+    time_t now = time(0);
+    int diff = difftime(now, rs->last_update_time);
+    if (diff > 250)
+    {
+        printf("[INFO ] [SYNC] [%s] sync cost a lot of time! now reset status\n", rs->uri.data());
+        rs->status = PENDING;
+        rs->last_update_time = time(0);
+    }
+}
+
+static void req_resource_periodically_timeout(evutil_socket_t, short, void *arg)
+{
+    vector<WantSyncResource *> table = discover->syncTable;
+    int size = table.size();
+    if (size == 0)
+    {
+        return;
+    }
+
+    for (auto iter = table.end() - 1; iter >= table.begin(); iter--)
+    {
+        WantSyncResource *rs = (*iter);
+        switch (rs->status)
+        {
+        case PENDING:
+            handle_sync_status_pending(rs);
+            break;
+        case SYNCING:
+            handle_sync_status_syncing(rs);
+            break;
+        case SUCCESS:
+            table.erase(iter);
+            printf("[INFO ] [SYNC] [%s] sync done! \n", rs->uri.data());
+            break;
+        case FAIL:
+            rs->status = PENDING;
+            rs->last_update_time = time(0);
+            printf("[INFO ] [SYNC] [%s] sync fail!  now reset status\n", rs->uri.data());
+            break;
+        default:
+            printf("[WARN ] [SYNC] [%s] sync status is unsupport\n", rs->uri.data());
+            break;
+        }
+    }
+}
+
+void config_req_resource_periodically()
+{
+    struct event *timeout_event = event_new(base, -1, EV_PERSIST, req_resource_periodically_timeout, nullptr);
+
+    struct timeval tv;
+    evutil_timerclear(&tv);
+    tv.tv_sec = PERIOD_OF_REQ_RS;
+    event_add(timeout_event, &tv);
+}
+
 void Discover::start()
 {
     struct event *write_event, *read_event;
@@ -329,6 +414,8 @@ void Discover::start()
     setsockopt(udp_sock, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(int));
     setsockopt(udp_sock, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(int));
     setsockopt(udp_sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
+
+    config_req_resource_periodically();
 
     for (size_t i = 0; i < inf_infos_len; i++)
     {

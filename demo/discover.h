@@ -24,6 +24,8 @@
 
 #define PERIOD_OF_SEND_UDP 5
 
+#define PERIOD_OF_REQ_RS 5
+
 using namespace std;
 
 class Discover
@@ -37,6 +39,7 @@ public:
     uint8_t inf_infos_len = 0;
     int udp_sock;
     ResourceManager rm = ResourceManager("resources/cli");
+    vector<WantSyncResource*> syncTable;
 
     Discover(struct event_base *base);
     ~Discover();

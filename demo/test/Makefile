@@ -17,7 +17,7 @@ all: resource_manager_test lan_share_protocol_test
 resource_manager_test: resource_manager_test.cpp $(base_src)/resource_manager.cpp ${srcutils}
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
-lan_share_protocol_test: lan_share_protocol_test.cpp  $(base_src)/lan_share_protocol.cpp ${srcutils}
+lan_share_protocol_test: lan_share_protocol_test.cpp  $(base_src)/comm/lan_share_protocol.cpp ${srcutils}
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 clean:

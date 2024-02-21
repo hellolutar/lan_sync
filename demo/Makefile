@@ -4,7 +4,7 @@ srcs := $(wildcard *.cpp)
 targets := $(patsubst %.cpp,%,$(srcs))
 srcutils := $(wildcard utils/*.cpp)
 srccomms := $(wildcard comm/*.cpp)
-proto_srcs := resource_manager.cpp 
+proto_srcs := resource_manager.cpp  resource.cpp
 
 CC=g++
 CXXFLAGS=-g -Wno-format-contains-nul -Wno-write-strings
