@@ -17,7 +17,7 @@
 
 // #include <spdlog/spdlog.h>
 
-#include "lan_share_protocol.h"
+#include "comm/lan_share_protocol.h"
 #include "resource_manager.h"
 
 using namespace std;

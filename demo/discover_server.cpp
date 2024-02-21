@@ -205,7 +205,7 @@ void DiscoverServer::start()
 
     assert(bind(udp_sock, (struct sockaddr *)&addr, sizeof(addr)) >= 0);
 
-    printf("[UDP] listen: %d\n", DISCOVER_SERVER_UDP_PORT);
+    printf("[INFO] [UDP] listen: %d\n", DISCOVER_SERVER_UDP_PORT);
 
     struct event *read_e = event_new(base, udp_sock, EV_READ | EV_PERSIST, udp_readcb, base);
     event_add(read_e, nullptr);

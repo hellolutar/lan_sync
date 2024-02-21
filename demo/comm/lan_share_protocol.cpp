@@ -73,8 +73,13 @@ struct cb_arg *cb_arg_new(struct event_base *base)
 {
     assert(base);
     struct cb_arg *arg = (struct cb_arg *)malloc(sizeof(struct cb_arg));
+    memset(arg, 0, sizeof(struct cb_arg));
+
     struct evbuffer *buf = evbuffer_new();
+
     struct sockaddr_in *target_addr = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in));
+    memset(target_addr, 0, sizeof(struct sockaddr_in));
+
     arg->buf = buf;
     arg->target_addr = target_addr;
     arg->base = base;
@@ -92,10 +97,19 @@ void writecb(evutil_socket_t fd, short events, void *ctx)
 {
     struct cb_arg *arg = (struct cb_arg *)ctx;
     int datalen = evbuffer_get_length(arg->buf);
-    char data[datalen];
+    char data[datalen+1];
     assert(evbuffer_copyout(arg->buf, data, datalen) == datalen);
     data[datalen] = '\0';
     int sent = sendto(fd, data, datalen, 0, (struct sockaddr *)arg->target_addr, sizeof(struct sockaddr_in));
+
+    if (sent < 0)
+    {
+        printf("[ERROR] [UDP] sent failed: reason: %s \n", strerror(errno));
+        cb_arg_free(arg);
+
+        return;
+    }
+
     printf("sent to [%s:%d]: %d , data_len:%d \n", inet_ntoa(arg->target_addr->sin_addr), ntohs(arg->target_addr->sin_port), sent, datalen);
 
     cb_arg_free(arg);

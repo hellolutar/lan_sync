@@ -50,26 +50,13 @@ Discover::Discover(struct event_base *base)
     this->inf_infos = (struct local_inf_info *)malloc(sizeof(struct local_inf_info) * 10);
     memset(inf_infos, 0, sizeof(struct local_inf_info) * 10);
     this->inf_infos_len = getLoclInfo(inf_infos);
-
-    this->target_sock_addrs = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in) * inf_infos_len);
-    memset(target_sock_addrs, 0, sizeof(struct sockaddr_in) * inf_infos_len);
 }
 
 Discover::~Discover()
 {
     if (inf_infos)
         free(inf_infos);
-    if (target_sock_addrs)
-        free(target_sock_addrs);
     inf_infos = nullptr;
-    target_sock_addrs = nullptr;
-}
-
-void configure_sock(sockaddr_in *const target_sock_addr, const struct local_inf_info &info)
-{
-    target_sock_addr->sin_family = AF_INET;
-    target_sock_addr->sin_addr = info.broad_addr.sin_addr;
-    target_sock_addr->sin_port = htons(DISCOVER_SERVER_UDP_PORT);
 }
 
 void requestResource(struct evbuffer *out)
@@ -192,7 +179,7 @@ void checkHash(lan_sync_header_t *header, string pathstr)
     auto p = filesystem::path(pathstr);
     if (!filesystem::exists(p))
     {
-        printf("[ERROR] [HASHCHECK] not exists: %s\n", pathstr.data());
+        printf("[ERROR] [HASH CHECK] not exists: %s\n", pathstr.data());
         return;
     }
 
@@ -201,9 +188,9 @@ void checkHash(lan_sync_header_t *header, string pathstr)
     string theFileHash = opensslUtil.mdEncodeWithSHA3_512(pathstr.data());
 
     if (hash.compare(theFileHash) != 0)
-        printf("[ERROR] [HASHCHECK] hash is conflict\n");
+        printf("[ERROR] [HASH CHECK] hash is conflict\n");
     else
-        printf("[INFO ] [HASHCHECK] hash is valid\n");
+        printf("[INFO ] [HASH CHECK] hash is valid\n");
 }
 
 void tcp_readcb(struct bufferevent *bev, void *ctx)
@@ -280,10 +267,11 @@ void udp_readcb(evutil_socket_t fd, short events, void *ctx)
 
     struct lan_discover_header *header = (lan_discover_header_t *)data;
     uint16_t peer_tcp_port = *(uint16_t *)(header + 1);
-    printf("recive msg, data_len:%d , port: %d\n", header->data_len, peer_tcp_port);
 
     if (header->type == LAN_DISCOVER_TYPE_HELLO_ACK)
     {
+        printf("[DEBUG] [UDP] recive [HELLO ACK], data_len:%d , port: %d\n", header->data_len, peer_tcp_port);
+
         // 启动HTTPS Server
         if (discover->st == STATE_DISCOVERING)
         {
@@ -300,21 +288,34 @@ void udp_readcb(evutil_socket_t fd, short events, void *ctx)
         }
     }
     else
-        printf("%s : %d", "unsupport type, do not reply \n", header->type);
+        printf("[WARN] [UDP] recive [404]%s : %d", "unsupport type, do not reply \n", header->type);
 }
 
-void udp_sent_hello(evutil_socket_t fd, short events, void *ctx)
+static void timeout_cb(evutil_socket_t, short, void *arg)
 {
-    // todo (lutar) 引入定时器
-    struct cb_arg *arg = (struct cb_arg *)ctx;
+    printf("[DEBUG] [UDP] send [HELLO]\n");
+
+    udp_cli *cli = (udp_cli *)arg;
 
     string msg = "hello";
     lan_discover_header_t reply_header = {LAN_DISCOVER_VER_0_1, LAN_DISCOVER_TYPE_HELLO, sizeof(msg.data())};
-    evbuffer_add(arg->buf, &reply_header, sizeof(lan_discover_header_t));
-    evbuffer_add(arg->buf, msg.data(), msg.size());
 
-    struct event *write_e = event_new(base, fd, EV_WRITE, writecb, arg);
-    event_add(write_e, nullptr);
+    struct evbuffer *buf = evbuffer_new();
+    evbuffer_add(buf, &reply_header, sizeof(lan_discover_header_t));
+    evbuffer_add(buf, msg.data(), msg.size());
+
+    cli->send(buf);
+}
+
+void Discover::config_send_udp_periodically(struct local_inf_info info)
+{
+    udp_cli *cli = new udp_cli(udp_sock, base, info.broad_addr.sin_addr);
+    struct event *timeout_event = event_new(base, -1, EV_PERSIST, timeout_cb, cli);
+
+    struct timeval tv;
+    evutil_timerclear(&tv);
+    tv.tv_sec = PERIOD_OF_SEND_UDP;
+    event_add(timeout_event, &tv);
 }
 
 void Discover::start()
@@ -329,8 +330,6 @@ void Discover::start()
     setsockopt(udp_sock, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(int));
     setsockopt(udp_sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
 
-    struct cb_arg *arg = cb_arg_new(base);
-
     for (size_t i = 0; i < inf_infos_len; i++)
     {
         struct local_inf_info info = inf_infos[i];
@@ -338,11 +337,7 @@ void Discover::start()
         if (info.broad_addr.sin_addr.s_addr == 0)
             continue;
 
-        configure_sock(arg->target_addr, info);
-
-        write_event = event_new(base, udp_sock, EV_WRITE, udp_sent_hello, arg); // todo(lutar) 实现周期发送
-        assert(write_event);
-        event_add(write_event, nullptr);
+        config_send_udp_periodically(info);
 
         break;
     }

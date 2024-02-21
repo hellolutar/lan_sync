@@ -17,7 +17,7 @@
 
 #include <event2/buffer.h>
 
-#include "resource.h"
+#include "../resource.h"
 
 using namespace std;
 
@@ -106,6 +106,8 @@ struct cb_arg *cb_arg_new(struct event_base *base);
 
 void cb_arg_free(struct cb_arg *arg);
 
+
+
 lan_sync_header_t *lan_sync_header_new(enum lan_sync_version version, enum lan_sync_type_enum type);
 
 void writecb(evutil_socket_t fd, short events, void *ctx);
@@ -119,6 +121,7 @@ void lan_sync_header_extract_xheader(const lan_sync_header_t *header, char *to);
 string lan_sync_header_query_xheader(const lan_sync_header_t *header, string key);
 
 void lan_sync_header_extract_data(const lan_sync_header_t  *header, char *to);
+
 
 
 

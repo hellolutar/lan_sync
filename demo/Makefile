@@ -3,7 +3,8 @@
 srcs := $(wildcard *.cpp)
 targets := $(patsubst %.cpp,%,$(srcs))
 srcutils := $(wildcard utils/*.cpp)
-proto_srcs := resource_manager.cpp lan_share_protocol.cpp
+srccomms := $(wildcard comm/*.cpp)
+proto_srcs := resource_manager.cpp 
 
 CC=g++
 CXXFLAGS=-g -Wno-format-contains-nul -Wno-write-strings
@@ -13,10 +14,10 @@ LIBS:=-levent -lcrypto -lssl -lgtest #-lspdlog
 
 all: discover discover_server 
 
-discover: discover.cpp ${proto_srcs} ${srcutils}
+discover: discover.cpp ${proto_srcs} ${srcutils} ${srccomms}
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
-discover_server: discover_server.cpp ${proto_srcs} ${srcutils}
+discover_server: discover_server.cpp ${proto_srcs} ${srcutils} ${srccomms}
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 wc:
