@@ -1,27 +1,35 @@
-.PHONY: clean all
+.PHONY: clean cleanall all utils
 
-srcs := $(wildcard *.cpp)
-targets := $(patsubst %.cpp,%,$(srcs))
+SRC_C := $(wildcard *.cpp)
+targets := $(patsubst %.cpp,%,$(SRC_C))
 srcutils := $(wildcard utils/*.cpp)
 srccomms := $(wildcard comm/*.cpp)
-proto_srcs := resource_manager.cpp  resource.cpp
+OBJS := ${srcutils:.cpp=.o}
+OBJS += ${srccomms:.cpp=.o}
+proto_SRC_C := resource_manager.cpp  resource.cpp
 
 CC=g++
 CXXFLAGS=-g -Wno-format-contains-nul -Wno-write-strings
-CFLAGS=-g -Wno-format-contains-nul -Wno-write-strings
+CFLAGS=${CXXFLAGS}
 LDFLAGS:=
-LIBS:=-levent -lcrypto -lssl -lgtest #-lspdlog
+LIBS:=-levent -lcrypto -lssl -lgtest -lfmt -lspdlog
 
-all: discover discover_server 
+# all: discover discover_server 
+all: ${OBJS} discover discover_server
 
-discover: discover.cpp ${proto_srcs} ${srcutils} ${srccomms}
+%.o: %.cpp
+	$(CC) -c $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
+
+discover: discover.cpp ${proto_SRC_C} ${OBJS} 
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
-discover_server: discover_server.cpp ${proto_srcs} ${srcutils} ${srccomms}
+discover_server: discover_server.cpp ${proto_SRC_C} ${OBJS} 
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 wc:
 	git ls-files | xargs cat | wc -l
 clean:
-	rm -rf $(targets) *.o *.so *.a *.dll \
-	 discover discover_server 
+	rm -rf $(targets) logs *.o *.so *.a *.dll discover discover_server 
+
+cleanall: clean
+	rm -rf ${OBJS}

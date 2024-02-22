@@ -17,10 +17,13 @@
 #include <sys/ioctl.h>
 
 #include <event2/event.h>
+#include <event2/bufferevent.h>
+#include <event2/buffer.h>
 
 #include "comm/lan_share_protocol.h"
 #include "resource_manager.h"
 #include "comm/udp_cli.h"
+#include "utils/logger.h"
 
 #define PERIOD_OF_SEND_UDP 5
 

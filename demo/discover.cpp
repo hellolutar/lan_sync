@@ -1,9 +1,6 @@
 
 #include "discover.h"
 
-#include <event2/buffer.h>
-#include <event2/bufferevent.h>
-
 struct event_base *base = event_base_new();
 Discover *discover = new Discover(base);
 
@@ -59,39 +56,18 @@ Discover::~Discover()
     inf_infos = nullptr;
 }
 
-void handleLanSyncReplyTableIndex(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
+void appendSyncTable(struct Resource *table, struct evbuffer *out, uint64_t res_num)
 {
-    int total_len = try_header->total_len;
-    if (recvLen < total_len)
-    {
-        return;
-    }
-    printf("[DEBUG] [TCP] cli recive table index!\n");
-
-    char *bufp = (char *)malloc(total_len);
-    memset(bufp, 0, total_len);
-
-    recvLen = evbuffer_remove(in, bufp, total_len);
-    printf("[DEBUG] EVBUFFER REMAIN: %ld \n", evbuffer_get_length(in));
-    assert(recvLen == total_len);
-
-    lan_sync_header_t *header = (lan_sync_header_t *)bufp;
-
-    // 提取记录数量
-    int data_len = header->total_len - header->header_len;
-    uint64_t res_num = data_len / sizeof(struct Resource);
-
-    struct Resource *table = (struct Resource *)(++header);
     map<string, Resource> total_table;
 
     for (size_t i = 0; i < res_num; i++)
     {
-        printf("name: %s\n", table[i].name);
-        printf("size: %ld\n", table[i].size);
-        printf("uri: %s\n", table[i].uri);
-        printf("hash: %s\n", table[i].hash);
+        LOG_DEBUG("name: {}", table[i].name);
+        LOG_DEBUG("size: {}", table[i].size);
+        LOG_DEBUG("uri: {}", table[i].uri);
+        LOG_DEBUG("hash: {}", table[i].hash);
         total_table[table[i].name] = table[i];
-        printf("\n");
+        LOG_DEBUG("");
     }
 
     vector<struct Resource *> local_table = discover->rm.getTable();
@@ -101,7 +77,7 @@ void handleLanSyncReplyTableIndex(struct evbuffer *in, struct evbuffer *out, lan
         struct Resource rs = total_table[local_rs->name];
         if (strlen(rs.name) == 0 || rs.size <= local_rs->size)
         {
-            // I have the resource.
+            // I have the resource or my resource should sync to peer.
             total_table.erase(local_rs->name);
         }
     }
@@ -110,6 +86,34 @@ void handleLanSyncReplyTableIndex(struct evbuffer *in, struct evbuffer *out, lan
     {
         discover->syncTable.push_back(WantSyncResource_new(out, iter->second.uri, PENDING));
     }
+}
+
+void handleLanSyncReplyTableIndex(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
+{
+    int total_len = try_header->total_len;
+    if (recvLen < total_len)
+    {
+        return;
+    }
+    LOG_DEBUG("[TCP] cli recive table index!");
+
+    char *bufp = (char *)malloc(total_len);
+    memset(bufp, 0, total_len);
+
+    recvLen = evbuffer_remove(in, bufp, total_len);
+    LOG_DEBUG("EVBUFFER REMAIN: {} ", evbuffer_get_length(in));
+    assert(recvLen == total_len);
+
+    lan_sync_header_t *header = (lan_sync_header_t *)bufp;
+
+    // 提取记录数量
+    int data_len = header->total_len - header->header_len;
+    uint64_t res_num = data_len / sizeof(struct Resource);
+
+    struct Resource *table = (struct Resource *)(++header);
+
+    appendSyncTable(table, out, res_num);
+
     free(bufp);
 }
 
@@ -122,7 +126,7 @@ void handleLanSyncReplyResource(struct evbuffer *in, struct evbuffer *out, lan_s
     {
         return;
     }
-    printf("[DEBUG] [TCP] cli recive resource!\n");
+    LOG_DEBUG("[TCP] cli recive resource!");
 
     char *bufp = (char *)malloc(total_len);
     memset(bufp, 0, total_len);
@@ -135,7 +139,7 @@ void handleLanSyncReplyResource(struct evbuffer *in, struct evbuffer *out, lan_s
     string uri = lan_sync_header_query_xheader(header, XHEADER_URI);
     if (uri == "")
     {
-        printf("[ERROR] [TCP] handleLanSyncReplyResource() query header is failed! \n");
+        LOG_ERROR("[TCP] handleLanSyncReplyResource() query header is failed! ");
         free(bufp);
         return;
     }
@@ -153,7 +157,7 @@ void handleLanSyncReplyResource(struct evbuffer *in, struct evbuffer *out, lan_s
     int fd = open(pathstr.data(), O_RDWR | O_CREAT, 0644);
     if (fd < 0)
     {
-        printf("[ERROR] %s \n", strerror(errno));
+        LOG_ERROR("{} ", strerror(errno));
         free(bufp);
         return;
     }
@@ -163,7 +167,7 @@ void handleLanSyncReplyResource(struct evbuffer *in, struct evbuffer *out, lan_s
     lan_sync_header_extract_data(header, data);
     // TODO(lutar) 这里需要对写出的数量进行处理
     int writed = write(fd, data, data_len); // todo
-    printf("writed: %d \n", writed);
+    LOG_INFO("writed: {} ", writed);
 
     close(fd);
 
@@ -191,29 +195,29 @@ bool checkHash(lan_sync_header_t *header, string pathstr)
     auto p = filesystem::path(pathstr);
     if (!filesystem::exists(p))
     {
-        printf("[ERROR] [HASH CHECK] not exists: [%s]\n", pathstr.data());
+        LOG_ERROR("[HASH CHECK] not exists: [{}]", pathstr);
         return false;
     }
 
     string hash = lan_sync_header_query_xheader(header, XHEADER_HASH);
     OpensslUtil opensslUtil;
-    string theFileHash = opensslUtil.mdEncodeWithSHA3_512(pathstr.data());
+    string theFileHash = opensslUtil.mdEncodeWithSHA3_512(pathstr);
 
     if (hash.compare(theFileHash) != 0)
     {
-        printf("[ERROR] [HASH CHECK] hash is conflict! [%s]\n", pathstr.data());
+        LOG_ERROR("[HASH CHECK] hash is conflict! [{}]", pathstr);
         return false;
     }
     else
     {
-        printf("[INFO ] [HASH CHECK] hash is valid! [%s]\n", pathstr.data());
+        LOG_INFO("[HASH CHECK] hash is valid! [{}]", pathstr);
         return true;
     }
 }
 
 void tcp_readcb(struct bufferevent *bev, void *ctx)
 {
-    printf("[DEBUG] [TCP] : receive msg!\n");
+    LOG_DEBUG("[TCP] : receive msg!");
     struct evbuffer *in = bufferevent_get_input(bev);
     struct evbuffer *out = bufferevent_get_output(bev);
 
@@ -238,7 +242,7 @@ void tcp_readcb(struct bufferevent *bev, void *ctx)
 
 void tcp_writecb(struct bufferevent *bev, void *ctx)
 {
-    // printf("[DEBUG] can write msg to peer tcp server! \n");
+    // printf("can write msg to peer tcp server! ");
 }
 
 void connect_tcp_server(struct cb_arg *arg)
@@ -251,7 +255,7 @@ void connect_tcp_server(struct cb_arg *arg)
     int ret = connect(tcpsock, (struct sockaddr *)arg->target_addr, sizeof(struct sockaddr_in));
     if (ret < 0)
     {
-        printf("[DEBUG] TCP ERROR: %s \n", strerror(errno));
+        LOG_DEBUG("TCP ERROR: {} ", strerror(errno));
         libevent_global_shutdown();
     }
 
@@ -265,7 +269,7 @@ void connect_tcp_server(struct cb_arg *arg)
     lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_TABLE_INDEX); // free in lan_sync_encapsulate --> evbuffer_cb_for_free
 
     lan_sync_encapsulate(out, header);
-    printf("[INFO ] [TCP] [lan sync] req resource!\n");
+    LOG_INFO("[TCP] [lan sync] req resource!");
 }
 
 void udp_readcb(evutil_socket_t fd, short events, void *ctx)
@@ -279,7 +283,7 @@ void udp_readcb(evutil_socket_t fd, short events, void *ctx)
     int receive = recvfrom(fd, data, 4096, 0, (struct sockaddr *)&target_addr, &addrlen);
     if (receive <= 0)
     {
-        printf("warning: cannot receive anything !\n");
+        LOG_WARN("warning: cannot receive anything !");
         return;
     }
 
@@ -288,7 +292,7 @@ void udp_readcb(evutil_socket_t fd, short events, void *ctx)
 
     if (header->type == LAN_DISCOVER_TYPE_HELLO_ACK)
     {
-        printf("[DEBUG] [UDP] recive [HELLO ACK], data_len:%d , port: %d\n", header->data_len, peer_tcp_port);
+        LOG_DEBUG("[UDP] recive [HELLO ACK], data_len:{} , port: {}", header->data_len, peer_tcp_port);
 
         // 启动HTTPS Server
         if (discover->st == STATE_DISCOVERING)
@@ -302,21 +306,21 @@ void udp_readcb(evutil_socket_t fd, short events, void *ctx)
             arg->target_addr->sin_port = htons(peer_tcp_port);
 
             connect_tcp_server(arg);
-            printf("[DEBUG] todo : add a tcp bufferevent to sync request!\n");
+            LOG_DEBUG("todo : add a tcp bufferevent to sync request!");
         }
     }
     else
-        printf("[WARN] [UDP] recive [404]%s : %d", "unsupport type, do not reply \n", header->type);
+        LOG_WARN("[UDP] recive [404]{} : {}", "unsupport type, do not reply ", header->type);
 }
 
 static void timeout_cb(evutil_socket_t, short, void *arg)
 {
-    printf("[DEBUG] [UDP] send [HELLO]\n");
+    LOG_DEBUG("[UDP] send [HELLO]");
 
     udp_cli *cli = (udp_cli *)arg;
 
     string msg = "hello";
-    lan_discover_header_t reply_header = {LAN_DISCOVER_VER_0_1, LAN_DISCOVER_TYPE_HELLO, sizeof(msg.data())};
+    lan_discover_header_t reply_header = {LAN_DISCOVER_VER_0_1, LAN_DISCOVER_TYPE_HELLO, (uint16_t)msg.size()};
 
     struct evbuffer *buf = evbuffer_new();
     evbuffer_add(buf, &reply_header, sizeof(lan_discover_header_t));
@@ -338,7 +342,7 @@ void Discover::config_send_udp_periodically(struct local_inf_info info)
 
 void handle_sync_status_pending(WantSyncResource *rs)
 {
-    printf("[INFO ] [SYNC] [%s] sync req rs! \n", rs->uri.data());
+    LOG_INFO("[SYNC] [{}] sync req rs! ", rs->uri);
     rs->status = PENDING;
     lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_RESOURCE); // free in lan_sync_encapsulate --> evbuffer_cb_for_free
     header = lan_sync_header_add_xheader(header, XHEADER_URI, rs->uri);
@@ -351,7 +355,7 @@ void handle_sync_status_syncing(WantSyncResource *rs)
     int diff = difftime(now, rs->last_update_time);
     if (diff > 250)
     {
-        printf("[INFO ] [SYNC] [%s] sync cost a lot of time! now reset status\n", rs->uri.data());
+        LOG_INFO("[SYNC] [{}] sync cost a lot of time! now reset status", rs->uri);
         rs->status = PENDING;
         rs->last_update_time = time(0);
     }
@@ -379,15 +383,15 @@ static void req_resource_periodically_timeout(evutil_socket_t, short, void *arg)
             break;
         case SUCCESS:
             table.erase(iter);
-            printf("[INFO ] [SYNC] [%s] sync done! \n", rs->uri.data());
+            LOG_INFO("[SYNC] [{}] sync done! ", rs->uri);
             break;
         case FAIL:
             rs->status = PENDING;
             rs->last_update_time = time(0);
-            printf("[INFO ] [SYNC] [%s] sync fail!  now reset status\n", rs->uri.data());
+            LOG_INFO("[SYNC] [{}] sync fail!  now reset status", rs->uri);
             break;
         default:
-            printf("[WARN ] [SYNC] [%s] sync status is unsupport\n", rs->uri.data());
+            LOG_WARN(" [SYNC] [{}] sync status is unsupport", rs->uri);
             break;
         }
     }
@@ -439,6 +443,7 @@ void Discover::start()
 
 int main(int argc, char const *argv[])
 {
+    configlog();
     discover->start();
     event_base_free(base);
     free(discover);
