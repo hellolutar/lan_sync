@@ -66,6 +66,7 @@
         "map": "cpp",
         "set": "cpp",
         "variant": "cpp",
-        "span": "cpp"
+        "span": "cpp",
+        "cerrno": "cpp"
     }
 }

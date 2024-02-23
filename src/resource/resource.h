@@ -32,12 +32,12 @@ enum WantSyncResourceStatusEnum
 
 struct WantSyncResource
 {
-    struct evbuffer *out;
+    struct bufferevent *bev;
     string uri;
     enum WantSyncResourceStatusEnum status;
     time_t last_update_time;
 };
 
-struct WantSyncResource *WantSyncResource_new(struct evbuffer *out, string uri, enum WantSyncResourceStatusEnum status);
+struct WantSyncResource *WantSyncResource_new(struct bufferevent *bev, string uri, enum WantSyncResourceStatusEnum status);
 
 #endif

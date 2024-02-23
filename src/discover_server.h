@@ -18,14 +18,15 @@
 // #include <spdlog/spdlog.h>
 
 #include "comm/lan_share_protocol.h"
-#include "resource_manager.h"
+#include "resource/resource_manager.h"
+#include "utils/logger.h"
+#include "constants.h"
 
 using namespace std;
 
 class DiscoverServer
 {
 private:
-    vector<local_inf_info> inf_infos;
     
 public:
     enum state st;
@@ -33,5 +34,5 @@ public:
     DiscoverServer(struct event_base *base);
     ~DiscoverServer();
     void start();
-    ResourceManager rm = ResourceManager("resources/server");
+    ResourceManager rm = ResourceManager("static/server");
 };

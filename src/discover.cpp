@@ -4,38 +4,134 @@
 struct event_base *base = event_base_new();
 Discover *discover = new Discover(base);
 
-int getLoclInfo(struct local_inf_info *inf_infos)
+void req_resource_periodically_timeout(evutil_socket_t, short, void *arg)
 {
-    int fd;
-    assert((fd = socket(AF_INET, SOCK_DGRAM, 0)) >= 0);
+    discover->syncResource();
+}
 
-    struct ifreq ifreqs[10];
+void req_table_index_timeout_cb(evutil_socket_t, short, void *arg)
+{
+    discover->reqTableIndex();
+}
 
-    struct ifconf ifc;
-    ifc.ifc_len = sizeof(ifreqs);
-    ifc.ifc_buf = (caddr_t)ifreqs;
+void tcp_readcb(struct bufferevent *bev, void *ctx)
+{
+    struct evbuffer *in = bufferevent_get_input(bev);
 
-    assert(ioctl(fd, SIOCGIFCONF, (char *)&ifc) >= 0);
-    int interface_num = ifc.ifc_len / sizeof(struct ifreq);
+    int recvLen = evbuffer_get_length(in);
+    if (recvLen == 0)
+        return;
 
-    for (size_t i = 0; i < interface_num; i++)
+    discover->handleTcpMsg(bev);
+}
+
+void tcp_writecb(struct bufferevent *bev, void *ctx)
+{
+    // printf("can write msg to peer tcp server! ");
+}
+
+void tcp_event_cb(struct bufferevent *bev, short what, void *ctx)
+{
+    if (what == BEV_EVENT_ERROR)
     {
-        memcpy(inf_infos[i].name, ifreqs[i].ifr_name, strlen(ifreqs[i].ifr_name));
+        LOG_WARN("[SYNC CLI] tcp_event_cb [BEV_EVENT_ERROR]");
+    }
+    else if (what == BEV_EVENT_EOF)
+    {
+        LOG_WARN("[SYNC CLI] tcp_event_cb [BEV_EVENT_EOF]");
+    }
+    else if (what == BEV_EVENT_TIMEOUT)
+    {
+        LOG_WARN("[SYNC CLI] tcp_event_cb [BEV_EVENT_TIMEOUT]");
+    }
+    else if (BEV_EVENT_CONNECTED)
+    {
+        // socket disconnected
+        // todo remove  event in config_req_table_index_periodically
+        // inet_ntoa()
+        LOG_WARN("[SYNC CLI] tcp_event_cb [BEV_EVENT_CONNECTED] REASON: {}", evutil_socket_error_to_string(errno));
+        discover->delTcpSessionByBufevent(bev);
+    }
+    else if (BEV_EVENT_READING)
+    {
+        LOG_WARN("[SYNC CLI] tcp_event_cb [BEV_EVENT_READING]");
+    }
+    else if (BEV_EVENT_WRITING)
+    {
+        LOG_WARN("[SYNC CLI] tcp_event_cb [BEV_EVENT_WRITING]");
+    }
+    else
+    {
+        LOG_WARN("[SYNC CLI] tcp_event_cb  what{} ", what);
+    }
+}
 
-        // ip
-        assert(ioctl(fd, SIOCGIFADDR, &ifreqs[i]) >= 0); // 获取ip，并将其存储到ifreq中
-        inf_infos[i].addr = *(struct sockaddr_in *)&(ifreqs[i].ifr_addr);
+void udp_readcb(evutil_socket_t fd, short events, void *ctx)
+{
+    struct sockaddr_in target_addr;
+    socklen_t addrlen = sizeof(struct sockaddr_in);
+    char data[4096] = {0};
 
-        // // broad address of this interface
-        assert(ioctl(fd, SIOCGIFBRDADDR, &ifreqs[i]) >= 0); // 获取广播地址，并将其存储到ifreq中
-        inf_infos[i].broad_addr = *(struct sockaddr_in *)&(ifreqs[i].ifr_broadaddr);
-
-        // // subnet mask
-        assert(ioctl(fd, SIOCGIFNETMASK, &ifreqs[i]) >= 0);
-        inf_infos[i].subnet_mask = *(struct sockaddr_in *)&(ifreqs[i].ifr_netmask);
+    int receive = recvfrom(fd, data, 4096, 0, (struct sockaddr *)&target_addr, &addrlen);
+    if (receive <= 0 || receive < len_lan_discover_header_t)
+    {
+        LOG_WARN("warning: cannot receive anything !");
+        return;
     }
 
-    return interface_num;
+    discover->handleUdpMsg(target_addr, data, 4096);
+}
+
+map<in_addr_t, struct bufferevent *> Discover::getTcpTable()
+{
+    return tcpTable;
+}
+
+void Discover::addTcpSession(in_addr_t target_addr, struct bufferevent *bev)
+{
+    tcpTable[target_addr] = bev;
+}
+
+void Discover::delTcpSessionByBufevent(struct bufferevent *e)
+{
+    for (auto i = tcpTable.begin(); i != tcpTable.end(); i++)
+    {
+        auto target_addr = (*i).first;
+        auto bev = (*i).second;
+        if (bev == e)
+        {
+            tcpTable.erase(i);
+            break;
+        }
+    }
+}
+
+bool Discover::existTcpSessionByBufevent(struct bufferevent *e)
+{
+    for (auto i = tcpTable.begin(); i != tcpTable.end(); i++)
+    {
+        auto target_addr = (*i).first;
+        auto bev = (*i).second;
+        if (bev == e)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Discover::existTcpSessionByAddr(in_addr_t peer)
+{
+    for (auto i = tcpTable.begin(); i != tcpTable.end(); i++)
+    {
+        auto target_addr = (*i).first;
+        auto bev = (*i).second;
+        if (target_addr == peer)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 Discover::Discover(struct event_base *base)
@@ -44,31 +140,22 @@ Discover::Discover(struct event_base *base)
 
     this->st = STATE_DISCOVERING;
     this->base = base;
-    this->inf_infos = (struct local_inf_info *)malloc(sizeof(struct local_inf_info) * 10);
-    memset(inf_infos, 0, sizeof(struct local_inf_info) * 10);
-    this->inf_infos_len = getLoclInfo(inf_infos);
 }
 
 Discover::~Discover()
 {
-    if (inf_infos)
-        free(inf_infos);
-    inf_infos = nullptr;
 }
 
-void appendSyncTable(struct Resource *table, struct evbuffer *out, uint64_t res_num)
+void Discover::appendSyncTable(struct Resource *table, struct bufferevent *bev, uint64_t res_num)
 {
     map<string, Resource> total_table;
 
     for (size_t i = 0; i < res_num; i++)
     {
-        LOG_DEBUG("name: {}", table[i].name);
-        LOG_DEBUG("size: {}", table[i].size);
-        LOG_DEBUG("uri: {}", table[i].uri);
-        LOG_DEBUG("hash: {}", table[i].hash);
+        LOG_DEBUG(" > uri: {}", table[i].uri);
         total_table[table[i].name] = table[i];
-        LOG_DEBUG("");
     }
+    LOG_DEBUG("");
 
     vector<struct Resource *> local_table = discover->rm.getTable();
     for (size_t i = 0; i < local_table.size(); i++)
@@ -84,24 +171,27 @@ void appendSyncTable(struct Resource *table, struct evbuffer *out, uint64_t res_
 
     for (auto iter = total_table.begin(); iter != total_table.end(); iter++)
     {
-        discover->syncTable.push_back(WantSyncResource_new(out, iter->second.uri, PENDING));
+        LOG_INFO("[SYNC CLI] add uri to sync list : uri[{}]", iter->second.uri);
+        discover->addSyncResource(WantSyncResource_new(bev, iter->second.uri, PENDING));
     }
 }
-
-void handleLanSyncReplyTableIndex(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
+void Discover::handleLanSyncReplyTableIndex(struct bufferevent *bev, lan_sync_header_t *try_header, int recvLen)
 {
+    struct evbuffer *in, *out;
+    in = bufferevent_get_input(bev);
+    out = bufferevent_get_output(bev);
+
     int total_len = try_header->total_len;
     if (recvLen < total_len)
     {
         return;
     }
-    LOG_DEBUG("[TCP] cli recive table index!");
+    LOG_INFO("[SYNC CLI] recive {}!", SERVICE_NAME_REPLY_TABLE_INDEX);
 
     char *bufp = (char *)malloc(total_len);
     memset(bufp, 0, total_len);
 
     recvLen = evbuffer_remove(in, bufp, total_len);
-    LOG_DEBUG("EVBUFFER REMAIN: {} ", evbuffer_get_length(in));
     assert(recvLen == total_len);
 
     lan_sync_header_t *header = (lan_sync_header_t *)bufp;
@@ -112,21 +202,24 @@ void handleLanSyncReplyTableIndex(struct evbuffer *in, struct evbuffer *out, lan
 
     struct Resource *table = (struct Resource *)(++header);
 
-    appendSyncTable(table, out, res_num);
+    appendSyncTable(table, bev, res_num);
 
     free(bufp);
 }
 
-bool checkHash(lan_sync_header_t *header, string pathstr);
-
-void handleLanSyncReplyResource(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
+void Discover::handleLanSyncReplyResource(struct bufferevent *bev, lan_sync_header_t *try_header, int recvLen)
 {
+
+    struct evbuffer *in, *out;
+    in = bufferevent_get_input(bev);
+    out = bufferevent_get_output(bev);
+
     int total_len = try_header->total_len;
     if (recvLen < total_len)
     {
         return;
     }
-    LOG_DEBUG("[TCP] cli recive resource!");
+    LOG_INFO("[SYNC CLI] [{}] recive [{}]!", SERVICE_NAME_REQ_RESOURCE, SERVICE_NAME_REPLY_REQ_RESOURCE);
 
     char *bufp = (char *)malloc(total_len);
     memset(bufp, 0, total_len);
@@ -139,7 +232,7 @@ void handleLanSyncReplyResource(struct evbuffer *in, struct evbuffer *out, lan_s
     string uri = lan_sync_header_query_xheader(header, XHEADER_URI);
     if (uri == "")
     {
-        LOG_ERROR("[TCP] handleLanSyncReplyResource() query header is failed! ");
+        LOG_ERROR("[SYNC CLI] handleLanSyncReplyResource() query header is failed! ");
         free(bufp);
         return;
     }
@@ -167,30 +260,25 @@ void handleLanSyncReplyResource(struct evbuffer *in, struct evbuffer *out, lan_s
     lan_sync_header_extract_data(header, data);
     // TODO(lutar) 这里需要对写出的数量进行处理
     int writed = write(fd, data, data_len); // todo
-    LOG_INFO("writed: {} ", writed);
+    LOG_INFO("[SYNC CLI] [{}] : uri[{}] write data to file, size: {} ", SERVICE_NAME_REQ_RESOURCE, uri, writed);
 
     close(fd);
 
-    bool valid = checkHash(header, pathstr);
-    if (valid)
+    if (checkHash(header, pathstr))
     {
-        auto table = discover->syncTable;
-        for (auto iter = table.end() - 1; iter >= table.begin(); iter--)
-        {
-            WantSyncResource *rs = (*iter);
-            if (rs->uri == uri)
-            {
-                rs->status = SUCCESS;
-                break;
-            }
-        }
+        updateSyncResourceStatus(uri, SUCCESS);
+        rm.refreshTable();
+        delSyncResource(uri);
+
     }
+    else
+        updateSyncResourceStatus(uri, FAIL);
 
     free(data);
     free(bufp);
 }
 
-bool checkHash(lan_sync_header_t *header, string pathstr)
+bool Discover::checkHash(lan_sync_header_t *header, string pathstr)
 {
     auto p = filesystem::path(pathstr);
     if (!filesystem::exists(p))
@@ -215,109 +303,89 @@ bool checkHash(lan_sync_header_t *header, string pathstr)
     }
 }
 
-void tcp_readcb(struct bufferevent *bev, void *ctx)
+void Discover::handleTcpMsg(struct bufferevent *bev)
 {
-    LOG_DEBUG("[TCP] : receive msg!");
     struct evbuffer *in = bufferevent_get_input(bev);
     struct evbuffer *out = bufferevent_get_output(bev);
 
     int recvLen = evbuffer_get_length(in);
-    if (recvLen == 0)
-    {
-        return;
-    }
 
     char buf[lan_sync_header_len + 1] = {0};
     evbuffer_copyout(in, buf, lan_sync_header_len);
     lan_sync_header_t *try_header = (lan_sync_header_t *)buf;
+
     if (try_header->type == LAN_SYNC_TYPE_REPLY_TABLE_INDEX)
-    {
-        handleLanSyncReplyTableIndex(in, out, try_header, recvLen);
-    }
+        handleLanSyncReplyTableIndex(bev, try_header, recvLen);
     else if (try_header->type == LAN_SYNC_TYPE_REPLY_RESOURCE)
-    {
-        handleLanSyncReplyResource(in, out, try_header, recvLen);
-    }
+        handleLanSyncReplyResource(bev, try_header, recvLen);
+    else
+        LOG_WARN("[SYNC CLI] receive tcp pkt : the type is unsupport!");
 }
 
-void tcp_writecb(struct bufferevent *bev, void *ctx)
+void Discover::connPeerWithTcp(struct sockaddr_in target_addr, uint16_t peer_tcp_port)
 {
-    // printf("can write msg to peer tcp server! ");
-}
+    LOG_INFO("[SYNC CLI] try to connect the tcp server!");
+    target_addr.sin_port = htons(peer_tcp_port);
+    target_addr.sin_family = AF_INET;
 
-void connect_tcp_server(struct cb_arg *arg)
-{
     struct sockaddr_in sin;
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = 0;
 
     int tcpsock = socket(AF_INET, SOCK_STREAM, 0);
-    int ret = connect(tcpsock, (struct sockaddr *)arg->target_addr, sizeof(struct sockaddr_in));
+    int ret = connect(tcpsock, (struct sockaddr *)&target_addr, sizeof(struct sockaddr_in));
     if (ret < 0)
     {
-        LOG_DEBUG("TCP ERROR: {} ", strerror(errno));
+        LOG_ERROR("[SYNC CLI] ERROR: {} ", strerror(errno));
         libevent_global_shutdown();
     }
 
     struct bufferevent *bev = bufferevent_socket_new(base, tcpsock, BEV_OPT_CLOSE_ON_FREE);
-    bufferevent_setcb(bev, tcp_readcb, tcp_writecb, nullptr, base);
+    bufferevent_setcb(bev, tcp_readcb, tcp_writecb, tcp_event_cb, base);
     bufferevent_enable(bev, EV_READ | EV_WRITE);
-    cb_arg_free(arg);
 
-    struct evbuffer *out = bufferevent_get_output(bev);
-
-    lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_TABLE_INDEX); // free in lan_sync_encapsulate --> evbuffer_cb_for_free
-
-    lan_sync_encapsulate(out, header);
-    LOG_INFO("[TCP] [lan sync] req resource!");
+    addTcpSession(target_addr.sin_addr.s_addr, bev);
 }
 
-void udp_readcb(evutil_socket_t fd, short events, void *ctx)
+void Discover::handleHelloAck(struct sockaddr_in target_addr, struct lan_discover_header *header)
 {
-    struct event_base *base = (struct event_base *)ctx;
+    uint16_t peer_tcp_port = *(uint16_t *)(header + 1);
 
-    struct sockaddr_in target_addr;
-    socklen_t addrlen = sizeof(struct sockaddr_in);
-    char data[4096] = {0};
+    LOG_INFO("[SYNC CLI] recive [HELLO ACK], data_len:{} , peer tcp port: {}", header->data_len, peer_tcp_port);
 
-    int receive = recvfrom(fd, data, 4096, 0, (struct sockaddr *)&target_addr, &addrlen);
-    if (receive <= 0)
+    if (st == STATE_DISCOVERING)
     {
-        LOG_WARN("warning: cannot receive anything !");
+        st = STATE_SYNC_READY;
+        // todo(lutar) 形成 RESOURCE_TABLE, 这里是不是也可以引入状态机
+        connPeerWithTcp(target_addr, peer_tcp_port);
+    }
+    else
+    {
+        if (!existTcpSessionByAddr(target_addr.sin_addr.s_addr))
+        {
+            connPeerWithTcp(target_addr, peer_tcp_port);
+        }
+    }
+}
+
+void Discover::handleUdpMsg(struct sockaddr_in target_addr, char *data, int data_len)
+{
+    struct lan_discover_header *header = (lan_discover_header_t *)data;
+    if (header->data_len == 0)
+    {
+        LOG_WARN("[SYNC CLI] receive udp pkt, but data_len is [0]");
         return;
     }
 
-    struct lan_discover_header *header = (lan_discover_header_t *)data;
-    uint16_t peer_tcp_port = *(uint16_t *)(header + 1);
-
     if (header->type == LAN_DISCOVER_TYPE_HELLO_ACK)
-    {
-        LOG_DEBUG("[UDP] recive [HELLO ACK], data_len:{} , port: {}", header->data_len, peer_tcp_port);
-
-        // 启动HTTPS Server
-        if (discover->st == STATE_DISCOVERING)
-        {
-            discover->st = STATE_SYNC_READY;
-
-            // todo(lutar) 形成 RESOURCE_TABLE, 这里是不是也可以引入状态机
-
-            struct cb_arg *arg = cb_arg_new(base);
-            memcpy(arg->target_addr, &target_addr, sizeof(target_addr));
-            arg->target_addr->sin_port = htons(peer_tcp_port);
-
-            connect_tcp_server(arg);
-            LOG_DEBUG("todo : add a tcp bufferevent to sync request!");
-        }
-    }
+        handleHelloAck(target_addr, header);
     else
-        LOG_WARN("[UDP] recive [404]{} : {}", "unsupport type, do not reply ", header->type);
+        LOG_WARN("[SYNC CLI] recive [404]{} : {}", "unsupport type, do not reply ", header->type);
 }
 
-static void timeout_cb(evutil_socket_t, short, void *arg)
+static void send_udp_hello(evutil_socket_t, short, void *arg)
 {
-    LOG_DEBUG("[UDP] send [HELLO]");
-
-    udp_cli *cli = (udp_cli *)arg;
+    LOG_DEBUG("[SYNC CLI] send [HELLO]");
 
     string msg = "hello";
     lan_discover_header_t reply_header = {LAN_DISCOVER_VER_0_1, LAN_DISCOVER_TYPE_HELLO, (uint16_t)msg.size()};
@@ -326,51 +394,47 @@ static void timeout_cb(evutil_socket_t, short, void *arg)
     evbuffer_add(buf, &reply_header, sizeof(lan_discover_header_t));
     evbuffer_add(buf, msg.data(), msg.size());
 
+    udp_cli *cli = (udp_cli *)arg;
     cli->send(buf);
 }
 
-void Discover::config_send_udp_periodically(struct local_inf_info info)
+void Discover::handle_sync_status_pending(WantSyncResource *rs)
 {
-    udp_cli *cli = new udp_cli(udp_sock, base, info.broad_addr.sin_addr);
-    struct event *timeout_event = event_new(base, -1, EV_PERSIST, timeout_cb, cli);
+    // 查询tcp session是否存在
+    if (existTcpSessionByBufevent(rs->bev))
+    {
+        LOG_INFO("[SYNC CLI] [{}] : req uri[{}]!", SERVICE_NAME_REQ_RESOURCE, rs->uri);
+        rs->status = SYNCING;
+        lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_RESOURCE); // free in lan_sync_encapsulate --> evbuffer_cb_for_free
+        header = lan_sync_header_add_xheader(header, XHEADER_URI, rs->uri);
 
-    struct timeval tv;
-    evutil_timerclear(&tv);
-    tv.tv_sec = PERIOD_OF_SEND_UDP;
-    event_add(timeout_event, &tv);
+        lan_sync_encapsulate(bufferevent_get_output(rs->bev), header);
+    }
+    else
+    {
+        delSyncResource(rs->uri);
+        LOG_INFO("[SYNC CLI] [{}] : tcp session is not exist, so remove the sync entry: uri[{}]", SERVICE_NAME_REQ_RESOURCE, rs->uri);
+    }
 }
 
-void handle_sync_status_pending(WantSyncResource *rs)
-{
-    LOG_INFO("[SYNC] [{}] sync req rs! ", rs->uri);
-    rs->status = PENDING;
-    lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_RESOURCE); // free in lan_sync_encapsulate --> evbuffer_cb_for_free
-    header = lan_sync_header_add_xheader(header, XHEADER_URI, rs->uri);
-    lan_sync_encapsulate(rs->out, header);
-}
-
-void handle_sync_status_syncing(WantSyncResource *rs)
+void Discover::handle_sync_status_syncing(WantSyncResource *rs)
 {
     time_t now = time(0);
     int diff = difftime(now, rs->last_update_time);
     if (diff > 250)
     {
-        LOG_INFO("[SYNC] [{}] sync cost a lot of time! now reset status", rs->uri);
+        LOG_WARN("[SYNC CLI] [{}] : uri[{}] cost a lot of time! now reset status", SERVICE_NAME_REQ_RESOURCE, rs->uri);
         rs->status = PENDING;
         rs->last_update_time = time(0);
     }
 }
 
-static void req_resource_periodically_timeout(evutil_socket_t, short, void *arg)
+void Discover::syncResource()
 {
-    vector<WantSyncResource *> table = discover->syncTable;
-    int size = table.size();
-    if (size == 0)
-    {
+    if (syncTable.size() == 0)
         return;
-    }
 
-    for (auto iter = table.end() - 1; iter >= table.begin(); iter--)
+    for (auto iter = syncTable.end() - 1; iter >= syncTable.begin(); iter--)
     {
         WantSyncResource *rs = (*iter);
         switch (rs->status)
@@ -382,22 +446,65 @@ static void req_resource_periodically_timeout(evutil_socket_t, short, void *arg)
             handle_sync_status_syncing(rs);
             break;
         case SUCCESS:
-            table.erase(iter);
-            LOG_INFO("[SYNC] [{}] sync done! ", rs->uri);
+            LOG_INFO("[SYNC CLI] [{}] : uri[{}] sync success! ", SERVICE_NAME_REQ_RESOURCE, rs->uri);
             break;
         case FAIL:
             rs->status = PENDING;
             rs->last_update_time = time(0);
-            LOG_INFO("[SYNC] [{}] sync fail!  now reset status", rs->uri);
+            LOG_INFO("[SYNC CLI] [{}] : uri[{}] sync fail!  now reset status", SERVICE_NAME_REQ_RESOURCE, rs->uri);
             break;
         default:
-            LOG_WARN(" [SYNC] [{}] sync status is unsupport", rs->uri);
+            LOG_WARN(" [SYNC CLI] [{}] : uri[{}] sync status is unsupport", SERVICE_NAME_REQ_RESOURCE, rs->uri);
             break;
         }
     }
 }
 
-void config_req_resource_periodically()
+void Discover::reqTableIndex()
+{
+    for (auto i = tcpTable.begin(); i != tcpTable.end(); i++)
+    {
+        auto target_addr = (*i).first;
+        auto bev = (*i).second;
+
+        struct evbuffer *out = bufferevent_get_output(bev);
+
+        lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_TABLE_INDEX); // free in lan_sync_encapsulate --> evbuffer_cb_for_free
+
+        LOG_INFO("[SYNC CLI] send {}!",SERVICE_NAME_REQ_TABLE_INDEX);
+        lan_sync_encapsulate(out, header);
+    }
+}
+
+void Discover::config_req_table_index_periodically()
+{
+    struct event *timeout_event = event_new(base, -1, EV_PERSIST, req_table_index_timeout_cb, nullptr);
+    struct timeval tv;
+    evutil_timerclear(&tv);
+    tv.tv_sec = PERIOD_OF_REQ_TABLE_INDEX;
+    event_add(timeout_event, &tv);
+}
+
+void Discover::config_send_udp_periodically()
+{
+    vector<LocalPort> ports = LocalPort::query();
+
+    for (size_t i = 0; i < ports.size(); i++)
+    {
+        LocalPort port = ports[i];
+
+        udp_cli *cli = new udp_cli(udp_sock, base, port.getBroadAddr().sin_addr);
+        struct event *timeout_event = event_new(base, -1, EV_PERSIST, send_udp_hello, cli);
+
+        struct timeval tv;
+        evutil_timerclear(&tv);
+        tv.tv_sec = PERIOD_OF_SEND_UDP;
+        event_add(timeout_event, &tv);
+        // todo (lutar) free event
+    }
+}
+
+void Discover::config_req_resource_periodically()
 {
     struct event *timeout_event = event_new(base, -1, EV_PERSIST, req_resource_periodically_timeout, nullptr);
 
@@ -405,12 +512,49 @@ void config_req_resource_periodically()
     evutil_timerclear(&tv);
     tv.tv_sec = PERIOD_OF_REQ_RS;
     event_add(timeout_event, &tv);
+
+    // todo (lutar) free event
 }
 
-void Discover::start()
+void Discover::addSyncResource(struct WantSyncResource *item)
 {
-    struct event *write_event, *read_event;
+    for (size_t i = 0; i < syncTable.size(); i++)
+    {
+        auto rs = syncTable[i];
+        if (rs->uri == item->uri)
+            return;
+    }
+    syncTable.push_back(item);
+}
 
+void Discover::delSyncResource(string uri)
+{
+    for (auto i = syncTable.begin(); i != syncTable.end(); i++)
+    {
+        auto rs = *i;
+        if (rs->uri == uri)
+        {
+            syncTable.erase(i);
+            return;
+        }
+    }
+}
+
+void Discover::updateSyncResourceStatus(string uri, enum WantSyncResourceStatusEnum)
+{
+    for (auto iter = syncTable.end() - 1; iter >= syncTable.begin(); iter--)
+    {
+        WantSyncResource *rs = (*iter);
+        if (rs->uri == uri)
+        {
+            rs->status = SUCCESS;
+            break;
+        }
+    }
+}
+
+void Discover::config_udp_sock()
+{
     udp_sock = socket(AF_INET, SOCK_DGRAM, 0);
     assert(udp_sock > 0);
 
@@ -418,27 +562,29 @@ void Discover::start()
     setsockopt(udp_sock, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(int));
     setsockopt(udp_sock, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(int));
     setsockopt(udp_sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
+}
+
+void Discover::init()
+{
+    config_udp_sock();
+
+    config_send_udp_periodically();
+
+    config_req_table_index_periodically();
 
     config_req_resource_periodically();
+}
 
-    for (size_t i = 0; i < inf_infos_len; i++)
-    {
-        struct local_inf_info info = inf_infos[i];
+void Discover::start()
+{
+    init();
 
-        if (info.broad_addr.sin_addr.s_addr == 0)
-            continue;
-
-        config_send_udp_periodically(info);
-
-        break;
-    }
-
-    read_event = event_new(base, udp_sock, EV_READ | EV_PERSIST, udp_readcb, base); // todo(lutar) 实现周期发送
+    struct event *read_event = event_new(base, udp_sock, EV_READ | EV_PERSIST, udp_readcb, base);
     assert(read_event);
     event_add(read_event, nullptr);
 
     event_base_dispatch(base);
-    event_free(read_event); // todo(lutar): 这里应该不用释放
+    event_free(read_event);
 }
 
 int main(int argc, char const *argv[])

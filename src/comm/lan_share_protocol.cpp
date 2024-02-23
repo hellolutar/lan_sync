@@ -240,3 +240,68 @@ lan_sync_header_t *lan_sync_header_new(enum lan_sync_version version, enum lan_s
 
     return header;
 }
+
+LocalPort::LocalPort(/* args */)
+{
+}
+
+LocalPort::~LocalPort()
+{
+}
+
+vector<LocalPort> LocalPort::query()
+{
+    vector<LocalPort> ports;
+
+    int fd;
+    assert((fd = socket(AF_INET, SOCK_DGRAM, 0)) >= 0);
+
+    struct ifreq ifreqs[10];
+
+    struct ifconf ifc;
+    ifc.ifc_len = sizeof(ifreqs);
+    ifc.ifc_buf = (caddr_t)ifreqs;
+
+    assert(ioctl(fd, SIOCGIFCONF, (char *)&ifc) >= 0);
+    int interface_num = ifc.ifc_len / sizeof(struct ifreq);
+
+    for (size_t i = 0; i < interface_num; i++)
+    {
+        LocalPort port;
+
+        char name[1024];
+        memcpy(name, ifreqs[i].ifr_name, strlen(ifreqs[i].ifr_name));
+        port.name = name;
+
+        // // broad address of this interface
+        assert(ioctl(fd, SIOCGIFBRDADDR, &ifreqs[i]) >= 0); // 获取广播地址，并将其存储到ifreq中
+        port.broad_addr = *(struct sockaddr_in *)&(ifreqs[i].ifr_broadaddr);
+        if (port.broad_addr.sin_addr.s_addr == 0)
+            continue; // is loopback
+
+        // ip
+        assert(ioctl(fd, SIOCGIFADDR, &ifreqs[i]) >= 0); // 获取ip，并将其存储到ifreq中
+        port.addr = *(struct sockaddr_in *)&(ifreqs[i].ifr_addr);
+
+        // // subnet mask
+        assert(ioctl(fd, SIOCGIFNETMASK, &ifreqs[i]) >= 0);
+        port.subnet_mask = *(struct sockaddr_in *)&(ifreqs[i].ifr_netmask);
+
+        ports.push_back(port);
+    }
+
+    return ports;
+}
+
+struct sockaddr_in LocalPort::getAddr()
+{
+    return addr;
+}
+struct sockaddr_in LocalPort::getBroadAddr()
+{
+    return broad_addr;
+}
+struct sockaddr_in LocalPort::getSubnetMask()
+{
+    return subnet_mask;
+}

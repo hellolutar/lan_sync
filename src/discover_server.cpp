@@ -15,7 +15,6 @@ DiscoverServer::DiscoverServer(struct event_base *base)
 
 void handleLanSyncGetTableIndex(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
 {
-    printf("[DEBUG] [TCP] cli recive table index!\n");
     char useless[1024];
     evbuffer_remove(in, useless, try_header->header_len);
 
@@ -27,12 +26,14 @@ void handleLanSyncGetTableIndex(struct evbuffer *in, struct evbuffer *out, lan_s
     header = lan_sync_header_set_data(header, data, data_len);
     lan_sync_encapsulate(out, header);
     free(data);
+
+    LOG_INFO("[SYNC SER] [{}] : entry num: {} ", SERVICE_NAME_REPLY_TABLE_INDEX, table.size());
 }
 
 void replyResource(struct evbuffer *out, char *uri)
 {
     const struct Resource *rs = disconverServer->rm.queryByUri(uri);
-    if (rs ==nullptr)
+    if (rs == nullptr)
     {
         return;
     }
@@ -59,7 +60,7 @@ void replyResource(struct evbuffer *out, char *uri)
     header = lan_sync_header_set_data(header, data, readed);
     lan_sync_encapsulate(out, header);
     free(data);
-    printf("[DEBUG] [TCP] send file size:%ld \n", readed);
+    LOG_DEBUG("[SYNC SER] [{}] : uri[{}] file size:{} ", SERVICE_NAME_REPLY_REQ_RESOURCE, uri, readed);
 }
 
 void handleLanSyncGetResource(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
@@ -69,7 +70,6 @@ void handleLanSyncGetResource(struct evbuffer *in, struct evbuffer *out, lan_syn
     {
         return;
     }
-    printf("[DEBUG] [TCP] cli recive table index!\n");
 
     char *bufp = (char *)malloc(total_len);
     memset(bufp, 0, total_len);
@@ -80,7 +80,7 @@ void handleLanSyncGetResource(struct evbuffer *in, struct evbuffer *out, lan_syn
     lan_sync_header_t *header = (lan_sync_header_t *)bufp;
     string xhd_uri = lan_sync_header_query_xheader(header, XHEADER_URI);
     char *reqUri = xhd_uri.data();
-    printf("[DEBUG] [TCP] req uri: [%s] \n", reqUri);
+    LOG_INFO("[SYNC SER] [{}] : uri[{}] ", SERVICE_NAME_REQ_RESOURCE, reqUri);
 
     replyResource(out, reqUri);
 
@@ -89,7 +89,6 @@ void handleLanSyncGetResource(struct evbuffer *in, struct evbuffer *out, lan_syn
 
 void tcp_readcb(struct bufferevent *bev, void *ctx)
 {
-    printf("[DEBUG] [TCP] : receive msg!\n");
     struct evbuffer *in = bufferevent_get_input(bev);
     struct evbuffer *out = bufferevent_get_output(bev);
 
@@ -99,19 +98,23 @@ void tcp_readcb(struct bufferevent *bev, void *ctx)
     lan_sync_header_t *try_header = (lan_sync_header_t *)buf;
     if (try_header->type == LAN_SYNC_TYPE_GET_TABLE_INDEX)
     {
-        printf("[DEBUG] [TCP] handleLanSyncGetTableIndex\n");
+        LOG_INFO("[SYNC SER] receive pkt: {}", SERVICE_NAME_REQ_TABLE_INDEX);
         handleLanSyncGetTableIndex(in, out, try_header, recvLen);
     }
     else if (try_header->type == LAN_SYNC_TYPE_GET_RESOURCE)
     {
-        printf("[DEBUG] [TCP] handleLanSyncGetResource\n");
+        LOG_INFO("[SYNC SER] receive pkt: {}", SERVICE_NAME_REQ_RESOURCE);
         handleLanSyncGetResource(in, out, try_header, recvLen);
+    }
+    else
+    {
+        LOG_INFO("[SYNC SER] : receive pkt: the type is unsupport!");
     }
 }
 
 void tcp_writecb(struct bufferevent *bev, void *ctx)
 {
-    // printf("[DEBUG] TCP : can write msg!\n");
+    // LOG_DEBUG("TCP : can write msg!");
 }
 
 void do_accept(evutil_socket_t listener, short event, void *ctx)
@@ -150,9 +153,10 @@ void start_tcp_server(struct event_base *base)
     int res = listen(tcp_sock, 100);
     if (res == -1)
     {
-        fprintf(stderr, "[ERROR] TCP : %s \n", strerror(errno));
+        LOG_ERROR("[SYNC SER] : {} ", strerror(errno));
         exit(-1);
     }
+    LOG_INFO("[SYNC SER] TCP listen : {}", DISCOVER_SERVER_TCP_PORT);
     struct event *listener_event = event_new(base, tcp_sock, EV_READ | EV_PERSIST, do_accept, (void *)base);
     event_add(listener_event, nullptr);
 }
@@ -169,7 +173,7 @@ void udp_readcb(evutil_socket_t fd, short events, void *ctx)
     int receive = recvfrom(fd, data, 4096, 0, (struct sockaddr *)arg->target_addr, &addrlen);
     if (receive <= 0)
     {
-        printf("[WARNING]: cannot receive anything !\n");
+        LOG_WARN("[UDP] cannot receive anything !");
         return;
     }
 
@@ -177,6 +181,7 @@ void udp_readcb(evutil_socket_t fd, short events, void *ctx)
 
     if (header->type == LAN_DISCOVER_TYPE_HELLO)
     {
+        LOG_INFO("[UDP] receive pkt : {}", SERVICE_NAME_DISCOVER_HELLO);
         // 启动TCP Server
         if (disconverServer->st == STATE_DISCOVERING)
         {
@@ -188,6 +193,10 @@ void udp_readcb(evutil_socket_t fd, short events, void *ctx)
 
         evbuffer_add(arg->buf, &reply_header, sizeof(lan_discover_header_t));
         evbuffer_add(arg->buf, &msg, sizeof(msg));
+    }
+    else
+    {
+        LOG_WARN("[UDP] receive pkt : the type is unsupport", SERVICE_NAME_DISCOVER_HELLO);
     }
 
     struct event *write_e = event_new(base, fd, EV_WRITE, writecb, arg);
@@ -211,7 +220,7 @@ void DiscoverServer::start()
 
     assert(bind(udp_sock, (struct sockaddr *)&addr, sizeof(addr)) >= 0);
 
-    printf("[INFO] [UDP] listen: %d\n", DISCOVER_SERVER_UDP_PORT);
+    LOG_INFO("[UDP] UDP listen: {}", DISCOVER_SERVER_UDP_PORT);
 
     struct event *read_e = event_new(base, udp_sock, EV_READ | EV_PERSIST, udp_readcb, base);
     event_add(read_e, nullptr);
@@ -222,6 +231,7 @@ void DiscoverServer::start()
 
 int main(int argc, char const *argv[])
 {
+    configlog();
     disconverServer->start();
     event_base_free(base);
     return 0;
