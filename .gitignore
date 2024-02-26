@@ -1,2 +1,10 @@
 build
 learn
+**/*.o
+**/*.all
+**/*.so
+**/*.log
+**/logs
+**/log
+src/sync
+.vscode/settings.json

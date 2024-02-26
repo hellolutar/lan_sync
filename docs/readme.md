@@ -11,41 +11,49 @@ note left of CLI: CLI收到ACK后，进入SYNC_READY状态
 note left of CLI: 建立 TCP连接
 
 CLI ->> SER: GET RES_TABLE
-SER -->> CLI: GET RES_TABLE
+SER -->> CLI: REPLY RES_TABLE
 
 CLI ->> SER: GET RESOURCE
-SER -->> CLI: GET RESOURCE
+SER -->> CLI: REPLY RESOURCE
 note left of CLI: 断开 TCP连接
 ```
 
 
-CLI状态机
+CLI状态机, SER状态机
 ``` mermaid
 graph TD
 
-DISCOVERING --> DISCOVERING
-DISCOVERING --HELLO ACK --> SYNC_READY
+in --> DISCOVERING
+
+subgraph UDP
+DISCOVERING --5s--> DISCOVERING
+end
+subgraph TCP
+DISCOVERING -- recv HELLO --> SYNC_READY
+SYNC_READY --recv HELLO / GET / REPLY --> SYNC_READY
+end
+
+SYNC_READY --> out
 ```
 
-
-
-
-SER状态机
-``` mermaid
-graph TD
-
-DISCOVERING --> DISCOVERING
-DISCOVERING --HELLO--> SYNC_READY
-```
-
+UDP报文
 - 握手阶段：起始状态都是 DISCOVERING
 - 握手阶段：收到HELLO/HELLO ACK报文后进入SYNC_READY
+
+<br>
+
+
+<br/>
+TCP报文
 - 同步阶段: 进入SYNC_READY状态后启动TCP服务器、客户端
 - 同步阶段: 同步资源表
 - 同步阶段: 同步资源
 - 同步阶段: 断开TCP连接
 - 同步阶段：FIN
 - 断开阶段：状态变为DISCOVERING
+<br/>
+
+
 
 ### 握手阶段
 1. 若选择接收方，则启动udp服务器，端口58080
@@ -64,6 +72,14 @@ discover
 1. 发送方、接收方各自形成自己的“资源表”
 2. 互相请求对方的“资源表”
 3. 收到对方的资源表后，比较各自的“资源表”，谁的文件大就保留谁的
+   - 同步过程中用hash判断文件是否同步成功
+   - 若不成功，则重新请求资源： todo
+   - 引入 “正在同步的资源表”
+
+<br/>
+
+通信双方都是平等点，都运行着discover_server、discover。
+程序启动后，discover的服务去寻找资源，并请求资源，如此各节点的资源都同步了。  
 
 discover_server
 
@@ -77,9 +93,33 @@ discover
 1. 从响应中读取TCP端口号，建立TCP连接
 2. 请求RESOURCE_TABLE
 3. 比较RESOURCE_TABLE
-4.1 发现本地有更新的文件，则提交更新请求
-    接收更新请求后的响应，再次比较RESOURCE_TABLE, 若依旧由更新的文件，则再次提交请求
-4.2 发现本地缺少文件，则发送REQ RESOURCE，接收并更新本地文件
+4 发现本地缺少文件，则发送REQ RESOURCE，接收并更新本地文件
+
+
+#### 正在同步资源表
+| peer    | uri   | status        | update_time         |
+| ------- | ----- | ------------- | ------------------- |
+| ip:port | /x/xx | pending       | 2024/01/01 16:33:11 |
+| ip:port | /x/xx | synchronizing | 2024/01/01 16:33:11 |
+| ip:port | /x/xx | failed        | 2024/01/01 16:33:11 |
+ 
+ ``` mermaid
+graph TD
+
+in --> pending
+pending --> syncing
+syncing --> success
+syncing --> fail
+fail --> pending
+success --> out
+ ```
+
+pending: 想要的同步的资源加入此表时，状态为pending
+
+
+
+
+
 
 ### p2p阶段 TODO 
 一个中央资源服务器，其余都是客户端，各终端之前的资源在中央服务器形成
