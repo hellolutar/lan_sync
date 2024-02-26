@@ -1,28 +1,5 @@
 #include "lan_share_protocol.h"
 
-void *lan_discover_encapsulate(lan_discover_header_t header, void *data, int data_len)
-{
-    int total_len = sizeof(header) + data_len;
-    lan_discover_header_t *ret_header = (lan_discover_header_t *)malloc(total_len);
-    memcpy(ret_header, &header, sizeof(header));
-    memcpy(ret_header + 1, data, data_len);
-    return ret_header;
-}
-
-void debug_print_header(struct lan_discover_header *header, struct in_addr addr)
-{
-    char data[4096] = {0};
-    memcpy(data, header + 1, header->data_len);
-    data[header->data_len] = '\0';
-    printf("[DEBUG] recive msg from :%s \n"
-           "\t version: %d \n"
-           "\t type: %d \n"
-           "\t len: %d \n",
-           inet_ntoa(addr),
-           header->version,
-           header->type,
-           header->data_len);
-}
 
 void evbuffer_cb_for_free(struct evbuffer *buffer, const struct evbuffer_cb_info *info, void *arg)
 {
@@ -43,7 +20,7 @@ void lan_sync_encapsulate(struct evbuffer *out, lan_sync_header_t *header)
     evbuffer_add(out, header, header->total_len);
     // 这里有些疑问，多次add_cb, 不知道会发生什么
     evbuffer_add_cb(out, evbuffer_cb_for_free, header);
-    printf("[DEBUG] [TCP] send pkt, header info: total_len:%ld, header_len:%d \n", header->total_len, header->header_len);
+    printf("[DEBUG] [TCP] send pkt, header info: total_len:%d, header_len:%d \n", header->total_len, header->header_len);
 }
 
 struct Resource *lan_sync_parseTableToData(vector<struct Resource *> table)
@@ -235,8 +212,8 @@ lan_sync_header_t *lan_sync_header_new(enum lan_sync_version version, enum lan_s
     lan_sync_header_t *header = (lan_sync_header_t *)malloc(lan_sync_header_len);
     header->version = version;
     header->type = type;
-    header->total_len = lan_sync_header_len;
     header->header_len = lan_sync_header_len;
+    header->total_len = header->header_len;
 
     return header;
 }

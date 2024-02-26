@@ -17,7 +17,6 @@ void configlog()
     sinks.push_back(daily_err_sink);
 
     auto logger = std::make_shared<spdlog::logger>("mylogger", begin(sinks), end(sinks));
-
     spdlog::register_logger(logger);
     spdlog::set_default_logger(logger);
     spdlog::set_level(spdlog::level::debug);

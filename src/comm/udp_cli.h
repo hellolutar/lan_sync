@@ -9,16 +9,15 @@ class udp_cli
 private:
     int udp_sock;
     struct event_base *base;
-    struct in_addr t_sin_addr;
-
-    void configure_sock(struct sockaddr_in *t_sock_addr);
+    struct sockaddr_in t_addr;
+    int be_port;
 
 public:
     udp_cli(int udp_sock,
             struct event_base *base,
-            struct in_addr t_sin_addr) : udp_sock(udp_sock),
+            struct sockaddr_in t_addr) : udp_sock(udp_sock),
                                          base(base),
-                                         t_sin_addr(t_sin_addr){};
+                                         t_addr(t_addr){};
     ~udp_cli();
 
     void send(struct evbuffer *inbuf);

@@ -42,7 +42,7 @@ private:
     void config_send_udp_periodically();
     void config_req_resource_periodically();
     void config_req_table_index_periodically();
-    void handleHelloAck(struct sockaddr_in target_addr, struct lan_discover_header *header);
+    void handleHelloAck(struct sockaddr_in target_addr, lan_sync_header_t *header);
     void connPeerWithTcp(struct sockaddr_in target_addr, uint16_t peer_tcp_port);
     void handle_sync_status_syncing(WantSyncResource *rs);
     void handle_sync_status_pending(WantSyncResource *rs);

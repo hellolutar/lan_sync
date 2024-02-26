@@ -30,8 +30,6 @@ using namespace std;
 #define XHEADER_URI "uri"
 #define XHEADER_HASH "hash"
 
-#define len_lan_discover_header_t sizeof(lan_discover_header_t)
-
 class LocalPort
 {
 private:
@@ -50,35 +48,11 @@ public:
     struct sockaddr_in getSubnetMask();
 };
 
-
-
 enum state : uint8_t
 {
     STATE_DISCOVERING = 1,
     STATE_SYNC_READY = 2,
 };
-
-enum lan_discover_version : uint8_t
-{
-    LAN_DISCOVER_VER_0_1 = 1,
-};
-
-enum lan_discover_type_enum : uint8_t
-{
-    LAN_DISCOVER_TYPE_HELLO = 1,
-    LAN_DISCOVER_TYPE_HELLO_ACK,
-};
-
-typedef struct lan_discover_header
-{
-    enum lan_discover_version version;
-    enum lan_discover_type_enum type;
-    uint16_t data_len;
-} lan_discover_header_t;
-
-void *lan_discover_encapsulate(lan_discover_header_t header, void *data, int data_len);
-
-void debug_print_header(struct lan_discover_header *header, struct in_addr addr);
 
 enum lan_sync_version : uint8_t
 {
@@ -87,7 +61,9 @@ enum lan_sync_version : uint8_t
 
 enum lan_sync_type_enum : uint8_t
 {
-    LAN_SYNC_TYPE_GET_TABLE_INDEX = 1,
+    LAN_SYNC_TYPE_HELLO = 1,
+    LAN_SYNC_TYPE_HELLO_ACK,
+    LAN_SYNC_TYPE_GET_TABLE_INDEX,
     LAN_SYNC_TYPE_REPLY_TABLE_INDEX,
     LAN_SYNC_TYPE_GET_RESOURCE,
     LAN_SYNC_TYPE_REPLY_RESOURCE,
@@ -100,7 +76,7 @@ typedef struct lan_sync_header
     enum lan_sync_version version;
     enum lan_sync_type_enum type;
     uint16_t header_len;
-    uint64_t total_len;
+    uint16_t total_len;
 } lan_sync_header_t;
 
 #define lan_sync_header_len sizeof(lan_sync_header_t)

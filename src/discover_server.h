@@ -21,18 +21,27 @@
 #include "resource/resource_manager.h"
 #include "utils/logger.h"
 #include "constants.h"
+#include "comm/udp_cli.h"
 
 using namespace std;
 
 class DiscoverServer
 {
 private:
-    
+    void handleLanSyncGetTableIndex(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen);
+    void handleLanSyncGetResource(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen);
+    void replyResource(struct evbuffer *out, char *uri);
+
 public:
     enum state st;
     struct event_base *base;
+    int udp_sock;
     DiscoverServer(struct event_base *base);
     ~DiscoverServer();
     void start();
+    void start_tcp_server(struct event_base *base);
+    void handleTcpMsg(struct bufferevent *bev);
+    void handleUdpMsg(struct sockaddr_in target_addr, char *data, int data_len);
+
     ResourceManager rm = ResourceManager("static/server");
 };

@@ -73,7 +73,7 @@ void udp_readcb(evutil_socket_t fd, short events, void *ctx)
     char data[4096] = {0};
 
     int receive = recvfrom(fd, data, 4096, 0, (struct sockaddr *)&target_addr, &addrlen);
-    if (receive <= 0 || receive < len_lan_discover_header_t)
+    if (receive <= 0 || receive < lan_sync_header_len)
     {
         LOG_WARN("warning: cannot receive anything !");
         return;
@@ -152,10 +152,15 @@ void Discover::appendSyncTable(struct Resource *table, struct bufferevent *bev, 
 
     for (size_t i = 0; i < res_num; i++)
     {
+        if (strlen(table[i].uri) == 0)
+            continue;
+
         LOG_DEBUG(" > uri: {}", table[i].uri);
         total_table[table[i].name] = table[i];
     }
     LOG_DEBUG("");
+    if (total_table.size() == 0)
+        return;
 
     vector<struct Resource *> local_table = discover->rm.getTable();
     for (size_t i = 0; i < local_table.size(); i++)
@@ -269,7 +274,6 @@ void Discover::handleLanSyncReplyResource(struct bufferevent *bev, lan_sync_head
         updateSyncResourceStatus(uri, SUCCESS);
         rm.refreshTable();
         delSyncResource(uri);
-
     }
     else
         updateSyncResourceStatus(uri, FAIL);
@@ -347,11 +351,13 @@ void Discover::connPeerWithTcp(struct sockaddr_in target_addr, uint16_t peer_tcp
     addTcpSession(target_addr.sin_addr.s_addr, bev);
 }
 
-void Discover::handleHelloAck(struct sockaddr_in target_addr, struct lan_discover_header *header)
+void Discover::handleHelloAck(struct sockaddr_in target_addr, lan_sync_header_t *header)
 {
-    uint16_t peer_tcp_port = *(uint16_t *)(header + 1);
+    string peer_tcp_port_str = lan_sync_header_query_xheader(header, "tcpport");
+    int peer_tcp_port = atoi(peer_tcp_port_str.data());
 
-    LOG_INFO("[SYNC CLI] recive [HELLO ACK], data_len:{} , peer tcp port: {}", header->data_len, peer_tcp_port);
+    int data_len = header->total_len - header->header_len;
+    LOG_INFO("[SYNC CLI] recive [HELLO ACK], data_len:{} , peer tcp port: {}", data_len, peer_tcp_port);
 
     if (st == STATE_DISCOVERING)
     {
@@ -370,14 +376,10 @@ void Discover::handleHelloAck(struct sockaddr_in target_addr, struct lan_discove
 
 void Discover::handleUdpMsg(struct sockaddr_in target_addr, char *data, int data_len)
 {
-    struct lan_discover_header *header = (lan_discover_header_t *)data;
-    if (header->data_len == 0)
-    {
-        LOG_WARN("[SYNC CLI] receive udp pkt, but data_len is [0]");
-        return;
-    }
+    lan_sync_header_t *header = (lan_sync_header_t *)data;
+    data_len = header->total_len - header->header_len;
 
-    if (header->type == LAN_DISCOVER_TYPE_HELLO_ACK)
+    if (header->type == LAN_SYNC_TYPE_HELLO_ACK)
         handleHelloAck(target_addr, header);
     else
         LOG_WARN("[SYNC CLI] recive [404]{} : {}", "unsupport type, do not reply ", header->type);
@@ -388,10 +390,10 @@ static void send_udp_hello(evutil_socket_t, short, void *arg)
     LOG_DEBUG("[SYNC CLI] send [HELLO]");
 
     string msg = "hello";
-    lan_discover_header_t reply_header = {LAN_DISCOVER_VER_0_1, LAN_DISCOVER_TYPE_HELLO, (uint16_t)msg.size()};
+    lan_sync_header_t reply_header = {LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_HELLO, (uint16_t)msg.size()};
 
     struct evbuffer *buf = evbuffer_new();
-    evbuffer_add(buf, &reply_header, sizeof(lan_discover_header_t));
+    evbuffer_add(buf, &reply_header, lan_sync_header_len);
     evbuffer_add(buf, msg.data(), msg.size());
 
     udp_cli *cli = (udp_cli *)arg;
@@ -451,6 +453,7 @@ void Discover::syncResource()
         case FAIL:
             rs->status = PENDING;
             rs->last_update_time = time(0);
+            // todo(lutar) 删除文件
             LOG_INFO("[SYNC CLI] [{}] : uri[{}] sync fail!  now reset status", SERVICE_NAME_REQ_RESOURCE, rs->uri);
             break;
         default:
@@ -471,7 +474,7 @@ void Discover::reqTableIndex()
 
         lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_TABLE_INDEX); // free in lan_sync_encapsulate --> evbuffer_cb_for_free
 
-        LOG_INFO("[SYNC CLI] send {}!",SERVICE_NAME_REQ_TABLE_INDEX);
+        LOG_INFO("[SYNC CLI] send {}!", SERVICE_NAME_REQ_TABLE_INDEX);
         lan_sync_encapsulate(out, header);
     }
 }
@@ -493,7 +496,12 @@ void Discover::config_send_udp_periodically()
     {
         LocalPort port = ports[i];
 
-        udp_cli *cli = new udp_cli(udp_sock, base, port.getBroadAddr().sin_addr);
+        struct sockaddr_in t_addr;
+        t_addr.sin_family = AF_INET;
+        t_addr.sin_port = htons(DISCOVER_SERVER_UDP_PORT);
+        t_addr.sin_addr = port.getBroadAddr().sin_addr;
+
+        udp_cli *cli = new udp_cli(udp_sock, base, t_addr);
         struct event *timeout_event = event_new(base, -1, EV_PERSIST, send_udp_hello, cli);
 
         struct timeval tv;

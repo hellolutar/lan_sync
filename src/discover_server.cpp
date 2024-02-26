@@ -3,6 +3,88 @@
 struct event_base *base = event_base_new();
 DiscoverServer *disconverServer = new DiscoverServer(base);
 
+void tcp_readcb(struct bufferevent *bev, void *ctx)
+{
+    struct evbuffer *in = bufferevent_get_input(bev);
+
+    int recvLen = evbuffer_get_length(in);
+    if (recvLen == 0)
+        return;
+
+    disconverServer->handleTcpMsg(bev);
+}
+
+void tcp_writecb(struct bufferevent *bev, void *ctx)
+{
+    // LOG_DEBUG("TCP : can write msg!");
+}
+
+void do_accept(evutil_socket_t listener, short event, void *ctx)
+{
+    struct event_base *base = (struct event_base *)ctx;
+    struct sockaddr_storage ss;
+    socklen_t slen = sizeof(ss);
+
+    int fd = accept(listener, (struct sockaddr *)&ss, &slen);
+    assert(fd > 0 && fd < FD_SETSIZE);
+
+    struct bufferevent *bev;
+    evutil_make_socket_nonblocking(fd);
+    bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
+    bufferevent_setcb(bev, tcp_readcb, tcp_writecb, nullptr, base);
+    bufferevent_enable(bev, EV_READ | EV_WRITE);
+}
+
+void DiscoverServer::handleUdpMsg(struct sockaddr_in target_addr, char *data, int data_len)
+{
+    lan_sync_header_t *header = (lan_sync_header_t *)data;
+
+    if (header->type == LAN_SYNC_TYPE_HELLO)
+    {
+        LOG_INFO("[SYNC SER] receive pkt : {}", SERVICE_NAME_DISCOVER_HELLO);
+        // 启动TCP Server
+        if (st == STATE_DISCOVERING)
+            start_tcp_server(base);
+        st = STATE_SYNC_READY;
+
+        lan_sync_header_t *reply_header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_HELLO_ACK);
+
+        reply_header = lan_sync_header_add_xheader(reply_header, "tcpport", to_string(DISCOVER_SERVER_TCP_PORT));
+
+        struct evbuffer *buf = evbuffer_new();
+        evbuffer_add(buf, reply_header, reply_header->total_len);
+        free(reply_header);
+
+        udp_cli *cli = new udp_cli(udp_sock, base, target_addr);
+        cli->send(buf);
+    }
+    else
+    {
+        char *ip = inet_ntoa(target_addr.sin_addr);
+
+        LOG_WARN("[SYNC SER] receive pkt[{}:{}] : the type is unsupport : {}", ip, ntohs(target_addr.sin_port), header->type);
+    }
+}
+
+// TODO(lutar, 20240219)  优化有限状态机
+void udp_readcb(evutil_socket_t fd, short events, void *ctx)
+{
+    struct event_base *base = (struct event_base *)ctx;
+
+    struct sockaddr_in target_addr;
+    socklen_t addrlen = sizeof(struct sockaddr_in);
+    char data[4096] = {0};
+
+    int receive = recvfrom(fd, data, 4096, 0, (sockaddr *)&target_addr, &addrlen);
+    if (receive <= 0)
+    {
+        LOG_WARN("[SYNC SER] cannot receive anything !");
+        return;
+    }
+
+    disconverServer->handleUdpMsg(target_addr, data, 4096);
+}
+
 DiscoverServer::DiscoverServer(struct event_base *base)
 {
     st = STATE_DISCOVERING;
@@ -13,7 +95,7 @@ DiscoverServer::DiscoverServer(struct event_base *base)
 // {
 // }
 
-void handleLanSyncGetTableIndex(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
+void DiscoverServer::handleLanSyncGetTableIndex(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
 {
     char useless[1024];
     evbuffer_remove(in, useless, try_header->header_len);
@@ -30,7 +112,7 @@ void handleLanSyncGetTableIndex(struct evbuffer *in, struct evbuffer *out, lan_s
     LOG_INFO("[SYNC SER] [{}] : entry num: {} ", SERVICE_NAME_REPLY_TABLE_INDEX, table.size());
 }
 
-void replyResource(struct evbuffer *out, char *uri)
+void DiscoverServer::replyResource(struct evbuffer *out, char *uri)
 {
     const struct Resource *rs = disconverServer->rm.queryByUri(uri);
     if (rs == nullptr)
@@ -63,7 +145,7 @@ void replyResource(struct evbuffer *out, char *uri)
     LOG_DEBUG("[SYNC SER] [{}] : uri[{}] file size:{} ", SERVICE_NAME_REPLY_REQ_RESOURCE, uri, readed);
 }
 
-void handleLanSyncGetResource(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
+void DiscoverServer::handleLanSyncGetResource(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
 {
     int total_len = try_header->total_len;
     if (recvLen < total_len)
@@ -87,7 +169,7 @@ void handleLanSyncGetResource(struct evbuffer *in, struct evbuffer *out, lan_syn
     free(bufp);
 }
 
-void tcp_readcb(struct bufferevent *bev, void *ctx)
+void DiscoverServer::handleTcpMsg(struct bufferevent *bev)
 {
     struct evbuffer *in = bufferevent_get_input(bev);
     struct evbuffer *out = bufferevent_get_output(bev);
@@ -112,28 +194,7 @@ void tcp_readcb(struct bufferevent *bev, void *ctx)
     }
 }
 
-void tcp_writecb(struct bufferevent *bev, void *ctx)
-{
-    // LOG_DEBUG("TCP : can write msg!");
-}
-
-void do_accept(evutil_socket_t listener, short event, void *ctx)
-{
-    struct event_base *base = (struct event_base *)ctx;
-    struct sockaddr_storage ss;
-    socklen_t slen = sizeof(ss);
-
-    int fd = accept(listener, (struct sockaddr *)&ss, &slen);
-    assert(fd > 0 && fd < FD_SETSIZE);
-
-    struct bufferevent *bev;
-    evutil_make_socket_nonblocking(fd);
-    bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
-    bufferevent_setcb(bev, tcp_readcb, tcp_writecb, nullptr, base);
-    bufferevent_enable(bev, EV_READ | EV_WRITE);
-}
-
-void start_tcp_server(struct event_base *base)
+void DiscoverServer::start_tcp_server(struct event_base *base)
 {
     int tcp_sock = socket(AF_INET, SOCK_STREAM, 0);
     assert(tcp_sock > 0);
@@ -161,51 +222,9 @@ void start_tcp_server(struct event_base *base)
     event_add(listener_event, nullptr);
 }
 
-// TODO(lutar, 20240219)  优化有限状态机
-void udp_readcb(evutil_socket_t fd, short events, void *ctx)
-{
-    struct event_base *base = (struct event_base *)ctx;
-
-    struct cb_arg *arg = cb_arg_new(base);
-    socklen_t addrlen = sizeof(struct sockaddr_in);
-    char data[4096] = {0};
-
-    int receive = recvfrom(fd, data, 4096, 0, (struct sockaddr *)arg->target_addr, &addrlen);
-    if (receive <= 0)
-    {
-        LOG_WARN("[UDP] cannot receive anything !");
-        return;
-    }
-
-    struct lan_discover_header *header = (lan_discover_header_t *)data;
-
-    if (header->type == LAN_DISCOVER_TYPE_HELLO)
-    {
-        LOG_INFO("[UDP] receive pkt : {}", SERVICE_NAME_DISCOVER_HELLO);
-        // 启动TCP Server
-        if (disconverServer->st == STATE_DISCOVERING)
-        {
-            start_tcp_server(base);
-        }
-        disconverServer->st = STATE_SYNC_READY;
-        uint16_t msg = DISCOVER_SERVER_TCP_PORT;
-        lan_discover_header_t reply_header = {LAN_DISCOVER_VER_0_1, LAN_DISCOVER_TYPE_HELLO_ACK, sizeof(msg)};
-
-        evbuffer_add(arg->buf, &reply_header, sizeof(lan_discover_header_t));
-        evbuffer_add(arg->buf, &msg, sizeof(msg));
-    }
-    else
-    {
-        LOG_WARN("[UDP] receive pkt : the type is unsupport", SERVICE_NAME_DISCOVER_HELLO);
-    }
-
-    struct event *write_e = event_new(base, fd, EV_WRITE, writecb, arg);
-    event_add(write_e, nullptr);
-}
-
 void DiscoverServer::start()
 {
-    int udp_sock = socket(AF_INET, SOCK_DGRAM, 0);
+    udp_sock = socket(AF_INET, SOCK_DGRAM, 0);
     assert(udp_sock > 0);
     int optval = 1;
     setsockopt(udp_sock, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(int));
@@ -220,7 +239,7 @@ void DiscoverServer::start()
 
     assert(bind(udp_sock, (struct sockaddr *)&addr, sizeof(addr)) >= 0);
 
-    LOG_INFO("[UDP] UDP listen: {}", DISCOVER_SERVER_UDP_PORT);
+    LOG_INFO("[SYNC SER] UDP listen: {}", DISCOVER_SERVER_UDP_PORT);
 
     struct event *read_e = event_new(base, udp_sock, EV_READ | EV_PERSIST, udp_readcb, base);
     event_add(read_e, nullptr);
