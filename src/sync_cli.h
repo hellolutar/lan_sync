@@ -35,7 +35,7 @@ using namespace std;
 
 typedef uint32_t in_addr_t;
 
-class Discover
+class SyncCli
 {
 private:
     void config_udp_sock();
@@ -63,8 +63,8 @@ public:
     void delSyncResource(string uri);
     void updateSyncResourceStatus(string uri, enum WantSyncResourceStatusEnum);
 
-    Discover(struct event_base *base);
-    ~Discover();
+    SyncCli(struct event_base *base);
+    ~SyncCli();
     void do_connect(evutil_socket_t sock, short event, void *arg);
     void init();
     void start();

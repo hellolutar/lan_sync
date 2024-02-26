@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "resource_manager.h"
+#include "resource/resource_manager.h"
 
 TEST(HelloTest, BasicAssertions)
 {

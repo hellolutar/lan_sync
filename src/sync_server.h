@@ -25,7 +25,7 @@
 
 using namespace std;
 
-class DiscoverServer
+class SyncServer
 {
 private:
     void handleLanSyncGetTableIndex(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen);
@@ -36,8 +36,8 @@ public:
     enum state st;
     struct event_base *base;
     int udp_sock;
-    DiscoverServer(struct event_base *base);
-    ~DiscoverServer();
+    SyncServer(struct event_base *base);
+    ~SyncServer();
     void start();
     void start_tcp_server(struct event_base *base);
     void handleTcpMsg(struct bufferevent *bev);

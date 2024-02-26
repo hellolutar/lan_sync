@@ -8,7 +8,7 @@
 #include <string>
 #include <filesystem>
 
-#include "../utils/openssl_utils.h"
+#include "utils/openssl_utils.h"
 #include "resource.h"
 
 using namespace std;

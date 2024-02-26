@@ -11,26 +11,26 @@ OBJS += ${srcresource:.cpp=.o}
 
 CC=g++
 CXXFLAGS=-g -Wno-format-contains-nul -Wno-write-strings
-CFLAGS=${CXXFLAGS}
 LDFLAGS:=
 LIBS:=-levent -lcrypto -lssl -lgtest -lfmt -lspdlog
 workspace:=/home/lutar/code/c/lan_sync/src
-# all: discover discover_server 
-all: ${OBJS} discover discover_server
+C_INCLUDE_PATH +=${workspace}
+CPLUS_INCLUDE_PATH +=${workspace}
+all: ${OBJS} sync_cli sync_server
 
 %.o: %.cpp
-	$(CC) -I${workspace} -c $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
+	$(CC) -I${CPLUS_INCLUDE_PATH} -c $(CXXFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
-discover: discover.cpp ${proto_SRC_C} ${OBJS} 
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
+sync_cli: sync_cli.cpp ${proto_SRC_C} ${OBJS} 
+	$(CC) -I${CPLUS_INCLUDE_PATH} $(CXXFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
-discover_server: discover_server.cpp ${proto_SRC_C} ${OBJS} 
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
+sync_server: sync_server.cpp ${proto_SRC_C} ${OBJS} 
+	$(CC) -I${CPLUS_INCLUDE_PATH} $(CXXFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 wc:
 	git ls-files | xargs cat | wc -l
 clean:
-	rm -rf $(targets) logs *.o *.so *.a *.dll discover discover_server 
+	rm -rf $(targets) logs *.o *.so *.a *.dll sync_cli sync_server 
 
 cleanall: clean
 	rm -rf ${OBJS}

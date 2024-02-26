@@ -1,7 +1,7 @@
-#include "discover_server.h"
+#include "sync_server.h"
 
 struct event_base *base = event_base_new();
-DiscoverServer *disconverServer = new DiscoverServer(base);
+SyncServer *disconverServer = new SyncServer(base);
 
 void tcp_readcb(struct bufferevent *bev, void *ctx)
 {
@@ -35,13 +35,13 @@ void do_accept(evutil_socket_t listener, short event, void *ctx)
     bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
 
-void DiscoverServer::handleUdpMsg(struct sockaddr_in target_addr, char *data, int data_len)
+void SyncServer::handleUdpMsg(struct sockaddr_in target_addr, char *data, int data_len)
 {
     lan_sync_header_t *header = (lan_sync_header_t *)data;
 
     if (header->type == LAN_SYNC_TYPE_HELLO)
     {
-        LOG_INFO("[SYNC SER] receive pkt : {}", SERVICE_NAME_DISCOVER_HELLO);
+        LOG_DEBUG("[SYNC SER] receive pkt : {}", SERVICE_NAME_DISCOVER_HELLO);
         // 启动TCP Server
         if (st == STATE_DISCOVERING)
             start_tcp_server(base);
@@ -85,17 +85,17 @@ void udp_readcb(evutil_socket_t fd, short events, void *ctx)
     disconverServer->handleUdpMsg(target_addr, data, 4096);
 }
 
-DiscoverServer::DiscoverServer(struct event_base *base)
+SyncServer::SyncServer(struct event_base *base)
 {
     st = STATE_DISCOVERING;
     this->base = base;
 }
 
-// DiscoverServer::~DiscoverServer()
+// SyncServer::~SyncServer()
 // {
 // }
 
-void DiscoverServer::handleLanSyncGetTableIndex(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
+void SyncServer::handleLanSyncGetTableIndex(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
 {
     char useless[1024];
     evbuffer_remove(in, useless, try_header->header_len);
@@ -112,7 +112,7 @@ void DiscoverServer::handleLanSyncGetTableIndex(struct evbuffer *in, struct evbu
     LOG_INFO("[SYNC SER] [{}] : entry num: {} ", SERVICE_NAME_REPLY_TABLE_INDEX, table.size());
 }
 
-void DiscoverServer::replyResource(struct evbuffer *out, char *uri)
+void SyncServer::replyResource(struct evbuffer *out, char *uri)
 {
     const struct Resource *rs = disconverServer->rm.queryByUri(uri);
     if (rs == nullptr)
@@ -145,7 +145,7 @@ void DiscoverServer::replyResource(struct evbuffer *out, char *uri)
     LOG_DEBUG("[SYNC SER] [{}] : uri[{}] file size:{} ", SERVICE_NAME_REPLY_REQ_RESOURCE, uri, readed);
 }
 
-void DiscoverServer::handleLanSyncGetResource(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
+void SyncServer::handleLanSyncGetResource(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
 {
     int total_len = try_header->total_len;
     if (recvLen < total_len)
@@ -169,7 +169,7 @@ void DiscoverServer::handleLanSyncGetResource(struct evbuffer *in, struct evbuff
     free(bufp);
 }
 
-void DiscoverServer::handleTcpMsg(struct bufferevent *bev)
+void SyncServer::handleTcpMsg(struct bufferevent *bev)
 {
     struct evbuffer *in = bufferevent_get_input(bev);
     struct evbuffer *out = bufferevent_get_output(bev);
@@ -194,7 +194,7 @@ void DiscoverServer::handleTcpMsg(struct bufferevent *bev)
     }
 }
 
-void DiscoverServer::start_tcp_server(struct event_base *base)
+void SyncServer::start_tcp_server(struct event_base *base)
 {
     int tcp_sock = socket(AF_INET, SOCK_STREAM, 0);
     assert(tcp_sock > 0);
@@ -222,7 +222,7 @@ void DiscoverServer::start_tcp_server(struct event_base *base)
     event_add(listener_event, nullptr);
 }
 
-void DiscoverServer::start()
+void SyncServer::start()
 {
     udp_sock = socket(AF_INET, SOCK_DGRAM, 0);
     assert(udp_sock > 0);

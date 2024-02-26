@@ -18,7 +18,7 @@
 
 #include <event2/buffer.h>
 
-#include "../resource/resource.h"
+#include "resource/resource.h"
 
 using namespace std;
 

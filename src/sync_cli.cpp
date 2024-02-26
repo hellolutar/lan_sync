@@ -1,8 +1,8 @@
 
-#include "discover.h"
+#include "sync_cli.h"
 
 struct event_base *base = event_base_new();
-Discover *discover = new Discover(base);
+SyncCli *discover = new SyncCli(base);
 
 void req_resource_periodically_timeout(evutil_socket_t, short, void *arg)
 {
@@ -82,17 +82,17 @@ void udp_readcb(evutil_socket_t fd, short events, void *ctx)
     discover->handleUdpMsg(target_addr, data, 4096);
 }
 
-map<in_addr_t, struct bufferevent *> Discover::getTcpTable()
+map<in_addr_t, struct bufferevent *> SyncCli::getTcpTable()
 {
     return tcpTable;
 }
 
-void Discover::addTcpSession(in_addr_t target_addr, struct bufferevent *bev)
+void SyncCli::addTcpSession(in_addr_t target_addr, struct bufferevent *bev)
 {
     tcpTable[target_addr] = bev;
 }
 
-void Discover::delTcpSessionByBufevent(struct bufferevent *e)
+void SyncCli::delTcpSessionByBufevent(struct bufferevent *e)
 {
     for (auto i = tcpTable.begin(); i != tcpTable.end(); i++)
     {
@@ -106,7 +106,7 @@ void Discover::delTcpSessionByBufevent(struct bufferevent *e)
     }
 }
 
-bool Discover::existTcpSessionByBufevent(struct bufferevent *e)
+bool SyncCli::existTcpSessionByBufevent(struct bufferevent *e)
 {
     for (auto i = tcpTable.begin(); i != tcpTable.end(); i++)
     {
@@ -120,7 +120,7 @@ bool Discover::existTcpSessionByBufevent(struct bufferevent *e)
     return false;
 }
 
-bool Discover::existTcpSessionByAddr(in_addr_t peer)
+bool SyncCli::existTcpSessionByAddr(in_addr_t peer)
 {
     for (auto i = tcpTable.begin(); i != tcpTable.end(); i++)
     {
@@ -134,7 +134,7 @@ bool Discover::existTcpSessionByAddr(in_addr_t peer)
     return false;
 }
 
-Discover::Discover(struct event_base *base)
+SyncCli::SyncCli(struct event_base *base)
 {
     assert(base);
 
@@ -142,11 +142,11 @@ Discover::Discover(struct event_base *base)
     this->base = base;
 }
 
-Discover::~Discover()
+SyncCli::~SyncCli()
 {
 }
 
-void Discover::appendSyncTable(struct Resource *table, struct bufferevent *bev, uint64_t res_num)
+void SyncCli::appendSyncTable(struct Resource *table, struct bufferevent *bev, uint64_t res_num)
 {
     map<string, Resource> total_table;
 
@@ -176,11 +176,11 @@ void Discover::appendSyncTable(struct Resource *table, struct bufferevent *bev, 
 
     for (auto iter = total_table.begin(); iter != total_table.end(); iter++)
     {
-        LOG_INFO("[SYNC CLI] add uri to sync list : uri[{}]", iter->second.uri);
+        LOG_DEBUG("[SYNC CLI] add uri to sync list : uri[{}]", iter->second.uri);
         discover->addSyncResource(WantSyncResource_new(bev, iter->second.uri, PENDING));
     }
 }
-void Discover::handleLanSyncReplyTableIndex(struct bufferevent *bev, lan_sync_header_t *try_header, int recvLen)
+void SyncCli::handleLanSyncReplyTableIndex(struct bufferevent *bev, lan_sync_header_t *try_header, int recvLen)
 {
     struct evbuffer *in, *out;
     in = bufferevent_get_input(bev);
@@ -212,7 +212,7 @@ void Discover::handleLanSyncReplyTableIndex(struct bufferevent *bev, lan_sync_he
     free(bufp);
 }
 
-void Discover::handleLanSyncReplyResource(struct bufferevent *bev, lan_sync_header_t *try_header, int recvLen)
+void SyncCli::handleLanSyncReplyResource(struct bufferevent *bev, lan_sync_header_t *try_header, int recvLen)
 {
 
     struct evbuffer *in, *out;
@@ -282,7 +282,7 @@ void Discover::handleLanSyncReplyResource(struct bufferevent *bev, lan_sync_head
     free(bufp);
 }
 
-bool Discover::checkHash(lan_sync_header_t *header, string pathstr)
+bool SyncCli::checkHash(lan_sync_header_t *header, string pathstr)
 {
     auto p = filesystem::path(pathstr);
     if (!filesystem::exists(p))
@@ -307,7 +307,7 @@ bool Discover::checkHash(lan_sync_header_t *header, string pathstr)
     }
 }
 
-void Discover::handleTcpMsg(struct bufferevent *bev)
+void SyncCli::handleTcpMsg(struct bufferevent *bev)
 {
     struct evbuffer *in = bufferevent_get_input(bev);
     struct evbuffer *out = bufferevent_get_output(bev);
@@ -326,7 +326,7 @@ void Discover::handleTcpMsg(struct bufferevent *bev)
         LOG_WARN("[SYNC CLI] receive tcp pkt : the type is unsupport!");
 }
 
-void Discover::connPeerWithTcp(struct sockaddr_in target_addr, uint16_t peer_tcp_port)
+void SyncCli::connPeerWithTcp(struct sockaddr_in target_addr, uint16_t peer_tcp_port)
 {
     LOG_INFO("[SYNC CLI] try to connect the tcp server!");
     target_addr.sin_port = htons(peer_tcp_port);
@@ -351,13 +351,13 @@ void Discover::connPeerWithTcp(struct sockaddr_in target_addr, uint16_t peer_tcp
     addTcpSession(target_addr.sin_addr.s_addr, bev);
 }
 
-void Discover::handleHelloAck(struct sockaddr_in target_addr, lan_sync_header_t *header)
+void SyncCli::handleHelloAck(struct sockaddr_in target_addr, lan_sync_header_t *header)
 {
     string peer_tcp_port_str = lan_sync_header_query_xheader(header, "tcpport");
     int peer_tcp_port = atoi(peer_tcp_port_str.data());
 
     int data_len = header->total_len - header->header_len;
-    LOG_INFO("[SYNC CLI] recive [HELLO ACK], data_len:{} , peer tcp port: {}", data_len, peer_tcp_port);
+    LOG_DEBUG("[SYNC CLI] recive [HELLO ACK], data_len:{} , peer tcp port: {}", data_len, peer_tcp_port);
 
     if (st == STATE_DISCOVERING)
     {
@@ -374,7 +374,7 @@ void Discover::handleHelloAck(struct sockaddr_in target_addr, lan_sync_header_t 
     }
 }
 
-void Discover::handleUdpMsg(struct sockaddr_in target_addr, char *data, int data_len)
+void SyncCli::handleUdpMsg(struct sockaddr_in target_addr, char *data, int data_len)
 {
     lan_sync_header_t *header = (lan_sync_header_t *)data;
     data_len = header->total_len - header->header_len;
@@ -400,7 +400,7 @@ static void send_udp_hello(evutil_socket_t, short, void *arg)
     cli->send(buf);
 }
 
-void Discover::handle_sync_status_pending(WantSyncResource *rs)
+void SyncCli::handle_sync_status_pending(WantSyncResource *rs)
 {
     // 查询tcp session是否存在
     if (existTcpSessionByBufevent(rs->bev))
@@ -419,7 +419,7 @@ void Discover::handle_sync_status_pending(WantSyncResource *rs)
     }
 }
 
-void Discover::handle_sync_status_syncing(WantSyncResource *rs)
+void SyncCli::handle_sync_status_syncing(WantSyncResource *rs)
 {
     time_t now = time(0);
     int diff = difftime(now, rs->last_update_time);
@@ -431,7 +431,7 @@ void Discover::handle_sync_status_syncing(WantSyncResource *rs)
     }
 }
 
-void Discover::syncResource()
+void SyncCli::syncResource()
 {
     if (syncTable.size() == 0)
         return;
@@ -463,7 +463,7 @@ void Discover::syncResource()
     }
 }
 
-void Discover::reqTableIndex()
+void SyncCli::reqTableIndex()
 {
     for (auto i = tcpTable.begin(); i != tcpTable.end(); i++)
     {
@@ -479,7 +479,7 @@ void Discover::reqTableIndex()
     }
 }
 
-void Discover::config_req_table_index_periodically()
+void SyncCli::config_req_table_index_periodically()
 {
     struct event *timeout_event = event_new(base, -1, EV_PERSIST, req_table_index_timeout_cb, nullptr);
     struct timeval tv;
@@ -488,7 +488,7 @@ void Discover::config_req_table_index_periodically()
     event_add(timeout_event, &tv);
 }
 
-void Discover::config_send_udp_periodically()
+void SyncCli::config_send_udp_periodically()
 {
     vector<LocalPort> ports = LocalPort::query();
 
@@ -512,7 +512,7 @@ void Discover::config_send_udp_periodically()
     }
 }
 
-void Discover::config_req_resource_periodically()
+void SyncCli::config_req_resource_periodically()
 {
     struct event *timeout_event = event_new(base, -1, EV_PERSIST, req_resource_periodically_timeout, nullptr);
 
@@ -524,7 +524,7 @@ void Discover::config_req_resource_periodically()
     // todo (lutar) free event
 }
 
-void Discover::addSyncResource(struct WantSyncResource *item)
+void SyncCli::addSyncResource(struct WantSyncResource *item)
 {
     for (size_t i = 0; i < syncTable.size(); i++)
     {
@@ -535,7 +535,7 @@ void Discover::addSyncResource(struct WantSyncResource *item)
     syncTable.push_back(item);
 }
 
-void Discover::delSyncResource(string uri)
+void SyncCli::delSyncResource(string uri)
 {
     for (auto i = syncTable.begin(); i != syncTable.end(); i++)
     {
@@ -548,7 +548,7 @@ void Discover::delSyncResource(string uri)
     }
 }
 
-void Discover::updateSyncResourceStatus(string uri, enum WantSyncResourceStatusEnum)
+void SyncCli::updateSyncResourceStatus(string uri, enum WantSyncResourceStatusEnum)
 {
     for (auto iter = syncTable.end() - 1; iter >= syncTable.begin(); iter--)
     {
@@ -561,7 +561,7 @@ void Discover::updateSyncResourceStatus(string uri, enum WantSyncResourceStatusE
     }
 }
 
-void Discover::config_udp_sock()
+void SyncCli::config_udp_sock()
 {
     udp_sock = socket(AF_INET, SOCK_DGRAM, 0);
     assert(udp_sock > 0);
@@ -572,7 +572,7 @@ void Discover::config_udp_sock()
     setsockopt(udp_sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
 }
 
-void Discover::init()
+void SyncCli::init()
 {
     config_udp_sock();
 
@@ -583,7 +583,7 @@ void Discover::init()
     config_req_resource_periodically();
 }
 
-void Discover::start()
+void SyncCli::start()
 {
     init();
 
