@@ -3,3 +3,48 @@
   - cli 请求 资源
   - cli 更新 资源 ： 新增、替换
 - HTTP监控服务
+
+
+discover 内部设置 libevent。
+libevent事件处理函数传入处理特定任务的对象。
+
+
+周期性任务：
+1. hello ack
+
+udp 读任务：
+  - 接收到响应，即可以拿到对方addr。 然后依据此addr，建立tcp连接，即bufferevent。
+  - 支持连接多台服务器，需要维护tcp表。
+| tcp addr  | bufferevent |
+| addr1  |  bufferevent |
+
+
+tcp 读任务 : tcp_readcb 可以拿到in、out
+tcp 出错事件任务：tcp_event_cb 可以拿到in、out
+|bufferevent|vector<event>|
+|bufferevent|timeevent, readevent|
+
+
+synctable和tcp对端关联，需要维护一张tcp synctable表
+|tcp addr| sync table |
+|addr1| sync table |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

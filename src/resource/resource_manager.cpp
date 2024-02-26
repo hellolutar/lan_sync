@@ -20,7 +20,10 @@ vector<struct Resource *> ResourceManager::getTable()
 {
     if (table.size() == 0)
         table = genResources(rsHome);
-
+    else
+    {
+        refreshTable();
+    }
     return table;
 }
 

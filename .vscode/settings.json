@@ -65,6 +65,8 @@
         "condition_variable": "cpp",
         "map": "cpp",
         "set": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "span": "cpp",
+        "cerrno": "cpp"
     }
 }

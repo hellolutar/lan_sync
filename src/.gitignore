@@ -1,4 +1,6 @@
 discover
 discover_server
 resource_manager_test
-resources
+static
+sync_cli 
+sync_server 
