@@ -106,6 +106,23 @@ TEST(lan_sync_header_test, query_xheader_test)
     ASSERT_STREQ(value2.data(), ret_value2.data());
 }
 
+TEST(LocalPortTest, existIp)
+{
+
+    vector<LocalPort> ports = LocalPort::query();
+    if (ports.size() == 0)
+        return;
+
+    LocalPort port = ports[0];
+
+    GTEST_ASSERT_TRUE(LocalPort::existIp(ports, port.getAddr().sin_addr));
+
+    struct sockaddr_in addr;
+    addr.sin_addr.s_addr = htonl(1);
+
+    GTEST_ASSERT_FALSE(LocalPort::existIp(ports, addr.sin_addr));
+}
+
 int main(int argc, char **argv)
 {
     ::testing::InitGoogleTest(&argc, argv);

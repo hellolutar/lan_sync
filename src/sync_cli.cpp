@@ -1,36 +1,39 @@
 
 #include "sync_cli.h"
 
+#ifndef RELEASE
 struct event_base *base = event_base_new();
-SyncCli *discover = new SyncCli(base);
+SyncCli *sync_cli = new SyncCli(base);
+#else
+extern SyncCli *sync_cli;
+#endif
 
-void req_resource_periodically_timeout(evutil_socket_t, short, void *arg)
+static void req_resource_periodically_timeout(evutil_socket_t, short, void *arg)
 {
-    discover->syncResource();
+    sync_cli->syncResource();
 }
 
-void req_table_index_timeout_cb(evutil_socket_t, short, void *arg)
+static void req_table_index_timeout_cb(evutil_socket_t, short, void *arg)
 {
-    discover->reqTableIndex();
+    sync_cli->reqTableIndex();
 }
 
-void tcp_readcb(struct bufferevent *bev, void *ctx)
+static void tcp_readcb(struct bufferevent *bev, void *ctx)
 {
     struct evbuffer *in = bufferevent_get_input(bev);
 
     int recvLen = evbuffer_get_length(in);
     if (recvLen == 0)
         return;
-
-    discover->handleTcpMsg(bev);
+    sync_cli->handleTcpMsg(bev);
 }
 
-void tcp_writecb(struct bufferevent *bev, void *ctx)
+static void tcp_writecb(struct bufferevent *bev, void *ctx)
 {
     // printf("can write msg to peer tcp server! ");
 }
 
-void tcp_event_cb(struct bufferevent *bev, short what, void *ctx)
+static void tcp_event_cb(struct bufferevent *bev, short what, void *ctx)
 {
     if (what == BEV_EVENT_ERROR)
     {
@@ -50,7 +53,7 @@ void tcp_event_cb(struct bufferevent *bev, short what, void *ctx)
         // todo remove  event in config_req_table_index_periodically
         // inet_ntoa()
         LOG_WARN("[SYNC CLI] tcp_event_cb [BEV_EVENT_CONNECTED] REASON: {}", evutil_socket_error_to_string(errno));
-        discover->delTcpSessionByBufevent(bev);
+        sync_cli->delTcpSessionByBufevent(bev);
     }
     else if (BEV_EVENT_READING)
     {
@@ -66,7 +69,7 @@ void tcp_event_cb(struct bufferevent *bev, short what, void *ctx)
     }
 }
 
-void udp_readcb(evutil_socket_t fd, short events, void *ctx)
+static void udp_readcb(evutil_socket_t fd, short events, void *ctx)
 {
     struct sockaddr_in target_addr;
     socklen_t addrlen = sizeof(struct sockaddr_in);
@@ -79,7 +82,13 @@ void udp_readcb(evutil_socket_t fd, short events, void *ctx)
         return;
     }
 
-    discover->handleUdpMsg(target_addr, data, 4096);
+#ifdef RELEASE
+    auto ports = LocalPort::query();
+    if (LocalPort::existIp(ports, target_addr.sin_addr))
+        return;
+#endif
+
+    sync_cli->handleUdpMsg(target_addr, data, 4096);
 }
 
 map<in_addr_t, struct bufferevent *> SyncCli::getTcpTable()
@@ -162,7 +171,7 @@ void SyncCli::appendSyncTable(struct Resource *table, struct bufferevent *bev, u
     if (total_table.size() == 0)
         return;
 
-    vector<struct Resource *> local_table = discover->rm.getTable();
+    vector<struct Resource *> local_table = sync_cli->rm.getTable();
     for (size_t i = 0; i < local_table.size(); i++)
     {
         struct Resource *local_rs = local_table[i];
@@ -177,7 +186,7 @@ void SyncCli::appendSyncTable(struct Resource *table, struct bufferevent *bev, u
     for (auto iter = total_table.begin(); iter != total_table.end(); iter++)
     {
         LOG_DEBUG("[SYNC CLI] add uri to sync list : uri[{}]", iter->second.uri);
-        discover->addSyncResource(WantSyncResource_new(bev, iter->second.uri, PENDING));
+        sync_cli->addSyncResource(WantSyncResource_new(bev, iter->second.uri, PENDING));
     }
 }
 void SyncCli::handleLanSyncReplyTableIndex(struct bufferevent *bev, lan_sync_header_t *try_header, int recvLen)
@@ -243,7 +252,7 @@ void SyncCli::handleLanSyncReplyResource(struct bufferevent *bev, lan_sync_heade
     }
 
     // 写
-    string pathstr = discover->rm.getRsHome() + uri;
+    string pathstr = sync_cli->rm.getRsHome() + uri;
 
     auto path = filesystem::path(pathstr);
     auto ppath = filesystem::absolute(path).parent_path();
@@ -334,7 +343,7 @@ void SyncCli::connPeerWithTcp(struct sockaddr_in target_addr, uint16_t peer_tcp_
 
     struct sockaddr_in sin;
     sin.sin_family = AF_INET;
-    sin.sin_addr.s_addr = 0;
+    sin.sin_addr.s_addr = htonl(INADDR_ANY);
 
     int tcpsock = socket(AF_INET, SOCK_STREAM, 0);
     int ret = connect(tcpsock, (struct sockaddr *)&target_addr, sizeof(struct sockaddr_in));
@@ -595,11 +604,13 @@ void SyncCli::start()
     event_free(read_event);
 }
 
+#ifndef RELEASE
 int main(int argc, char const *argv[])
 {
     configlog();
-    discover->start();
+    sync_cli->start();
     event_base_free(base);
-    free(discover);
+    free(sync_cli);
     return 0;
 }
+#endif

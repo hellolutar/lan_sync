@@ -6,3 +6,5 @@ learn
 **/*.log
 **/logs
 **/log
+src/sync
+.vscode/settings.json

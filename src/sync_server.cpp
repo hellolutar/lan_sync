@@ -1,9 +1,13 @@
 #include "sync_server.h"
 
+#ifndef RELEASE
 struct event_base *base = event_base_new();
-SyncServer *disconverServer = new SyncServer(base);
+SyncServer *sync_server = new SyncServer(base);
+#else
+extern SyncServer *sync_server;
+#endif
 
-void tcp_readcb(struct bufferevent *bev, void *ctx)
+static void srv_tcp_readcb(struct bufferevent *bev, void *ctx)
 {
     struct evbuffer *in = bufferevent_get_input(bev);
 
@@ -11,15 +15,15 @@ void tcp_readcb(struct bufferevent *bev, void *ctx)
     if (recvLen == 0)
         return;
 
-    disconverServer->handleTcpMsg(bev);
+    sync_server->handleTcpMsg(bev);
 }
 
-void tcp_writecb(struct bufferevent *bev, void *ctx)
+static void srv_tcp_writecb(struct bufferevent *bev, void *ctx)
 {
     // LOG_DEBUG("TCP : can write msg!");
 }
 
-void do_accept(evutil_socket_t listener, short event, void *ctx)
+static void srv_do_accept(evutil_socket_t listener, short event, void *ctx)
 {
     struct event_base *base = (struct event_base *)ctx;
     struct sockaddr_storage ss;
@@ -31,8 +35,34 @@ void do_accept(evutil_socket_t listener, short event, void *ctx)
     struct bufferevent *bev;
     evutil_make_socket_nonblocking(fd);
     bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
-    bufferevent_setcb(bev, tcp_readcb, tcp_writecb, nullptr, base);
+    bufferevent_setcb(bev, srv_tcp_readcb, srv_tcp_writecb, nullptr, base);
     bufferevent_enable(bev, EV_READ | EV_WRITE);
+}
+
+
+// TODO(lutar, 20240219)  优化有限状态机
+static void srv_udp_readcb(evutil_socket_t fd, short events, void *ctx)
+{
+    struct event_base *base = (struct event_base *)ctx;
+
+    struct sockaddr_in target_addr;
+    socklen_t addrlen = sizeof(struct sockaddr_in);
+    char data[4096] = {0};
+
+    int receive = recvfrom(fd, data, 4096, 0, (sockaddr *)&target_addr, &addrlen);
+    if (receive <= 0)
+    {
+        LOG_WARN("[SYNC SER] cannot receive anything !");
+        return;
+    }
+
+#ifdef RELEASE
+    auto ports = LocalPort::query();
+    if (LocalPort::existIp(ports, target_addr.sin_addr))
+        return;
+#endif
+
+    sync_server->handleUdpMsg(target_addr, data, 4096);
 }
 
 void SyncServer::handleUdpMsg(struct sockaddr_in target_addr, char *data, int data_len)
@@ -66,24 +96,7 @@ void SyncServer::handleUdpMsg(struct sockaddr_in target_addr, char *data, int da
     }
 }
 
-// TODO(lutar, 20240219)  优化有限状态机
-void udp_readcb(evutil_socket_t fd, short events, void *ctx)
-{
-    struct event_base *base = (struct event_base *)ctx;
 
-    struct sockaddr_in target_addr;
-    socklen_t addrlen = sizeof(struct sockaddr_in);
-    char data[4096] = {0};
-
-    int receive = recvfrom(fd, data, 4096, 0, (sockaddr *)&target_addr, &addrlen);
-    if (receive <= 0)
-    {
-        LOG_WARN("[SYNC SER] cannot receive anything !");
-        return;
-    }
-
-    disconverServer->handleUdpMsg(target_addr, data, 4096);
-}
 
 SyncServer::SyncServer(struct event_base *base)
 {
@@ -100,7 +113,7 @@ void SyncServer::handleLanSyncGetTableIndex(struct evbuffer *in, struct evbuffer
     char useless[1024];
     evbuffer_remove(in, useless, try_header->header_len);
 
-    vector<struct Resource *> table = disconverServer->rm.getTable();
+    vector<struct Resource *> table = sync_server->rm.getTable();
 
     int data_len = sizeof(struct Resource) * table.size();
     lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_REPLY_TABLE_INDEX); // free in lan_sync_encapsulate --> evbuffer_cb_for_free
@@ -114,7 +127,7 @@ void SyncServer::handleLanSyncGetTableIndex(struct evbuffer *in, struct evbuffer
 
 void SyncServer::replyResource(struct evbuffer *out, char *uri)
 {
-    const struct Resource *rs = disconverServer->rm.queryByUri(uri);
+    const struct Resource *rs = sync_server->rm.queryByUri(uri);
     if (rs == nullptr)
     {
         return;
@@ -218,7 +231,7 @@ void SyncServer::start_tcp_server(struct event_base *base)
         exit(-1);
     }
     LOG_INFO("[SYNC SER] TCP listen : {}", DISCOVER_SERVER_TCP_PORT);
-    struct event *listener_event = event_new(base, tcp_sock, EV_READ | EV_PERSIST, do_accept, (void *)base);
+    struct event *listener_event = event_new(base, tcp_sock, EV_READ | EV_PERSIST, srv_do_accept, (void *)base);
     event_add(listener_event, nullptr);
 }
 
@@ -241,17 +254,19 @@ void SyncServer::start()
 
     LOG_INFO("[SYNC SER] UDP listen: {}", DISCOVER_SERVER_UDP_PORT);
 
-    struct event *read_e = event_new(base, udp_sock, EV_READ | EV_PERSIST, udp_readcb, base);
+    struct event *read_e = event_new(base, udp_sock, EV_READ | EV_PERSIST, srv_udp_readcb, base);
     event_add(read_e, nullptr);
 
     event_base_dispatch(base);
     free(read_e);
 }
 
+#ifndef RELEASE
 int main(int argc, char const *argv[])
 {
     configlog();
-    disconverServer->start();
+    sync_server->start();
     event_base_free(base);
     return 0;
 }
+#endif

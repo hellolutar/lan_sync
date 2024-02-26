@@ -43,6 +43,7 @@ public:
     ~LocalPort();
 
     static vector<LocalPort> query();
+    static bool existIp(vector<LocalPort> ports, struct in_addr addr);
     struct sockaddr_in getAddr();
     struct sockaddr_in getBroadAddr();
     struct sockaddr_in getSubnetMask();

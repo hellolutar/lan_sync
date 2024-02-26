@@ -1,6 +1,5 @@
 #include "lan_share_protocol.h"
 
-
 void evbuffer_cb_for_free(struct evbuffer *buffer, const struct evbuffer_cb_info *info, void *arg)
 {
     if (evbuffer_get_length(buffer) == 0)
@@ -268,6 +267,18 @@ vector<LocalPort> LocalPort::query()
     }
 
     return ports;
+}
+
+bool LocalPort::existIp(vector<LocalPort> ports, struct in_addr addr)
+{
+    for (size_t i = 0; i < ports.size(); i++)
+    {
+        auto port = ports[i];
+        auto portAddr = port.getAddr();
+        if (portAddr.sin_addr.s_addr == addr.s_addr)
+            return true;
+    }
+    return false;
 }
 
 struct sockaddr_in LocalPort::getAddr()
