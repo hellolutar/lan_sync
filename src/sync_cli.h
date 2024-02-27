@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <algorithm>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -42,14 +43,15 @@ private:
     void config_send_udp_periodically();
     void config_req_resource_periodically();
     void config_req_table_index_periodically();
-    void handleHelloAck(struct sockaddr_in target_addr, lan_sync_header_t *header);
+    void handleHelloAck(struct sockaddr_in target_addr, LanSyncPkt &pkt);
     void connPeerWithTcp(struct sockaddr_in target_addr, uint16_t peer_tcp_port);
     void handle_sync_status_syncing(WantSyncResource *rs);
     void handle_sync_status_pending(WantSyncResource *rs);
     void handleLanSyncReplyResource(struct bufferevent *bev, lan_sync_header_t *try_header, int recvLen);
     void handleLanSyncReplyTableIndex(struct bufferevent *bev, lan_sync_header_t *try_header, int recvLen);
     void appendSyncTable(struct Resource *table, struct bufferevent *bev, uint64_t res_num);
-    bool checkHash(lan_sync_header_t *header, string pathstr);
+    bool checkHash(LanSyncPkt &pkt, string pathstr);
+    uint32_t writeFile(int fd, uint32_t data_len, char *data);
     map<uint32_t, struct bufferevent *> tcpTable;
 
 public:
@@ -68,7 +70,7 @@ public:
     void do_connect(evutil_socket_t sock, short event, void *arg);
     void init();
     void start();
-    void handleUdpMsg(struct sockaddr_in target_addr, char *data, int data_len);
+    void handleUdpMsg(struct sockaddr_in target_addr, char *data, uint32_t data_len);
     void handleTcpMsg(struct bufferevent *bev);
     void addTcpSession(in_addr_t, struct bufferevent *bev);
     void delTcpSessionByBufevent(struct bufferevent *bev);

@@ -49,7 +49,7 @@ string OpensslUtil::mdEncodeWithSHA3_512(string f)
     assert(EVP_DigestFinal(digest_ctx, digest_value, &digest_len));
 
     stringstream iss;
-    for (int j = 0; j < digest_len; j++)
+    for (size_t j = 0; j < digest_len; j++)
     {
         char tmpBuf[3] = {0};
         sprintf(tmpBuf, "%02x", digest_value[j]);

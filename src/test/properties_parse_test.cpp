@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "properties_parse.h"
+#include "utils/properties_parse.h"
 
 TEST(HelloTest, BasicAssertions)
 {

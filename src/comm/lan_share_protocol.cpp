@@ -14,18 +14,10 @@ void evbuffer_cb_for_free(struct evbuffer *buffer, const struct evbuffer_cb_info
     }
 }
 
-void lan_sync_encapsulate(struct evbuffer *out, lan_sync_header_t *header)
-{
-    evbuffer_add(out, header, header->total_len);
-    // 这里有些疑问，多次add_cb, 不知道会发生什么
-    evbuffer_add_cb(out, evbuffer_cb_for_free, header);
-    printf("[DEBUG] [TCP] send pkt, header info: total_len:%d, header_len:%d \n", header->total_len, header->header_len);
-}
-
 struct Resource *lan_sync_parseTableToData(vector<struct Resource *> table)
 {
-    int num = table.size();
-    int size = num * sizeof(struct Resource);
+    uint32_t num = table.size();
+    uint32_t size = num * sizeof(struct Resource);
     struct Resource *ret = (struct Resource *)malloc(size);
     struct Resource *retp = ret;
     memset(ret, 0, size);
@@ -68,15 +60,14 @@ void cb_arg_free(struct cb_arg *arg)
     free(arg->buf);
     free(arg);
 }
-
 void writecb(evutil_socket_t fd, short events, void *ctx)
 {
     struct cb_arg *arg = (struct cb_arg *)ctx;
-    int datalen = evbuffer_get_length(arg->buf);
+    uint16_t datalen = evbuffer_get_length(arg->buf);
     char data[datalen + 1];
     assert(evbuffer_copyout(arg->buf, data, datalen) == datalen);
     data[datalen] = '\0';
-    int sent = sendto(fd, data, datalen, 0, (struct sockaddr *)arg->target_addr, sizeof(struct sockaddr_in));
+    uint32_t sent = sendto(fd, data, datalen, 0, (struct sockaddr *)arg->target_addr, sizeof(struct sockaddr_in));
 
     if (sent < 0)
     {
@@ -89,132 +80,6 @@ void writecb(evutil_socket_t fd, short events, void *ctx)
     printf("\t>> sent to [%s:%d]: %d , data_len:%d \n", inet_ntoa(arg->target_addr->sin_addr), ntohs(arg->target_addr->sin_port), sent, datalen);
 
     cb_arg_free(arg);
-}
-
-lan_sync_header_t *lan_sync_header_set_data(lan_sync_header_t *header, void *data, int datalen)
-{
-    int ori_total_len = header->total_len;
-
-    int total_len = header->header_len + datalen;
-    lan_sync_header_t *newHeader = (lan_sync_header_t *)malloc(total_len);
-    memcpy(newHeader, header, header->header_len);
-    newHeader->total_len = total_len;
-
-    char *data_point = (char *)((char *)newHeader + header->header_len);
-
-    memcpy(data_point, data, datalen);
-
-    free(header);
-    // memset(header, 0, ori_total_len);
-    // header = nullptr;
-
-    return newHeader;
-}
-
-lan_sync_header_t *lan_sync_header_add_xheader(lan_sync_header_t *header, const string key, const string value)
-{
-    int ori_total_len = header->total_len;
-    int ori_header_len = header->header_len;
-    int ori_xheader_len = header->header_len - lan_sync_header_len;
-    int ori_data_len = header->total_len - header->header_len;
-
-    char *ori_data_point = (char *)((char *)header + ori_header_len);
-
-    int append_x_header_len = key.size() + value.size() + FLAG_KEY_VALUE_SPLIT;
-
-    // update header 信息
-    header->total_len = ori_total_len + append_x_header_len;
-    header->header_len = ori_header_len + append_x_header_len;
-
-    lan_sync_header_t *newHeader = (lan_sync_header_t *)malloc(header->total_len);
-
-    // 先拷贝header
-    memcpy(newHeader, header, ori_header_len);
-
-    // 然后添加新xheader
-    char *append_xheader = (char *)malloc(append_x_header_len);
-    sprintf(append_xheader, "%s:%s\0", key.data(), value.data());
-
-    char *append_xheader_point = (char *)((char *)newHeader + ori_header_len);
-    memcpy(append_xheader_point, append_xheader, append_x_header_len);
-    free(append_xheader);
-
-    // 最后拷贝data
-    char *data = (char *)(append_xheader_point + append_x_header_len);
-    memcpy(data, ori_data_point, ori_data_len);
-
-    // 释放原有的内存，并更新指针
-    free(header);
-    // memset(header, 0, ori_total_len);
-    // header = nullptr;
-
-    return newHeader;
-}
-
-void lan_sync_header_extract_xheader(const lan_sync_header_t *header, char *to)
-{
-    int total_len = header->total_len;
-    int data_len = header->total_len - header->header_len;
-    int xheader_len = header->header_len - lan_sync_header_len;
-
-    char *xheader = (char *)(header + 1);
-
-    // 根据\0分隔符号，字符串
-    memcpy(to, xheader, xheader_len);
-}
-
-string lan_sync_header_query_xheader(const lan_sync_header_t *header, string keystr)
-{
-    int xheader_len = header->header_len - lan_sync_header_len;
-    char *xhd = (char *)malloc(xheader_len);
-
-    lan_sync_header_extract_xheader(header, xhd);
-
-    int start = 0;
-    for (int i = 0; i < xheader_len; i++)
-    {
-        char ch = xhd[i];
-        if (ch == 0)
-        {
-            // 这里需要截取字符串
-            char kv[1024] = {0};
-            memcpy(kv, xhd + start, (i - start + 1));
-            start = i + 1;
-
-            string kvstr(kv);
-            int index = kvstr.find(keystr);
-            if (index >= 0)
-            {
-                free(xhd);
-                return kvstr.substr(keystr.size() + 1, kvstr.size() - keystr.size());
-            }
-        }
-    }
-    free(xhd);
-
-    return "";
-}
-
-void lan_sync_header_extract_data(const lan_sync_header_t *header, char *to)
-{
-    int total_len = header->total_len;
-    int data_len = header->total_len - header->header_len;
-    int xheader_len = header->header_len - lan_sync_header_len;
-
-    char *hdp = (char *)header;
-    char *data = (char *)(hdp + header->header_len);
-    memcpy(to, data, data_len);
-}
-
-lan_sync_header_t *lan_sync_header_new(enum lan_sync_version version, enum lan_sync_type_enum type)
-{
-    lan_sync_header_t *header = (lan_sync_header_t *)malloc(lan_sync_header_len);
-    header->version = version;
-    header->type = type;
-    header->header_len = lan_sync_header_len;
-    header->total_len = header->header_len;
-
-    return header;
 }
 
 LocalPort::LocalPort(/* args */)
@@ -239,7 +104,7 @@ vector<LocalPort> LocalPort::query()
     ifc.ifc_buf = (caddr_t)ifreqs;
 
     assert(ioctl(fd, SIOCGIFCONF, (char *)&ifc) >= 0);
-    int interface_num = ifc.ifc_len / sizeof(struct ifreq);
+    uint16_t interface_num = ifc.ifc_len / sizeof(struct ifreq);
 
     for (size_t i = 0; i < interface_num; i++)
     {
@@ -292,4 +157,162 @@ struct sockaddr_in LocalPort::getBroadAddr()
 struct sockaddr_in LocalPort::getSubnetMask()
 {
     return subnet_mask;
+}
+
+LanSyncPkt::~LanSyncPkt()
+{
+    if (data != nullptr)
+    {
+        free(data);
+        data = nullptr;
+    }
+}
+
+// https://blog.csdn.net/weixin_43919932/article/details/111304250
+vector<string> splitstr(string str, const char split)
+{
+    vector<string> ret;
+    istringstream iss(str);
+    string token;
+    while (getline(iss, token, split))
+    {
+        ret.push_back(token);
+    }
+    return ret;
+}
+
+LanSyncPkt::LanSyncPkt(lan_sync_header_t *header)
+{
+    if (header->total_len < LEN_LAN_SYNC_HEADER_T)
+    {
+        total_len = 0;
+        header_len = 0;
+        return;
+    }
+    version = header->version;
+    type = header->type;
+    header_len = ntohs(header->header_len);
+    total_len = ntohl(header->total_len);
+
+    uint16_t xheader_len = header_len - LEN_LAN_SYNC_HEADER_T;
+
+    // parse header
+    char *xhdp = (char *)(header + 1);
+    uint16_t kvstr_len = 0;
+    for (size_t i = 0; i < xheader_len; i += kvstr_len)
+    {
+        xhdp += kvstr_len;
+        string kvstr(xhdp);
+        kvstr_len += kvstr.size() + 1; // 1 is '\0'
+        vector<string> kvv = splitstr(kvstr, ':');
+        if (kvv.size() >= 2)
+        {
+            xheader[kvv[0]] = kvv[1];
+        }
+    }
+    // parse data
+    uint32_t data_len = total_len - header_len;
+    data = (char *)malloc(data_len);
+    char *datap = (char *)(header) + header_len;
+    memcpy(data, datap, data_len);
+}
+
+void LanSyncPkt::write(struct evbuffer *out)
+{
+    lan_sync_header_t *hd = (lan_sync_header_t *)malloc(total_len); // free in evbuffer_cb_for_free
+    memset(hd, 0, total_len);
+
+    hd->version = version;
+    hd->type = type;
+    hd->header_len = htons(header_len);
+    hd->total_len = htonl(total_len);
+
+    // 写入header
+    char *xhdp = (char *)(hd + 1);
+
+    char *xhdpi = xhdp;
+    for (auto i = xheader.begin(); i != xheader.end(); i++)
+    {
+        string key = (*i).first;
+        string value = (*i).second;
+        uint16_t kv_len = key.size() + value.size() + FLAG_KEY_VALUE_SPLIT;
+        sprintf(xhdpi, "%s:%s\0", key.data(), value.data());
+        xhdpi += kv_len;
+    }
+
+    // 写入data
+    uint16_t xhd_len = header_len - LEN_LAN_SYNC_HEADER_T;
+    char *datap = (char *)(xhdp + xhd_len);
+    memcpy(datap, data, total_len - header_len);
+
+    evbuffer_add(out, hd, total_len);
+    evbuffer_add_cb(out, evbuffer_cb_for_free, hd);
+
+    printf("[DEBUG] [TCP] send pkt, header info: total_len:%d, header_len:%d \n", total_len, header_len);
+}
+
+void LanSyncPkt::addXheader(const string key, const string value)
+{
+    string exists_value = xheader[key];
+    uint16_t kv_len = 0;
+    if (exists_value.size() != 0)
+    {
+        // todo(lutar) 移除， 并更新header_len total_len
+        kv_len = key.size() + exists_value.size() + FLAG_KEY_VALUE_SPLIT;
+        header_len -= kv_len;
+        total_len -= kv_len;
+    }
+    xheader[key] = value;
+    kv_len = key.size() + value.size() + FLAG_KEY_VALUE_SPLIT;
+    header_len += kv_len;
+    total_len += kv_len;
+}
+
+string LanSyncPkt::queryXheader(string key)
+{
+    return xheader[key];
+}
+
+const map<string, string> LanSyncPkt::getXheaders()
+{
+    return xheader;
+}
+
+void *LanSyncPkt::getData()
+{
+    return data;
+}
+
+void LanSyncPkt::setData(void *data_arg, uint32_t datalen)
+{
+    if (data != nullptr)
+    {
+        uint32_t datalen = total_len - header_len;
+        total_len -= datalen;
+        free(data);
+    }
+
+    data = (void *)malloc(datalen);
+    memset(data, 0, datalen);
+    memcpy(data, data_arg, datalen);
+
+    total_len += datalen;
+}
+
+uint16_t LanSyncPkt::getHeaderLen()
+{
+    return header_len;
+}
+uint32_t LanSyncPkt::getTotalLen()
+{
+    return total_len;
+}
+
+enum lan_sync_version LanSyncPkt::getVersion()
+{
+    return version;
+}
+enum lan_sync_type_enum LanSyncPkt::getType()
+{
+    return type;
 }
