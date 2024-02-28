@@ -135,4 +135,8 @@ public:
     const map<string,string> getXheaders();
 };
 
+
+
+bool compareChar(char *l, char *r, uint32_t cnt);
+
 #endif

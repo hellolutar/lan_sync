@@ -6,17 +6,6 @@ TEST(HelloTest, BasicAssertions)
 {
     EXPECT_STRNE("hello", "world");
 }
-
-bool compareChar(char *l, char *r, uint32_t cnt)
-{
-    for (size_t i = 0; i < cnt; i++)
-    {
-        if (*l != *r)
-            return false;
-    }
-    return true;
-}
-
 void compareLanSyncPkt(LanSyncPkt &pkt, LanSyncPkt &pkt2)
 {
     ASSERT_EQ(pkt.version, pkt2.version);

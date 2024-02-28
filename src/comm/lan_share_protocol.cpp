@@ -316,3 +316,15 @@ enum lan_sync_type_enum LanSyncPkt::getType()
 {
     return type;
 }
+
+
+
+bool compareChar(char *l, char *r, uint32_t cnt)
+{
+    for (size_t i = 0; i < cnt; i++)
+    {
+        if (*l != *r)
+            return false;
+    }
+    return true;
+}

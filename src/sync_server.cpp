@@ -109,8 +109,13 @@ SyncServer::SyncServer(struct event_base *base)
 void SyncServer::handleLanSyncGetTableIndex(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, uint32_t recvLen)
 {
     char useless[1024];
-    uint16_t hd_len = ntohl(try_header->header_len);
-    evbuffer_remove(in, useless, hd_len);
+    uint16_t total_len = ntohl(try_header->total_len);
+    if (recvLen < total_len)
+    {
+        return;
+    }
+    
+    evbuffer_remove(in, useless, total_len);
 
     vector<struct Resource *> table = sync_server->rm.getTable();
 

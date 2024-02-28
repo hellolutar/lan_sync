@@ -176,10 +176,18 @@ void SyncCli::appendSyncTable(struct Resource *table, struct bufferevent *bev, u
     {
         struct Resource *local_rs = local_table[i];
         struct Resource rs = total_table[local_rs->name];
-        if (strlen(rs.name) == 0 || rs.size <= local_rs->size)
+        if (strlen(rs.name) == 0 || rs.size < local_rs->size)
         {
             // I have the resource or my resource should sync to peer.
             total_table.erase(local_rs->name);
+            continue;
+        }
+        if (rs.size == local_rs->size)
+        {
+            if (compareChar(rs.hash, local_rs->hash, strlen(rs.hash)))
+                total_table.erase(local_rs->name);
+            else
+                LOG_WARN("[SYNC CLI] [{}] size is euqal, but hash is not equal\npeer:{}\nmine:{}", local_rs->uri, rs.hash, local_rs->hash);
         }
     }
 
@@ -300,7 +308,10 @@ void SyncCli::handleLanSyncReplyResource(struct bufferevent *bev, lan_sync_heade
         delSyncResource(uri);
     }
     else
+    {
         updateSyncResourceStatus(uri, FAIL);
+        remove(pathstr.data());
+    }
 
     free(bufp);
 }
@@ -505,7 +516,7 @@ void SyncCli::reqTableIndex()
 
 void SyncCli::config_req_table_index_periodically()
 {
-    struct event *timeout_event = event_new(base, -1, EV_PERSIST, req_table_index_timeout_cb, nullptr);
+    struct event *timeout_event = event_new(base, -1, EV_TIMEOUT | EV_PERSIST, req_table_index_timeout_cb, nullptr);
     struct timeval tv;
     evutil_timerclear(&tv);
     tv.tv_sec = PERIOD_OF_REQ_TABLE_INDEX;
@@ -526,7 +537,7 @@ void SyncCli::config_send_udp_periodically()
         t_addr.sin_addr = port.getBroadAddr().sin_addr;
 
         udp_cli *cli = new udp_cli(udp_sock, base, t_addr);
-        struct event *timeout_event = event_new(base, -1, EV_PERSIST, send_udp_hello, cli);
+        struct event *timeout_event = event_new(base, -1, EV_TIMEOUT | EV_PERSIST, send_udp_hello, cli);
 
         struct timeval tv;
         evutil_timerclear(&tv);
@@ -538,7 +549,7 @@ void SyncCli::config_send_udp_periodically()
 
 void SyncCli::config_req_resource_periodically()
 {
-    struct event *timeout_event = event_new(base, -1, EV_PERSIST, req_resource_periodically_timeout, nullptr);
+    struct event *timeout_event = event_new(base, -1, EV_TIMEOUT | EV_PERSIST, req_resource_periodically_timeout, nullptr);
 
     struct timeval tv;
     evutil_timerclear(&tv);
