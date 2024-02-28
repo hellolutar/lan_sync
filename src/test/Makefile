@@ -41,8 +41,8 @@ properties_parse_test: properties_parse_test.o ${COMMON_OBJS}
 	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 test: resource_manager_test lan_share_protocol_test properties_parse_test
-	./resource_manager_test
-	./lan_share_protocol_test
+	./resource_manager_test && \
+	./lan_share_protocol_test && \
 	./properties_parse_test
 
 clean:

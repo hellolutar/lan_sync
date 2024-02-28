@@ -14,25 +14,6 @@ void evbuffer_cb_for_free(struct evbuffer *buffer, const struct evbuffer_cb_info
     }
 }
 
-struct Resource *lan_sync_parseTableToData(vector<struct Resource *> table)
-{
-    uint32_t num = table.size();
-    uint32_t size = num * sizeof(struct Resource);
-    struct Resource *ret = (struct Resource *)malloc(size);
-    struct Resource *retp = ret;
-    memset(ret, 0, size);
-    for (int i = 0; i < table.size(); i++)
-    {
-        memcpy(&(retp[i].name), table[i]->name, strlen(table[i]->name));
-        memcpy(&(retp[i].uri), table[i]->uri, strlen(table[i]->uri));
-        memcpy(&(retp[i].path), table[i]->path, strlen(table[i]->path));
-        memcpy(&(retp[i].hash), table[i]->hash, strlen(table[i]->hash));
-        retp[i].size = table[i]->size;
-    }
-
-    return ret;
-}
-
 void lan_sync_parseStructToMem()
 {
 }
@@ -199,10 +180,11 @@ LanSyncPkt::LanSyncPkt(lan_sync_header_t *header)
     // parse header
     char *xhdp = (char *)(header + 1);
     uint16_t kvstr_len = 0;
-    for (size_t i = 0; i < xheader_len; i += kvstr_len)
+    char *xhdpi = xhdp;
+    for (; kvstr_len < xheader_len;)
     {
-        xhdp += kvstr_len;
-        string kvstr(xhdp);
+        xhdpi = xhdp + kvstr_len;
+        string kvstr(xhdpi);
         kvstr_len += kvstr.size() + 1; // 1 is '\0'
         vector<string> kvv = splitstr(kvstr, ':');
         if (kvv.size() >= 2)
@@ -219,6 +201,7 @@ LanSyncPkt::LanSyncPkt(lan_sync_header_t *header)
 
 void LanSyncPkt::write(struct evbuffer *out)
 {
+
     lan_sync_header_t *hd = (lan_sync_header_t *)malloc(total_len); // free in evbuffer_cb_for_free
     memset(hd, 0, total_len);
 
@@ -249,6 +232,15 @@ void LanSyncPkt::write(struct evbuffer *out)
     evbuffer_add_cb(out, evbuffer_cb_for_free, hd);
 
     printf("[DEBUG] [TCP] send pkt, header info: total_len:%d, header_len:%d \n", total_len, header_len);
+}
+
+void LanSyncPkt::write(struct bufferevent *bev)
+{
+    struct evbuffer *in = bufferevent_get_input(bev);
+    struct evbuffer *out = bufferevent_get_output(bev);
+    write(out);
+    int ret = bufferevent_flush(bev, EV_WRITE | EV_READ, BEV_FLUSH);
+    printf("[SYNC SER] want flush, ret[-1=failure, 0=no data, 1=success]: %d\n", ret);
 }
 
 void LanSyncPkt::addXheader(const string key, const string value)
@@ -317,8 +309,6 @@ enum lan_sync_type_enum LanSyncPkt::getType()
     return type;
 }
 
-
-
 bool compareChar(char *l, char *r, uint32_t cnt)
 {
     for (size_t i = 0; i < cnt; i++)
@@ -327,4 +317,97 @@ bool compareChar(char *l, char *r, uint32_t cnt)
             return false;
     }
     return true;
+}
+
+ContentRange::ContentRange(string str)
+{
+    vector<string> rawv = splitstr(str, FLAG_XHEADER_CONTENT_SEPERATE_CHAR);
+    sscanf(rawv[1].c_str(), "%lu", &total_size);
+    if (FLAG_XHEADER_CONTENT_RANGE_LAST == rawv[2])
+        is_last = true;
+    else
+        is_last = false;
+
+    vector<string> raw_range = splitstr(rawv[0], FLAG_XHEADER_CONTENT_BETWEEN_CHAR);
+    sscanf(raw_range[0].c_str(), "%lu", &start_pos);
+    uint64_t end = 0;
+    sscanf(raw_range[1].c_str(), "%lu", &end);
+    size = end - start_pos;
+}
+
+ContentRange::~ContentRange()
+{
+}
+
+uint64_t ContentRange::getStartPos()
+{
+    return start_pos;
+}
+uint64_t ContentRange::getSize()
+{
+    return size;
+}
+uint64_t ContentRange::getTotalSize()
+{
+    return total_size;
+}
+bool ContentRange::isLast()
+{
+    return is_last;
+}
+
+// str like : 0-500/500/last
+string ContentRange::to_string()
+{
+    stringstream ss;
+    ss << start_pos << FLAG_XHEADER_CONTENT_BETWEEN << (start_pos + size) << FLAG_XHEADER_CONTENT_SEPERATE << total_size << FLAG_XHEADER_CONTENT_SEPERATE;
+    if (is_last)
+        ss << FLAG_XHEADER_CONTENT_RANGE_LAST;
+    else
+        ss << FLAG_XHEADER_CONTENT_RANGE_MORE;
+
+    return ss.str();
+}
+
+// str like : 0-500
+// str like : 0-
+Range::Range(string str)
+{
+    vector<string> rawv = splitstr(str, FLAG_XHEADER_CONTENT_BETWEEN_CHAR);
+    sscanf(rawv[0].c_str(), "%lu", &start_pos);
+    if (rawv.size() == 1)
+    {
+        size = 0;
+        return;
+    }
+    uint64_t end = 0;
+    sscanf(rawv[1].c_str(), "%lu", &end);
+    size = end - start_pos;
+}
+
+Range::~Range()
+{
+}
+
+uint64_t Range::getStartPos()
+{
+    return start_pos;
+}
+uint64_t Range::getSize()
+{
+    return size;
+}
+
+// str like : 0-500
+// str like : 0-
+string Range::to_string()
+{
+    stringstream ss;
+    ss << start_pos << FLAG_XHEADER_CONTENT_BETWEEN;
+    if (size != 0)
+    {
+        ss << (start_pos + size);
+    }
+
+    return ss.str();
 }

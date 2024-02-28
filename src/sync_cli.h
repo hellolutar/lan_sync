@@ -11,6 +11,7 @@
 #include <vector>
 #include <map>
 #include <algorithm>
+#include <sstream>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -51,7 +52,7 @@ private:
     void handleLanSyncReplyTableIndex(struct bufferevent *bev, lan_sync_header_t *try_header, int recvLen);
     void appendSyncTable(struct Resource *table, struct bufferevent *bev, uint64_t res_num);
     bool checkHash(LanSyncPkt &pkt, string pathstr);
-    uint32_t writeFile(int fd, uint32_t data_len, char *data);
+    int64_t writeFile(string pathstr,  LanSyncPkt &pkt);
     map<uint32_t, struct bufferevent *> tcpTable;
 
 public:

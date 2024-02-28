@@ -8,8 +8,10 @@
 
 #include <string>
 #include <vector>
+#include <algorithm>
 
 #include <unistd.h>
+#include <netinet/tcp.h>
 
 #include <event2/event.h>
 #include <event2/buffer.h>
@@ -28,9 +30,9 @@ using namespace std;
 class SyncServer
 {
 private:
-    void handleLanSyncGetTableIndex(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, uint32_t recvLen);
-    void handleLanSyncGetResource(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, uint32_t recvLen);
-    void replyResource(struct evbuffer *out, char *uri);
+    void handleLanSyncGetTableIndex(struct bufferevent *bev, lan_sync_header_t *try_header, uint32_t recvLen);
+    void handleLanSyncGetResource(struct bufferevent *bev, lan_sync_header_t *try_header, uint32_t recvLen);
+    void replyResource(struct bufferevent *bev, LanSyncPkt &pkt);
 
 public:
     enum state st;

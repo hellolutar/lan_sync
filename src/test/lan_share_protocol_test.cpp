@@ -100,6 +100,21 @@ TEST(LanSyncPktTest, queryXheader)
     ASSERT_STREQ(value2.data(), pkt.queryXheader(key2).data());
 }
 
+TEST(LanSyncPktTest, constructor)
+{
+    char *data = "hello world";
+    string uri = "static/cli/network/springmvc.docx";
+    string cr = "1024000-1038835/1038835/last";
+    string hash = "4b32c3eb86b796b05abcec4d9f3d910a4122dbac351cf80c9eb9299c94cdf3a245a394ac015e8308672d31de6853f94160a5176a207397e7d94974aa3818fb04";
+    LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_REPLY_TABLE_INDEX);
+    pkt.addXheader(XHEADER_URI, uri);
+    pkt.addXheader(XHEADER_CONTENT_RANGE, cr);
+    pkt.addXheader("demo", "demo");
+    pkt.addXheader(XHEADER_HASH, hash);
+    pkt.setData(data, strlen(data));
+    checkLanSyncPktSerialize(pkt);
+}
+
 TEST(LocalPortTest, existIp)
 {
 
@@ -115,6 +130,69 @@ TEST(LocalPortTest, existIp)
     addr.sin_addr.s_addr = htonl(1);
 
     GTEST_ASSERT_FALSE(LocalPort::existIp(ports, addr.sin_addr));
+}
+
+TEST(ContentRangeTest, constructor)
+{
+    string content_range_str = "0-500/500/last";
+    ContentRange cr(content_range_str);
+    ASSERT_EQ(0, cr.getStartPos());
+    ASSERT_EQ(500, cr.getSize());
+    ASSERT_EQ(500, cr.getTotalSize());
+    ASSERT_EQ(true, cr.isLast());
+
+    string content_range_str2 = "500-1000/8000/more";
+    ContentRange cr2(content_range_str2);
+    ASSERT_EQ(500, cr2.getStartPos());
+    ASSERT_EQ(500, cr2.getSize());
+    ASSERT_EQ(8000, cr2.getTotalSize());
+    ASSERT_EQ(false, cr2.isLast());
+}
+
+TEST(ContentRangeTest, to_string)
+{
+    string content_range_str = "0-500/500/last";
+    ContentRange cr(content_range_str);
+
+    ContentRange cr_1(0, 500, 500, true);
+    ASSERT_STREQ(cr_1.to_string().data(), content_range_str.data());
+
+    string content_range_str2 = "500-1000/8000/more";
+    ContentRange cr_2(500, 500, 8000, false);
+    ASSERT_STREQ(cr_2.to_string().data(), content_range_str2.data());
+}
+
+TEST(RangeTest, constructor)
+{
+    string range_str = "0-500";
+    Range r(range_str);
+    ASSERT_EQ(0, r.getStartPos());
+    ASSERT_EQ(500, r.getSize());
+
+    string range_str2 = "0-";
+    Range r2(range_str2);
+    ASSERT_EQ(0, r2.getStartPos());
+    ASSERT_EQ(0, r2.getSize());
+
+    string range_str3 = "500-1500";
+    Range r3(range_str3);
+    ASSERT_EQ(500, r3.getStartPos());
+    ASSERT_EQ(1000, r3.getSize());
+}
+
+TEST(RangeTest, to_string)
+{
+    string range_str = "0-500";
+    Range r(range_str);
+    ASSERT_STREQ(range_str.data(), r.to_string().data());
+
+    string range_str2 = "0-";
+    Range r2(range_str2);
+    ASSERT_STREQ(range_str2.data(), r2.to_string().data());
+
+    string range_str3 = "500-1500";
+    Range r3(range_str3);
+    ASSERT_STREQ(range_str3.data(), r3.to_string().data());
 }
 
 int main(int argc, char **argv)

@@ -30,7 +30,7 @@ static void tcp_readcb(struct bufferevent *bev, void *ctx)
 
 static void tcp_writecb(struct bufferevent *bev, void *ctx)
 {
-    // printf("can write msg to peer tcp server! ");
+    // LOG_INFO("[SYNC CLI] call tcp_writecb!");
 }
 
 static void tcp_event_cb(struct bufferevent *bev, short what, void *ctx)
@@ -193,8 +193,9 @@ void SyncCli::appendSyncTable(struct Resource *table, struct bufferevent *bev, u
 
     for (auto iter = total_table.begin(); iter != total_table.end(); iter++)
     {
-        LOG_DEBUG("[SYNC CLI] add uri to sync list : uri[{}]", iter->second.uri);
-        sync_cli->addSyncResource(WantSyncResource_new(bev, iter->second.uri, PENDING));
+        Resource rs = iter->second;
+        LOG_DEBUG("[SYNC CLI] add uri to sync list : uri[{}]", rs.uri);
+        sync_cli->addSyncResource(WantSyncResource_new(bev, rs.uri, PENDING, rs.size)); // free in delSyncResource
     }
 }
 void SyncCli::handleLanSyncReplyTableIndex(struct bufferevent *bev, lan_sync_header_t *try_header, int recvLen)
@@ -230,17 +231,36 @@ void SyncCli::handleLanSyncReplyTableIndex(struct bufferevent *bev, lan_sync_hea
     free(bufp);
 }
 
-uint32_t SyncCli::writeFile(int fd, uint32_t data_len, char *data)
+int64_t SyncCli::writeFile(string pathstr, LanSyncPkt &pkt)
 {
+    int fd = open(pathstr.data(), O_RDWR | O_CREAT, 0644);
+    if (fd < 0)
+    {
+        LOG_ERROR("{} ", strerror(errno));
+        return -1;
+    }
+
+    string content_range_str = pkt.queryXheader(XHEADER_CONTENT_RANGE);
+    ContentRange cr(content_range_str);
+
+    off_t currpos = lseek(fd, cr.getStartPos(), SEEK_SET);
+
+    uint32_t data_len = pkt.getTotalLen() - pkt.getHeaderLen();
+    char *data = (char *)pkt.getData();
+
     uint32_t onceWrite = 65535;
     uint32_t num = min(onceWrite, data_len);
-    uint32_t writed = write(fd, data, num);
-    while (writed < data_len)
+    uint32_t wrote = write(fd, data, num);
+    while (wrote < data_len)
     {
-        num = min(onceWrite, data_len - writed);
-        writed += write(fd, data, num);
+        num = min(onceWrite, data_len - wrote);
+        wrote += write(fd, data, num);
     }
-    return writed;
+    LOG_INFO("[SYNC CLI] [{}] : uri[{}] write data to file. start_pos: {},  wrote: {} ", SERVICE_NAME_REQ_RESOURCE, pathstr, cr.getStartPos(), wrote);
+
+    close(fd);
+
+    return wrote;
 }
 
 void SyncCli::handleLanSyncReplyResource(struct bufferevent *bev, lan_sync_header_t *try_header, int recvLen)
@@ -284,33 +304,28 @@ void SyncCli::handleLanSyncReplyResource(struct bufferevent *bev, lan_sync_heade
         filesystem::create_directories(path.parent_path());
     }
 
-    int fd = open(pathstr.data(), O_RDWR | O_CREAT, 0644);
-    if (fd < 0)
+    int64_t ret = writeFile(pathstr, pkt);
+    if (ret < 0)
     {
-        LOG_ERROR("{} ", strerror(errno));
         free(bufp);
         return;
     }
 
-    uint32_t data_len = pkt.getTotalLen() - pkt.getHeaderLen();
-    char *data = (char *)pkt.getData();
-
-    uint32_t writed = writeFile(fd, data_len, data);
-
-    LOG_INFO("[SYNC CLI] [{}] : uri[{}] write data to file, size: {} ", SERVICE_NAME_REQ_RESOURCE, uri, writed);
-
-    close(fd);
-
-    if (checkHash(pkt, pathstr))
+    string content_range_str = pkt.queryXheader(XHEADER_CONTENT_RANGE);
+    ContentRange cr(content_range_str);
+    if (cr.isLast())
     {
-        updateSyncResourceStatus(uri, SUCCESS);
-        rm.refreshTable();
-        delSyncResource(uri);
-    }
-    else
-    {
-        updateSyncResourceStatus(uri, FAIL);
-        remove(pathstr.data());
+        if (checkHash(pkt, pathstr))
+        {
+            updateSyncResourceStatus(uri, SUCCESS);
+            rm.refreshTable();
+            delSyncResource(uri);
+        }
+        else
+        {
+            updateSyncResourceStatus(uri, FAIL);
+            remove(pathstr.data());
+        }
     }
 
     free(bufp);
@@ -387,7 +402,7 @@ void SyncCli::connPeerWithTcp(struct sockaddr_in target_addr, uint16_t peer_tcp_
 
 void SyncCli::handleHelloAck(struct sockaddr_in target_addr, LanSyncPkt &pkt)
 {
-    string peer_tcp_port_str = pkt.queryXheader("tcpport");
+    string peer_tcp_port_str = pkt.queryXheader(XHEADER_TCPPORT);
     uint16_t peer_tcp_port = atoi(peer_tcp_port_str.data());
 
     uint32_t data_len = pkt.getTotalLen() - pkt.getHeaderLen();
@@ -441,11 +456,15 @@ void SyncCli::handle_sync_status_pending(WantSyncResource *rs)
     // 查询tcp session是否存在
     if (existTcpSessionByBufevent(rs->bev))
     {
-        LOG_INFO("[SYNC CLI] [{}] : req uri[{}]!", SERVICE_NAME_REQ_RESOURCE, rs->uri);
         rs->status = SYNCING;
         LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_RESOURCE);
+
+        string range_hdr = rs->range.to_string();
         pkt.addXheader(XHEADER_URI, rs->uri);
-        pkt.write(bufferevent_get_output(rs->bev));
+        pkt.addXheader(XHEADER_RANGE, range_hdr);
+        pkt.write(rs->bev);
+
+        LOG_INFO("[SYNC CLI] [{}] : req uri[{}] range[{}]!", SERVICE_NAME_REQ_RESOURCE, rs->uri, range_hdr);
     }
     else
     {
@@ -510,7 +529,7 @@ void SyncCli::reqTableIndex()
         LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_TABLE_INDEX);
 
         LOG_INFO("[SYNC CLI] send {}!", SERVICE_NAME_REQ_TABLE_INDEX);
-        pkt.write(out);
+        pkt.write(bev);
     }
 }
 
@@ -564,8 +583,12 @@ void SyncCli::addSyncResource(struct WantSyncResource *item)
     for (size_t i = 0; i < syncTable.size(); i++)
     {
         auto rs = syncTable[i];
-        if (rs->uri == item->uri)
+
+        if (compareChar(rs->uri, item->uri, NAME_MAX_SIZE))
+        {
+            free(item);
             return;
+        }
     }
     syncTable.push_back(item);
 }
@@ -575,9 +598,10 @@ void SyncCli::delSyncResource(string uri)
     for (auto i = syncTable.begin(); i != syncTable.end(); i++)
     {
         auto rs = *i;
-        if (rs->uri == uri)
+        if (compareChar(rs->uri, uri.data(), uri.size()))
         {
             syncTable.erase(i);
+            free(rs);
             return;
         }
     }
@@ -588,7 +612,7 @@ void SyncCli::updateSyncResourceStatus(string uri, enum WantSyncResourceStatusEn
     for (auto iter = syncTable.end() - 1; iter >= syncTable.begin(); iter--)
     {
         WantSyncResource *rs = (*iter);
-        if (rs->uri == uri)
+        if (compareChar(rs->uri, uri.data(), uri.size()))
         {
             rs->status = status;
             break;
