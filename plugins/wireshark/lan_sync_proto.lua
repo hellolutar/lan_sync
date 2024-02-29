@@ -66,7 +66,6 @@ local hdr_fields =
     type = ProtoField.uint8("lan_sync.type", "type", base.DEC, types),
     header_len = ProtoField.uint16("lan_sync.header_len", "header len", base.DEC),
     total_len = ProtoField.uint32("lan_sync.total_len", "total len", base.DEC),
-    xheader = ProtoField.string("lan_sync.xheader", "xheader", base.UNICODE),
 }
 
 -- register the ProtoFields
@@ -184,6 +183,16 @@ dissectLsp = function(tvbuf, pktinfo, root, offset)
     local xheader_len = header_len - LSP_MSG_HDR_LEN;
     dprint("xheader_len(hex):" .. xheader_len)
 
+    handleXheader(xheader_len, offset, tvbuf, tree, total_len)
+
+    handleData(total_len, header_len, xheader_len, tvbuf, pktinfo, root, offset)
+
+    handlePktInfoColsInfo(pktinfo, msgtype_tvbr, xheader_len, total_len, header_len)
+
+    return total_len
+end
+
+function handleXheader(xheader_len, offset, tvbuf, tree, total_len)
     if xheader_len > 0 then
         local start = offset + LSP_MSG_HDR_LEN
 
@@ -192,15 +201,19 @@ dissectLsp = function(tvbuf, pktinfo, root, offset)
 
         local sub_start = start;
         for i = 0, xheader_len, 1 do
-            if string.byte(xheader_str, i) == 0 then
-                local xheader_entry = tvbuf:range(sub_start, xheader_len):raw()
-                -- local xheader_entry = string.sub(xheader_str, sub_start, i)
+            local ch = string.byte(xheader_str, i)
+            if ch == 0 then
+                dprint("i:" ..
+                    i .. "sub_start:" .. sub_start .. " xheader_len:" .. xheader_len .. " total_len:" .. total_len)
+                local xheader_entry = tvbuf:range(sub_start, string.len(xheader_str)):raw()
                 tree:add(xheader_entry)
                 sub_start = start + i
             end
         end
     end
+end
 
+function handleData(total_len, header_len, xheader_len, tvbuf, pktinfo, root, offset)
     local data_len = total_len - header_len
     if data_len > 0 then
         local header_offset = LSP_MSG_HDR_LEN;
@@ -215,8 +228,11 @@ dissectLsp = function(tvbuf, pktinfo, root, offset)
             ", hdr_len(hex):" .. header_len .. ", data_len(hex):" .. data_len .. ", data_tvb_len(hex):" .. data_tvb_len)
         data_dis:call(data_tvb, pktinfo, root)
     end
+end
 
+function handlePktInfoColsInfo(pktinfo, msgtype_tvbr, xheader_len, total_len, header_len)
     -- set the protocol column to show our protocol name
+    local data_len = total_len - header_len
     pktinfo.cols.protocol:set("LSP")
     if string.find(tostring(pktinfo.cols.info), "^LSP") == nil then
         local info_cell = "LSP [" .. types[msgtype_tvbr:uint()] .. "]"
@@ -226,9 +242,7 @@ dissectLsp = function(tvbuf, pktinfo, root, offset)
         info_cell = info_cell .. " dataLen=" .. data_len
         pktinfo.cols.info:set(info_cell)
     end
-    return total_len
 end
-
 
 ----------------------------------------
 -- The function to check the length field.
