@@ -84,6 +84,17 @@ TEST(LanSyncPktTest, addXheader)
     checkLanSyncPktSerialize(pkt);
 }
 
+TEST(LanSyncPktTest, addXheader2)
+{
+    string key = XHEADER_TCPPORT;
+    string value = to_string(58081);
+
+    LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_HELLO_ACK);
+    pkt.addXheader(key, value);
+    ASSERT_EQ(22, pkt.getHeaderLen());
+    checkLanSyncPktSerialize(pkt);
+}
+
 TEST(LanSyncPktTest, queryXheader)
 {
     char *data = "hello world, nihao shijie!\r\n\0";

@@ -239,8 +239,6 @@ void LanSyncPkt::write(struct bufferevent *bev)
     struct evbuffer *in = bufferevent_get_input(bev);
     struct evbuffer *out = bufferevent_get_output(bev);
     write(out);
-    int ret = bufferevent_flush(bev, EV_WRITE | EV_READ, BEV_FLUSH);
-    printf("[SYNC SER] want flush, ret[-1=failure, 0=no data, 1=success]: %d\n", ret);
 }
 
 void LanSyncPkt::addXheader(const string key, const string value)

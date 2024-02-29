@@ -441,11 +441,9 @@ static void send_udp_hello(evutil_socket_t, short, void *arg)
     LOG_DEBUG("[SYNC CLI] send [HELLO]");
 
     string msg = "hello";
-    lan_sync_header_t reply_header = {LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_HELLO, (uint16_t)msg.size()};
-
+    LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_HELLO);
     struct evbuffer *buf = evbuffer_new();
-    evbuffer_add(buf, &reply_header, LEN_LAN_SYNC_HEADER_T);
-    evbuffer_add(buf, msg.data(), msg.size());
+    pkt.write(buf);
 
     udp_cli *cli = (udp_cli *)arg;
     cli->send(buf);

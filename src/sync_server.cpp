@@ -35,7 +35,13 @@ static void srv_do_accept(evutil_socket_t listener, short event, void *ctx)
 
     struct bufferevent *bev;
     evutil_make_socket_nonblocking(fd);
+    evutil_make_listen_socket_reuseable_port(fd);
+
     bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
+    size_t hw = 0;
+    size_t lw = 0;
+    bufferevent_getwatermark(bev, EV_WRITE, &lw, &hw);
+    bufferevent_setwatermark(bev, EV_WRITE, 0, hw);
     bufferevent_setcb(bev, srv_tcp_readcb, srv_tcp_writecb, nullptr, base);
     bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
