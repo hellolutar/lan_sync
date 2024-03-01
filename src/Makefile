@@ -5,9 +5,11 @@ SRC_C := $(wildcard *.cpp)
 SRC_UTILS := $(wildcard utils/*.cpp)
 SRC_COMMS := $(wildcard comm/*.cpp)
 SRC_RESOURCE := $(wildcard resource/*.cpp)
+SRC_COMPONENTS := $(wildcard components/*.cpp)
 COMMON_OBJS := ${SRC_UTILS:.cpp=.o}
 COMMON_OBJS += ${SRC_COMMS:.cpp=.o}
 COMMON_OBJS += ${SRC_RESOURCE:.cpp=.o}
+COMMON_OBJS += ${SRC_COMPONENTS:.cpp=.o}
 TARGET_OBJS += ${SRC_C:.cpp=.o} 
 OBJS+=${COMMON_OBJS}
 OBJS+=${TARGET_OBJS}

@@ -148,7 +148,7 @@ TEST(IOUtilsTest, readAll_cb)
     setup(fname);
 
     IoUtil io;
-    io.setReadCb(test_read_cb);
+    io.addReadMonitor(test_read_cb);
 
     uint64_t len;
     io.readAll(fname, len);

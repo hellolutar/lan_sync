@@ -155,44 +155,15 @@ void SyncServer::replyResource(struct bufferevent *bev, LanSyncPkt &pkt)
         return;
     }
 
-    uint64_t once_read_max_num = SIZE_1KB * 1000;
-    int fd = open(rs->path, O_RDONLY);
-    off_t currpos = lseek(fd, range.getStartPos(), SEEK_SET);
+    IoReadMonitor *monitor = new SyncIOReadMonitor(bev, rs);
+    IoUtil io;
+    io.addReadMonitor(monitor);
 
-    uint64_t readed = range.getStartPos();
-    uint64_t end = range.getStartPos() + (range.getSize() == 0 ? rs->size : range.getSize());
-    char *data = (char *)malloc(once_read_max_num);
-    while (readed < end)
-    {
-        memset(data, 0, once_read_max_num);
-        uint64_t start_at = readed;
-        LanSyncPkt reply_pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_REPLY_RESOURCE);
-
-        // 读取文件内容
-        uint64_t want_to_read_num = min(once_read_max_num, (rs->size - readed));
-        readed += read(fd, data, want_to_read_num);
-        uint64_t cur_readed = readed - start_at;
-
-        if (readed != end)
-        {
-            ContentRange cr(start_at, cur_readed, rs->size, false);
-            reply_pkt.addXheader(XHEADER_CONTENT_RANGE, cr.to_string());
-        }
-        else
-        {
-            ContentRange cr(start_at, cur_readed, rs->size, true);
-            reply_pkt.addXheader(XHEADER_CONTENT_RANGE, cr.to_string());
-            reply_pkt.addXheader(XHEADER_HASH, rs->hash);
-        }
-        reply_pkt.addXheader(XHEADER_URI, rs->uri);
-
-        reply_pkt.setData(data, cur_readed);
-        reply_pkt.write(bev);
-    }
+    uint64_t ret_len = 0;
+    void *data = io.readAll(rs->path, ret_len);
     free(data);
-    close(fd);
 
-    LOG_DEBUG("[SYNC SER] [{}] : uri[{}] file size:{} ", SERVICE_NAME_REPLY_REQ_RESOURCE, uri, readed);
+    LOG_DEBUG("[SYNC SER] [{}] : uri[{}] file size:{} ", SERVICE_NAME_REPLY_REQ_RESOURCE, uri, ret_len);
 }
 
 void SyncServer::handleLanSyncGetResource(struct bufferevent *bev, lan_sync_header_t *try_header, uint32_t recvLen)

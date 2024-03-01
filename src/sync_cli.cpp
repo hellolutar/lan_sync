@@ -231,36 +231,13 @@ void SyncCli::handleLanSyncReplyTableIndex(struct bufferevent *bev, lan_sync_hea
     free(bufp);
 }
 
-int64_t SyncCli::writeFile(string pathstr, LanSyncPkt &pkt)
+uint64_t SyncCli::writeFile(string pathstr, LanSyncPkt &pkt)
 {
-    int fd = open(pathstr.data(), O_RDWR | O_CREAT, 0644);
-    if (fd < 0)
-    {
-        LOG_ERROR("{} ", strerror(errno));
-        return -1;
-    }
-
     string content_range_str = pkt.queryXheader(XHEADER_CONTENT_RANGE);
     ContentRange cr(content_range_str);
 
-    off_t currpos = lseek(fd, cr.getStartPos(), SEEK_SET);
-
-    uint32_t data_len = pkt.getTotalLen() - pkt.getHeaderLen();
-    char *data = (char *)pkt.getData();
-
-    uint32_t onceWrite = 65535;
-    uint32_t num = min(onceWrite, data_len);
-    uint32_t wrote = write(fd, data, num);
-    while (wrote < data_len)
-    {
-        num = min(onceWrite, data_len - wrote);
-        wrote += write(fd, data, num);
-    }
-    LOG_INFO("[SYNC CLI] [{}] : uri[{}] write data to file. start_pos: {},  wrote: {} ", SERVICE_NAME_REQ_RESOURCE, pathstr, cr.getStartPos(), wrote);
-
-    close(fd);
-
-    return wrote;
+    IoUtil io;
+    return io.writeFile(pathstr, cr.getStartPos(), pkt.getData(), cr.getSize());
 }
 
 void SyncCli::handleLanSyncReplyResource(struct bufferevent *bev, lan_sync_header_t *try_header, int recvLen)
@@ -304,7 +281,7 @@ void SyncCli::handleLanSyncReplyResource(struct bufferevent *bev, lan_sync_heade
         filesystem::create_directories(path.parent_path());
     }
 
-    int64_t ret = writeFile(pathstr, pkt);
+    uint64_t ret = writeFile(pathstr, pkt);
     if (ret < 0)
     {
         free(bufp);

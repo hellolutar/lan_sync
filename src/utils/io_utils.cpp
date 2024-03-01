@@ -4,16 +4,21 @@ using namespace std;
 
 IoUtil::IoUtil(/* args */)
 {
-    read_cb = nullptr;
 }
 
 IoUtil::~IoUtil()
 {
+    for (size_t i = 0; i < readMonitors.size(); i++)
+    {
+        auto rdm = readMonitors[i];
+        delete rdm;
+    }
+    printf("[DEBUG] IoUtil RELEASE\n");
 }
 
-void IoUtil::setReadCb(read_cb_fn cb)
+void IoUtil::addReadMonitor(IoReadMonitor *monitor)
 {
-    read_cb = cb;
+    readMonitors.push_back(monitor);
 }
 
 void *IoUtil::readAll(string path, uint64_t &ret_len)
@@ -53,19 +58,21 @@ void *IoUtil::readAll(string path, uint64_t offset, uint64_t size, uint64_t &ret
         // 读取文件内容
         uint64_t expected_read = min(once_read_max_num, remained);
         uint64_t actual_read = read(fd, data_pos, expected_read);
+        for (size_t i = 0; i < readMonitors.size(); i++)
+        {
+            IoReadMonitor *rdm = readMonitors[i];
+            rdm->monitor(curpos, data, actual_read);
+        }
         curpos += actual_read;
         ret_len += actual_read;
         data_pos += actual_read;
-
-        if (read_cb != nullptr)
-            read_cb(curpos, data, actual_read);
     }
     close(fd);
 
     return data;
 }
 
-int64_t IoUtil::writeFile(string path, uint64_t offset, void *data, uint64_t size)
+uint64_t IoUtil::writeFile(string path, uint64_t offset, void *data, uint64_t size)
 {
     uint64_t ret_len = 0;
     int fd = open(path.data(), O_RDWR | O_CREAT, 0644);
@@ -95,4 +102,12 @@ int64_t IoUtil::writeFile(string path, uint64_t offset, void *data, uint64_t siz
     close(fd);
 
     return ret_len;
+}
+
+IoReadMonitor::~IoReadMonitor()
+{
+}
+
+IoReadMonitor::IoReadMonitor()
+{
 }

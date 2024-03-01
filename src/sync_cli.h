@@ -26,6 +26,7 @@
 #include "resource/resource_manager.h"
 #include "comm/udp_cli.h"
 #include "utils/logger.h"
+#include "utils/io_utils.h"
 #include "constants.h"
 
 #define PERIOD_OF_SEND_UDP 5
@@ -52,7 +53,7 @@ private:
     void handleLanSyncReplyTableIndex(struct bufferevent *bev, lan_sync_header_t *try_header, int recvLen);
     void appendSyncTable(struct Resource *table, struct bufferevent *bev, uint64_t res_num);
     bool checkHash(LanSyncPkt &pkt, string pathstr);
-    int64_t writeFile(string pathstr,  LanSyncPkt &pkt);
+    uint64_t writeFile(string pathstr,  LanSyncPkt &pkt);
     map<uint32_t, struct bufferevent *> tcpTable;
 
 public:

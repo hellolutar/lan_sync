@@ -40,7 +40,12 @@ properties_parse_test: properties_parse_test.o ${COMMON_OBJS}
 	@echo $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
-test: resource_manager_test lan_share_protocol_test properties_parse_test
+io_utils_test: io_utils_test.o ${COMMON_OBJS}
+	@echo $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
+
+test: ${TARGETS}
+	./io_utils_test && \
 	./resource_manager_test && \
 	./lan_share_protocol_test && \
 	./properties_parse_test
