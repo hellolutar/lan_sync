@@ -57,7 +57,7 @@ using namespace std;
 #define FLAG_XHEADER_CONTENT_BETWEEN "-"
 #define FLAG_XHEADER_CONTENT_BETWEEN_CHAR '-'
 
-#define SIZE_1KB 8000
+#define SIZE_1KB 8196
 
 class LocalPort
 {
