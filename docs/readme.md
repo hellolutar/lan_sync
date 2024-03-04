@@ -142,3 +142,10 @@ pending: 想要的同步的资源加入此表时，状态为pending
 
 ### 断开连接阶段
 
+
+
+
+``` shell
+/usr/bin/openssl dgst -sha256 hello.txt
+
+```

@@ -1,33 +1,54 @@
 .PHONY: clean all
 
-base_src:=..
 
-srcs := $(wildcard *.cpp)
-targets := $(patsubst %.cpp,%,$($(base_src)/srcs))
-srcutils := $(wildcard $(base_src)/utils/*.cpp)
+WORKSPACE:=/home/lutar/code/c/lan_sync/src
+SRC_C := $(wildcard *.cpp)
+SRC_UTILS := $(wildcard $(WORKSPACE)/utils/*.cpp)
+SRC_COMMS := $(wildcard $(WORKSPACE)/comm/*.cpp)
+SRC_RESOURCE := $(wildcard $(WORKSPACE)/resource/*.cpp)
+COMMON_OBJS := ${SRC_UTILS:.cpp=.o}
+COMMON_OBJS += ${SRC_COMMS:.cpp=.o}
+COMMON_OBJS += ${SRC_RESOURCE:.cpp=.o}
+TARGET_OBJS += ${SRC_C:.cpp=.o} 
+OBJS+=${COMMON_OBJS}
+OBJS+=${TARGET_OBJS}
+TARGETS := $(patsubst %.cpp,%,$(SRC_C))
 
 CC=g++
-CXXFLAGS=-g -I$(base_src) -I$(base_src)/utils -Wno-write-strings -Wno-format-contains-nul
-CFLAGS=$(CXXFLAGS)
+CXXFLAGS=-g -Wno-format-contains-nul -Wno-write-strings
 LDFLAGS:=
-LIBS:=-levent -lcrypto -lssl -lgtest #-lspdlog
+LIBS:=-levent -lcrypto -lssl -lgtest -lfmt -lspdlog
+CPLUS_INCLUDE_PATH +=${WORKSPACE}
+COMPILE_OPT:=RELEASE#RELEASE or DEV
+RELEASE:=RELEASE
 
-all:  test
+all: ${OBJS} test
 
-resource_manager_test: resource_manager_test.cpp $(base_src)/resource/resource_manager.cpp ${srcutils}
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
+%.o: %.cpp
+	@echo $@
+	@$(CC) -I${CPLUS_INCLUDE_PATH} -c $(CXXFLAGS) $(LDFLAGS) -D${COMPILE_OPT}  $^ $(LIBS) -o $@
 
-lan_share_protocol_test: lan_share_protocol_test.cpp  $(base_src)/comm/lan_share_protocol.cpp ${srcutils}
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
+resource_manager_test: resource_manager_test.o ${COMMON_OBJS}
+	@echo $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
-properties_parse_test: properties_parse_test.cpp $(base_src)/utils/properties_parse.cpp
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
+lan_share_protocol_test: lan_share_protocol_test.o  ${COMMON_OBJS}
+	@echo $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
-test: resource_manager_test lan_share_protocol_test properties_parse_test
-	./resource_manager_test
-	./lan_share_protocol_test
+properties_parse_test: properties_parse_test.o ${COMMON_OBJS}
+	@echo $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
+
+io_utils_test: io_utils_test.o ${COMMON_OBJS}
+	@echo $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
+
+test: ${TARGETS}
+	./io_utils_test && \
+	./resource_manager_test && \
+	./lan_share_protocol_test && \
 	./properties_parse_test
 
 clean:
-	rm -rf $(targets) *.o *.so *.a *.dll \
-	 resource_manager_test lan_share_protocol_test properties_parse_test
+	rm -rf $(TARGETS) *.o *.so *.a *.dll 

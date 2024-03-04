@@ -8,3 +8,5 @@ learn
 **/log
 src/sync
 .vscode/settings.json
+resources
+src/test/io_utils_test
