@@ -44,7 +44,7 @@ private:
 
 public:
     IoUtil(/* args */);
-    ~IoUtil();
+    virtual ~IoUtil();
 
     void *readAll(std::string path, uint64_t &ret_len);
     void *readAll(std::string path, uint64_t offset, uint64_t size, uint64_t &ret_len);

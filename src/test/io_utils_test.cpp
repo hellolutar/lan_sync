@@ -136,26 +136,6 @@ TEST(IOUtilsTest, readAll_offset)
     tearDown(fname);
 }
 
-void test_read_cb(uint64_t curpos, void *data, uint64_t data_len)
-{
-    assert(data_len > 0);
-    assert(data != nullptr);
-}
-
-TEST(IOUtilsTest, readAll_cb)
-{
-    string fname = genFname();
-    setup(fname);
-
-    IoUtil io;
-    io.addReadMonitor(test_read_cb);
-
-    uint64_t len;
-    io.readAll(fname, len);
-
-    tearDown(fname);
-}
-
 TEST(IOUtilsTest, writeFile)
 {
     string fname = genFname();
@@ -182,6 +162,56 @@ TEST(IOUtilsTest, writeFile)
         free(data);
     }
 
+    tearDown(fname);
+}
+
+class TestIOReadMonitor : public IoReadMonitor
+{
+private:
+    const uint64_t size;
+    uint8_t *data;
+
+public:
+    TestIOReadMonitor(struct bufferevent *bev, const struct Resource *rs, uint64_t size) : size(size)
+    {
+        data = new uint8_t[size];
+    };
+    ~TestIOReadMonitor()
+    {
+        delete data;
+    };
+    void monitor(uint64_t from_pos, void *data_arg, uint64_t data_len) override
+    {
+        memcpy(data + from_pos, data_arg, data_len);
+    };
+
+    uint8_t *getData()
+    {
+        return data;
+    }
+};
+
+TEST(IOUtilsTest, IOReadMonitor)
+{
+    string fname = genFname();
+    setup(fname);
+
+    filesystem::path fpath(fname);
+    uint64_t fsize = filesystem::file_size(fpath);
+    IoUtil io;
+
+    TestIOReadMonitor *monitor = new TestIOReadMonitor(nullptr, nullptr, fsize);
+    io.addReadMonitor(monitor);
+    uint8_t *data = (uint8_t *)io.readAll(fname, fsize);
+    uint8_t *monitor_data = monitor->getData();
+    for (size_t i = 0; i < fsize; i++)
+    {
+        if (data[i] != monitor_data[i])
+        {
+            tearDown(fname);
+            ASSERT_EQ(data[i], monitor_data[i]);
+        }
+    }
     tearDown(fname);
 }
 
