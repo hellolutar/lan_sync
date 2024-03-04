@@ -15,7 +15,7 @@
 
 #define SIZE_1KB 8196
 
-
+const uint64_t once_read_max_num = SIZE_1KB * 512;
 
 class IoReadMonitor
 {
@@ -47,11 +47,10 @@ public:
     virtual ~IoUtil();
 
     void *readAll(std::string path, uint64_t &ret_len);
-    void *readAll(std::string path, uint64_t offset, uint64_t size, uint64_t &ret_len);
+    void *readSize(std::string path, uint64_t offset, uint64_t size, uint64_t &ret_len);
     void addReadMonitor(IoReadMonitor *monitor);
 
     uint64_t writeFile(std::string path, uint64_t offset, void *data, uint64_t size);
 };
-
 
 #endif

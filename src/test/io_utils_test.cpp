@@ -96,6 +96,9 @@ TEST(IOUtilsTest, readAll)
     {
         uint8_t a = data[i];
         uint8_t b = (uint8_t)buf[i];
+        if (a != b)
+            free(data);
+
         ASSERT_EQ(a, b) << " i:" << i;
     }
     free(buf);
@@ -119,7 +122,7 @@ TEST(IOUtilsTest, readAll_offset)
     int randV = u(e);
     int randV2 = u(e);
 
-    uint8_t *data = (uint8_t *)io.readAll(fname, randV, randV2, datalen);
+    uint8_t *data = (uint8_t *)io.readSize(fname, randV, randV2, datalen);
     uint8_t *buf = readFile(fname, fsize);
     string buf_str((char *)buf);
     string expected_data = buf_str.substr(randV, randV2);
@@ -129,6 +132,11 @@ TEST(IOUtilsTest, readAll_offset)
     {
         uint8_t a = data[i];
         uint8_t b = (uint8_t)expected_data[i];
+        if (a != b)
+        {
+            free(data);
+        }
+
         ASSERT_EQ(a, b) << " i:" << i;
     }
     free(data);
@@ -151,12 +159,15 @@ TEST(IOUtilsTest, writeFile)
         io.writeFile(fname, randV, datastr.data(), SIZE_1KB);
 
         uint64_t readLen = 0;
-        uint8_t *data = (uint8_t *)io.readAll(fname, randV, SIZE_1KB, readLen);
+        uint8_t *data = (uint8_t *)io.readSize(fname, randV, SIZE_1KB, readLen);
 
         for (size_t i = 0; i < readLen; i++)
         {
             uint8_t a = data[i];
             uint8_t b = (uint8_t)datastr[i];
+            if (a != b)
+                free(data);
+
             ASSERT_EQ(a, b) << " i:" << i;
         }
         free(data);
@@ -208,10 +219,12 @@ TEST(IOUtilsTest, IOReadMonitor)
     {
         if (data[i] != monitor_data[i])
         {
+            free(data);
             tearDown(fname);
             ASSERT_EQ(data[i], monitor_data[i]);
         }
     }
+    free(data);
     tearDown(fname);
 }
 

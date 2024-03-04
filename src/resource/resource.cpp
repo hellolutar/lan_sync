@@ -31,3 +31,20 @@ struct Resource *resource_convert_vec_to_arr(vector<struct Resource *> table)
 
     return ret;
 }
+
+string WantSyncResourceStatusEnumToString(WantSyncResourceStatusEnum status)
+{
+    switch (status)
+    {
+    case PENDING:
+        return "PENDING";
+    case SYNCING:
+        return "SYNCING";
+    case SUCCESS:
+        return "SUCCESS";
+    case FAIL:
+        return "FAIL";
+    default:
+        return "UNKOWN";
+    }
+}

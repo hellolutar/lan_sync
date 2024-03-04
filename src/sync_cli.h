@@ -52,7 +52,6 @@ private:
     void handleLanSyncReplyResource(struct bufferevent *bev, lan_sync_header_t *try_header, int recvLen);
     void handleLanSyncReplyTableIndex(struct bufferevent *bev, lan_sync_header_t *try_header, int recvLen);
     void appendSyncTable(struct Resource *table, struct bufferevent *bev, uint64_t res_num);
-    bool checkHash(LanSyncPkt &pkt, string pathstr);
     uint64_t writeFile(string pathstr,  LanSyncPkt &pkt);
     map<uint32_t, struct bufferevent *> tcpTable;
 

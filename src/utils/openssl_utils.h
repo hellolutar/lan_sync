@@ -14,6 +14,8 @@
 #include <openssl/err.h>
 #include <openssl/evp.h>
 
+#include "utils/io_utils.h"
+
 using namespace std;
 
 class OpensslUtil

@@ -33,7 +33,7 @@ enum WantSyncResourceStatusEnum
     FAIL,
 };
 
-
+string WantSyncResourceStatusEnumToString(WantSyncResourceStatusEnum status);
 
 struct WantSyncResource
 {
@@ -45,7 +45,6 @@ struct WantSyncResource
 };
 
 struct WantSyncResource *WantSyncResource_new(struct bufferevent *bev, string uri, enum WantSyncResourceStatusEnum status, uint64_t end_pos);
-
 
 struct Resource *resource_convert_vec_to_arr(vector<struct Resource *> table);
 

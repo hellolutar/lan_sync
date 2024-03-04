@@ -292,10 +292,10 @@ void SyncCli::handleLanSyncReplyResource(struct bufferevent *bev, lan_sync_heade
     ContentRange cr(content_range_str);
     if (cr.isLast())
     {
-        if (checkHash(pkt, pathstr))
+        string hash = pkt.queryXheader(XHEADER_HASH);
+        if (rm.checkHash(uri, hash))
         {
             updateSyncResourceStatus(uri, SUCCESS);
-            rm.refreshTable();
             delSyncResource(uri);
         }
         else
@@ -306,31 +306,6 @@ void SyncCli::handleLanSyncReplyResource(struct bufferevent *bev, lan_sync_heade
     }
 
     free(bufp);
-}
-
-bool SyncCli::checkHash(LanSyncPkt &pkt, string pathstr)
-{
-    auto p = filesystem::path(pathstr);
-    if (!filesystem::exists(p))
-    {
-        LOG_ERROR("[HASH CHECK] not exists: [{}]", pathstr);
-        return false;
-    }
-
-    string hash = pkt.queryXheader(XHEADER_HASH);
-    OpensslUtil opensslUtil;
-    string theFileHash = opensslUtil.mdEncodeWithSHA3_512(pathstr);
-
-    if (hash.compare(theFileHash) != 0)
-    {
-        LOG_ERROR("[HASH CHECK] hash is conflict! [{}]", pathstr);
-        return false;
-    }
-    else
-    {
-        LOG_INFO("[HASH CHECK] hash is valid! [{}]", pathstr);
-        return true;
-    }
 }
 
 void SyncCli::handleTcpMsg(struct bufferevent *bev)
@@ -590,6 +565,7 @@ void SyncCli::updateSyncResourceStatus(string uri, enum WantSyncResourceStatusEn
         if (compareChar(rs->uri, uri.data(), uri.size()))
         {
             rs->status = status;
+            LOG_INFO("[SYNC CLI] [{}] {}", uri, WantSyncResourceStatusEnumToString(status));
             break;
         }
     }
