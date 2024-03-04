@@ -61,7 +61,7 @@ void *IoUtil::readAll(string path, uint64_t offset, uint64_t size, uint64_t &ret
         for (size_t i = 0; i < readMonitors.size(); i++)
         {
             IoReadMonitor *rdm = readMonitors[i];
-            rdm->monitor(curpos, data, actual_read);
+            rdm->monitor(curpos, data_pos, actual_read);
         }
         curpos += actual_read;
         ret_len += actual_read;
