@@ -17,6 +17,7 @@ void ResourceManager::freeTable()
     for (auto it : table)
     {
         table.erase(it.first);
+        free(it.second);
     }
 }
 
@@ -50,7 +51,7 @@ void ResourceManager::refreshTable()
             free(old_rs);
         }
         table[new_rs->uri] = new_rs;
-        
+
         last_update_time = filesystem::file_time_type::clock::now();
     }
 }
