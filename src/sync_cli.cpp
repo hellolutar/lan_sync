@@ -22,7 +22,7 @@ static void tcp_readcb(struct bufferevent *bev, void *ctx)
 {
     struct evbuffer *in = bufferevent_get_input(bev);
 
-    int recvLen = evbuffer_get_length(in);
+    uint32_t recvLen = evbuffer_get_length(in);
     if (recvLen == 0)
         return;
     sync_cli->handleTcpMsg(bev);
@@ -30,7 +30,7 @@ static void tcp_readcb(struct bufferevent *bev, void *ctx)
 
 static void tcp_writecb(struct bufferevent *bev, void *ctx)
 {
-    // printf("can write msg to peer tcp server! ");
+    // LOG_INFO("[SYNC CLI] call tcp_writecb!");
 }
 
 static void tcp_event_cb(struct bufferevent *bev, short what, void *ctx)
@@ -75,8 +75,8 @@ static void udp_readcb(evutil_socket_t fd, short events, void *ctx)
     socklen_t addrlen = sizeof(struct sockaddr_in);
     char data[4096] = {0};
 
-    int receive = recvfrom(fd, data, 4096, 0, (struct sockaddr *)&target_addr, &addrlen);
-    if (receive <= 0 || receive < lan_sync_header_len)
+    uint32_t receive = recvfrom(fd, data, 4096, 0, (struct sockaddr *)&target_addr, &addrlen);
+    if (receive <= 0 || receive < LEN_LAN_SYNC_HEADER_T)
     {
         LOG_WARN("warning: cannot receive anything !");
         return;
@@ -176,17 +176,26 @@ void SyncCli::appendSyncTable(struct Resource *table, struct bufferevent *bev, u
     {
         struct Resource *local_rs = local_table[i];
         struct Resource rs = total_table[local_rs->name];
-        if (strlen(rs.name) == 0 || rs.size <= local_rs->size)
+        if (strlen(rs.name) == 0 || rs.size < local_rs->size)
         {
             // I have the resource or my resource should sync to peer.
             total_table.erase(local_rs->name);
+            continue;
+        }
+        if (rs.size == local_rs->size)
+        {
+            if (compareChar(rs.hash, local_rs->hash, strlen(rs.hash)))
+                total_table.erase(local_rs->name);
+            else
+                LOG_WARN("[SYNC CLI] [{}] size is euqal, but hash is not equal\npeer:{}\nmine:{}", local_rs->uri, rs.hash, local_rs->hash);
         }
     }
 
     for (auto iter = total_table.begin(); iter != total_table.end(); iter++)
     {
-        LOG_DEBUG("[SYNC CLI] add uri to sync list : uri[{}]", iter->second.uri);
-        sync_cli->addSyncResource(WantSyncResource_new(bev, iter->second.uri, PENDING));
+        Resource rs = iter->second;
+        LOG_DEBUG("[SYNC CLI] add uri to sync list : uri[{}]", rs.uri);
+        sync_cli->addSyncResource(WantSyncResource_new(bev, rs.uri, PENDING, rs.size)); // free in delSyncResource
     }
 }
 void SyncCli::handleLanSyncReplyTableIndex(struct bufferevent *bev, lan_sync_header_t *try_header, int recvLen)
@@ -195,7 +204,7 @@ void SyncCli::handleLanSyncReplyTableIndex(struct bufferevent *bev, lan_sync_hea
     in = bufferevent_get_input(bev);
     out = bufferevent_get_output(bev);
 
-    int total_len = try_header->total_len;
+    uint32_t total_len = ntohl(try_header->total_len);
     if (recvLen < total_len)
     {
         return;
@@ -209,16 +218,26 @@ void SyncCli::handleLanSyncReplyTableIndex(struct bufferevent *bev, lan_sync_hea
     assert(recvLen == total_len);
 
     lan_sync_header_t *header = (lan_sync_header_t *)bufp;
+    LanSyncPkt pkt(header);
 
     // 提取记录数量
-    int data_len = header->total_len - header->header_len;
+    uint32_t data_len = pkt.getTotalLen() - pkt.getHeaderLen();
     uint64_t res_num = data_len / sizeof(struct Resource);
 
-    struct Resource *table = (struct Resource *)(++header);
+    struct Resource *table = (struct Resource *)pkt.getData();
 
     appendSyncTable(table, bev, res_num);
 
     free(bufp);
+}
+
+uint64_t SyncCli::writeFile(string pathstr, LanSyncPkt &pkt)
+{
+    string content_range_str = pkt.queryXheader(XHEADER_CONTENT_RANGE);
+    ContentRange cr(content_range_str);
+
+    IoUtil io;
+    return io.writeFile(pathstr, cr.getStartPos(), pkt.getData(), cr.getSize());
 }
 
 void SyncCli::handleLanSyncReplyResource(struct bufferevent *bev, lan_sync_header_t *try_header, int recvLen)
@@ -228,7 +247,7 @@ void SyncCli::handleLanSyncReplyResource(struct bufferevent *bev, lan_sync_heade
     in = bufferevent_get_input(bev);
     out = bufferevent_get_output(bev);
 
-    int total_len = try_header->total_len;
+    uint32_t total_len = ntohl(try_header->total_len);
     if (recvLen < total_len)
     {
         return;
@@ -242,8 +261,9 @@ void SyncCli::handleLanSyncReplyResource(struct bufferevent *bev, lan_sync_heade
     assert(recvLen == total_len);
 
     lan_sync_header_t *header = (lan_sync_header_t *)bufp;
+    LanSyncPkt pkt(header);
 
-    string uri = lan_sync_header_query_xheader(header, XHEADER_URI);
+    string uri = pkt.queryXheader(XHEADER_URI);
     if (uri == "")
     {
         LOG_ERROR("[SYNC CLI] handleLanSyncReplyResource() query header is failed! ");
@@ -261,59 +281,31 @@ void SyncCli::handleLanSyncReplyResource(struct bufferevent *bev, lan_sync_heade
         filesystem::create_directories(path.parent_path());
     }
 
-    int fd = open(pathstr.data(), O_RDWR | O_CREAT, 0644);
-    if (fd < 0)
+    uint64_t ret = writeFile(pathstr, pkt);
+    if (ret < 0)
     {
-        LOG_ERROR("{} ", strerror(errno));
         free(bufp);
         return;
     }
 
-    int data_len = header->total_len - header->header_len;
-    char *data = (char *)malloc(data_len);
-    lan_sync_header_extract_data(header, data);
-    // TODO(lutar) 这里需要对写出的数量进行处理
-    int writed = write(fd, data, data_len); // todo
-    LOG_INFO("[SYNC CLI] [{}] : uri[{}] write data to file, size: {} ", SERVICE_NAME_REQ_RESOURCE, uri, writed);
-
-    close(fd);
-
-    if (checkHash(header, pathstr))
+    string content_range_str = pkt.queryXheader(XHEADER_CONTENT_RANGE);
+    ContentRange cr(content_range_str);
+    if (cr.isLast())
     {
-        updateSyncResourceStatus(uri, SUCCESS);
-        rm.refreshTable();
-        delSyncResource(uri);
+        string hash = pkt.queryXheader(XHEADER_HASH);
+        if (rm.checkHash(uri, hash))
+        {
+            updateSyncResourceStatus(uri, SUCCESS);
+            delSyncResource(uri);
+        }
+        else
+        {
+            updateSyncResourceStatus(uri, FAIL);
+            remove(pathstr.data());
+        }
     }
-    else
-        updateSyncResourceStatus(uri, FAIL);
 
-    free(data);
     free(bufp);
-}
-
-bool SyncCli::checkHash(lan_sync_header_t *header, string pathstr)
-{
-    auto p = filesystem::path(pathstr);
-    if (!filesystem::exists(p))
-    {
-        LOG_ERROR("[HASH CHECK] not exists: [{}]", pathstr);
-        return false;
-    }
-
-    string hash = lan_sync_header_query_xheader(header, XHEADER_HASH);
-    OpensslUtil opensslUtil;
-    string theFileHash = opensslUtil.mdEncodeWithSHA3_512(pathstr);
-
-    if (hash.compare(theFileHash) != 0)
-    {
-        LOG_ERROR("[HASH CHECK] hash is conflict! [{}]", pathstr);
-        return false;
-    }
-    else
-    {
-        LOG_INFO("[HASH CHECK] hash is valid! [{}]", pathstr);
-        return true;
-    }
 }
 
 void SyncCli::handleTcpMsg(struct bufferevent *bev)
@@ -321,10 +313,10 @@ void SyncCli::handleTcpMsg(struct bufferevent *bev)
     struct evbuffer *in = bufferevent_get_input(bev);
     struct evbuffer *out = bufferevent_get_output(bev);
 
-    int recvLen = evbuffer_get_length(in);
+    uint32_t recvLen = evbuffer_get_length(in);
 
-    char buf[lan_sync_header_len + 1] = {0};
-    evbuffer_copyout(in, buf, lan_sync_header_len);
+    char buf[LEN_LAN_SYNC_HEADER_T + 1] = {0};
+    evbuffer_copyout(in, buf, LEN_LAN_SYNC_HEADER_T);
     lan_sync_header_t *try_header = (lan_sync_header_t *)buf;
 
     if (try_header->type == LAN_SYNC_TYPE_REPLY_TABLE_INDEX)
@@ -360,12 +352,13 @@ void SyncCli::connPeerWithTcp(struct sockaddr_in target_addr, uint16_t peer_tcp_
     addTcpSession(target_addr.sin_addr.s_addr, bev);
 }
 
-void SyncCli::handleHelloAck(struct sockaddr_in target_addr, lan_sync_header_t *header)
+void SyncCli::handleHelloAck(struct sockaddr_in target_addr, LanSyncPkt &pkt)
 {
-    string peer_tcp_port_str = lan_sync_header_query_xheader(header, "tcpport");
-    int peer_tcp_port = atoi(peer_tcp_port_str.data());
+    string peer_tcp_port_str = pkt.queryXheader(XHEADER_TCPPORT);
+    uint16_t peer_tcp_port = atoi(peer_tcp_port_str.data());
 
-    int data_len = header->total_len - header->header_len;
+    uint32_t data_len = pkt.getTotalLen() - pkt.getHeaderLen();
+
     LOG_DEBUG("[SYNC CLI] recive [HELLO ACK], data_len:{} , peer tcp port: {}", data_len, peer_tcp_port);
 
     if (st == STATE_DISCOVERING)
@@ -383,13 +376,14 @@ void SyncCli::handleHelloAck(struct sockaddr_in target_addr, lan_sync_header_t *
     }
 }
 
-void SyncCli::handleUdpMsg(struct sockaddr_in target_addr, char *data, int data_len)
+void SyncCli::handleUdpMsg(struct sockaddr_in target_addr, char *data, uint32_t data_len)
 {
     lan_sync_header_t *header = (lan_sync_header_t *)data;
-    data_len = header->total_len - header->header_len;
+    LanSyncPkt pkt(header);
+    data_len = pkt.getTotalLen() - pkt.getHeaderLen();
 
-    if (header->type == LAN_SYNC_TYPE_HELLO_ACK)
-        handleHelloAck(target_addr, header);
+    if (pkt.getType() == LAN_SYNC_TYPE_HELLO_ACK)
+        handleHelloAck(target_addr, pkt);
     else
         LOG_WARN("[SYNC CLI] recive [404]{} : {}", "unsupport type, do not reply ", header->type);
 }
@@ -399,11 +393,9 @@ static void send_udp_hello(evutil_socket_t, short, void *arg)
     LOG_DEBUG("[SYNC CLI] send [HELLO]");
 
     string msg = "hello";
-    lan_sync_header_t reply_header = {LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_HELLO, (uint16_t)msg.size()};
-
+    LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_HELLO);
     struct evbuffer *buf = evbuffer_new();
-    evbuffer_add(buf, &reply_header, lan_sync_header_len);
-    evbuffer_add(buf, msg.data(), msg.size());
+    pkt.write(buf);
 
     udp_cli *cli = (udp_cli *)arg;
     cli->send(buf);
@@ -414,12 +406,15 @@ void SyncCli::handle_sync_status_pending(WantSyncResource *rs)
     // 查询tcp session是否存在
     if (existTcpSessionByBufevent(rs->bev))
     {
-        LOG_INFO("[SYNC CLI] [{}] : req uri[{}]!", SERVICE_NAME_REQ_RESOURCE, rs->uri);
         rs->status = SYNCING;
-        lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_RESOURCE); // free in lan_sync_encapsulate --> evbuffer_cb_for_free
-        header = lan_sync_header_add_xheader(header, XHEADER_URI, rs->uri);
+        LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_RESOURCE);
 
-        lan_sync_encapsulate(bufferevent_get_output(rs->bev), header);
+        string range_hdr = rs->range.to_string();
+        pkt.addXheader(XHEADER_URI, rs->uri);
+        pkt.addXheader(XHEADER_RANGE, range_hdr);
+        pkt.write(rs->bev);
+
+        LOG_INFO("[SYNC CLI] [{}] : req uri[{}] range[{}]!", SERVICE_NAME_REQ_RESOURCE, rs->uri, range_hdr);
     }
     else
     {
@@ -481,16 +476,16 @@ void SyncCli::reqTableIndex()
 
         struct evbuffer *out = bufferevent_get_output(bev);
 
-        lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_TABLE_INDEX); // free in lan_sync_encapsulate --> evbuffer_cb_for_free
+        LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_TABLE_INDEX);
 
         LOG_INFO("[SYNC CLI] send {}!", SERVICE_NAME_REQ_TABLE_INDEX);
-        lan_sync_encapsulate(out, header);
+        pkt.write(bev);
     }
 }
 
 void SyncCli::config_req_table_index_periodically()
 {
-    struct event *timeout_event = event_new(base, -1, EV_PERSIST, req_table_index_timeout_cb, nullptr);
+    struct event *timeout_event = event_new(base, -1, EV_TIMEOUT | EV_PERSIST, req_table_index_timeout_cb, nullptr);
     struct timeval tv;
     evutil_timerclear(&tv);
     tv.tv_sec = PERIOD_OF_REQ_TABLE_INDEX;
@@ -511,7 +506,7 @@ void SyncCli::config_send_udp_periodically()
         t_addr.sin_addr = port.getBroadAddr().sin_addr;
 
         udp_cli *cli = new udp_cli(udp_sock, base, t_addr);
-        struct event *timeout_event = event_new(base, -1, EV_PERSIST, send_udp_hello, cli);
+        struct event *timeout_event = event_new(base, -1, EV_TIMEOUT | EV_PERSIST, send_udp_hello, cli);
 
         struct timeval tv;
         evutil_timerclear(&tv);
@@ -523,7 +518,7 @@ void SyncCli::config_send_udp_periodically()
 
 void SyncCli::config_req_resource_periodically()
 {
-    struct event *timeout_event = event_new(base, -1, EV_PERSIST, req_resource_periodically_timeout, nullptr);
+    struct event *timeout_event = event_new(base, -1, EV_TIMEOUT | EV_PERSIST, req_resource_periodically_timeout, nullptr);
 
     struct timeval tv;
     evutil_timerclear(&tv);
@@ -538,8 +533,12 @@ void SyncCli::addSyncResource(struct WantSyncResource *item)
     for (size_t i = 0; i < syncTable.size(); i++)
     {
         auto rs = syncTable[i];
-        if (rs->uri == item->uri)
+
+        if (compareChar(rs->uri, item->uri, NAME_MAX_SIZE))
+        {
+            free(item);
             return;
+        }
     }
     syncTable.push_back(item);
 }
@@ -549,22 +548,24 @@ void SyncCli::delSyncResource(string uri)
     for (auto i = syncTable.begin(); i != syncTable.end(); i++)
     {
         auto rs = *i;
-        if (rs->uri == uri)
+        if (compareChar(rs->uri, uri.data(), uri.size()))
         {
             syncTable.erase(i);
+            free(rs);
             return;
         }
     }
 }
 
-void SyncCli::updateSyncResourceStatus(string uri, enum WantSyncResourceStatusEnum)
+void SyncCli::updateSyncResourceStatus(string uri, enum WantSyncResourceStatusEnum status)
 {
     for (auto iter = syncTable.end() - 1; iter >= syncTable.begin(); iter--)
     {
         WantSyncResource *rs = (*iter);
-        if (rs->uri == uri)
+        if (compareChar(rs->uri, uri.data(), uri.size()))
         {
-            rs->status = SUCCESS;
+            rs->status = status;
+            LOG_INFO("[SYNC CLI] [{}] {}", uri, WantSyncResourceStatusEnumToString(status));
             break;
         }
     }

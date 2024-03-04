@@ -38,18 +38,15 @@ string OpensslUtil::mdEncodeWithSHA3_512(string f)
 
     assert(EVP_DigestInit(digest_ctx, msg_digest) == 1);
 
-    ifstream ifs(f);
-    char buf[4096] = {0};
-    while (ifs >> buf)
-    {
-        assert(EVP_DigestUpdate(digest_ctx, buf, strlen(buf)) == 1);
-        memset(buf, 0, 4096);
-    }
-    ifs.close();
+    IoUtil io;
+    uint64_t ret_data_len = 0;
+    void *data = io.readAll(f, ret_data_len);
+    assert(EVP_DigestUpdate(digest_ctx, data, ret_data_len) == 1);
+    free(data);
     assert(EVP_DigestFinal(digest_ctx, digest_value, &digest_len));
 
     stringstream iss;
-    for (int j = 0; j < digest_len; j++)
+    for (size_t j = 0; j < digest_len; j++)
     {
         char tmpBuf[3] = {0};
         sprintf(tmpBuf, "%02x", digest_value[j]);

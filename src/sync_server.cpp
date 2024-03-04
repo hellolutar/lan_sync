@@ -11,7 +11,7 @@ static void srv_tcp_readcb(struct bufferevent *bev, void *ctx)
 {
     struct evbuffer *in = bufferevent_get_input(bev);
 
-    int recvLen = evbuffer_get_length(in);
+    uint32_t recvLen = evbuffer_get_length(in);
     if (recvLen == 0)
         return;
 
@@ -21,6 +21,7 @@ static void srv_tcp_readcb(struct bufferevent *bev, void *ctx)
 static void srv_tcp_writecb(struct bufferevent *bev, void *ctx)
 {
     // LOG_DEBUG("TCP : can write msg!");
+    LOG_INFO("[SYNC CLI] call tcp_writecb!");
 }
 
 static void srv_do_accept(evutil_socket_t listener, short event, void *ctx)
@@ -34,11 +35,16 @@ static void srv_do_accept(evutil_socket_t listener, short event, void *ctx)
 
     struct bufferevent *bev;
     evutil_make_socket_nonblocking(fd);
+    evutil_make_listen_socket_reuseable_port(fd);
+
     bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
+    size_t hw = 0;
+    size_t lw = 0;
+    bufferevent_getwatermark(bev, EV_WRITE, &lw, &hw);
+    bufferevent_setwatermark(bev, EV_WRITE, 0, hw);
     bufferevent_setcb(bev, srv_tcp_readcb, srv_tcp_writecb, nullptr, base);
     bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
-
 
 // TODO(lutar, 20240219)  优化有限状态机
 static void srv_udp_readcb(evutil_socket_t fd, short events, void *ctx)
@@ -49,7 +55,7 @@ static void srv_udp_readcb(evutil_socket_t fd, short events, void *ctx)
     socklen_t addrlen = sizeof(struct sockaddr_in);
     char data[4096] = {0};
 
-    int receive = recvfrom(fd, data, 4096, 0, (sockaddr *)&target_addr, &addrlen);
+    uint32_t receive = recvfrom(fd, data, 4096, 0, (sockaddr *)&target_addr, &addrlen);
     if (receive <= 0)
     {
         LOG_WARN("[SYNC SER] cannot receive anything !");
@@ -77,13 +83,11 @@ void SyncServer::handleUdpMsg(struct sockaddr_in target_addr, char *data, int da
             start_tcp_server(base);
         st = STATE_SYNC_READY;
 
-        lan_sync_header_t *reply_header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_HELLO_ACK);
-
-        reply_header = lan_sync_header_add_xheader(reply_header, "tcpport", to_string(DISCOVER_SERVER_TCP_PORT));
+        LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_HELLO_ACK);
+        pkt.addXheader(XHEADER_TCPPORT, to_string(DISCOVER_SERVER_TCP_PORT));
 
         struct evbuffer *buf = evbuffer_new();
-        evbuffer_add(buf, reply_header, reply_header->total_len);
-        free(reply_header);
+        pkt.write(buf);
 
         udp_cli *cli = new udp_cli(udp_sock, base, target_addr);
         cli->send(buf);
@@ -96,8 +100,6 @@ void SyncServer::handleUdpMsg(struct sockaddr_in target_addr, char *data, int da
     }
 }
 
-
-
 SyncServer::SyncServer(struct event_base *base)
 {
     st = STATE_DISCOVERING;
@@ -108,59 +110,68 @@ SyncServer::SyncServer(struct event_base *base)
 // {
 // }
 
-void SyncServer::handleLanSyncGetTableIndex(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
+void SyncServer::handleLanSyncGetTableIndex(struct bufferevent *bev, lan_sync_header_t *try_header, uint32_t recvLen)
 {
+    struct evbuffer *in = bufferevent_get_input(bev);
+    struct evbuffer *out = bufferevent_get_output(bev);
+
     char useless[1024];
-    evbuffer_remove(in, useless, try_header->header_len);
+    uint16_t total_len = ntohl(try_header->total_len);
+    if (recvLen < total_len)
+    {
+        return;
+    }
+
+    evbuffer_remove(in, useless, total_len);
 
     vector<struct Resource *> table = sync_server->rm.getTable();
 
-    int data_len = sizeof(struct Resource) * table.size();
-    lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_REPLY_TABLE_INDEX); // free in lan_sync_encapsulate --> evbuffer_cb_for_free
-    struct Resource *data = lan_sync_parseTableToData(table);
-    header = lan_sync_header_set_data(header, data, data_len);
-    lan_sync_encapsulate(out, header);
+    uint32_t data_len = sizeof(struct Resource) * table.size();
+    LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_REPLY_TABLE_INDEX);
+
+    struct Resource *data = resource_convert_vec_to_arr(table);
+    pkt.setData(data, data_len);
+    pkt.write(bev);
     free(data);
 
     LOG_INFO("[SYNC SER] [{}] : entry num: {} ", SERVICE_NAME_REPLY_TABLE_INDEX, table.size());
 }
 
-void SyncServer::replyResource(struct evbuffer *out, char *uri)
+void SyncServer::replyResource(struct bufferevent *bev, LanSyncPkt &pkt)
 {
+    struct evbuffer *in = bufferevent_get_input(bev);
+    struct evbuffer *out = bufferevent_get_output(bev);
+
+    string xhd_uri = pkt.queryXheader(XHEADER_URI);
+    string range_str = pkt.queryXheader(XHEADER_RANGE);
+    Range range(range_str);
+
+    char *uri = xhd_uri.data();
+    LOG_INFO("[SYNC SER] [{}] : uri[{}] ", SERVICE_NAME_REQ_RESOURCE, uri);
+
     const struct Resource *rs = sync_server->rm.queryByUri(uri);
     if (rs == nullptr)
     {
         return;
     }
 
-    lan_sync_header_t *header = lan_sync_header_new(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_REPLY_RESOURCE);
+    IoReadMonitor *monitor = new SyncIOReadMonitor(bev, rs);
+    IoUtil io;
+    io.addReadMonitor(monitor);
 
-    string uristr(uri);
-    header = lan_sync_header_add_xheader(header, XHEADER_URI, uristr);
-
-    string hash(rs->hash);
-    header = lan_sync_header_add_xheader(header, XHEADER_HASH, hash);
-
-    // 读取文件内容
-    int fd = open(rs->path, O_RDONLY);
-    char *data = (char *)malloc(rs->size); // free in lan_sync_encapsulate --> evbuffer_cb_for_free
-
-    uint64_t readed = read(fd, data, rs->size);
-    while (readed != rs->size)
-    {
-        readed += read(fd, data, rs->size);
-    }
-    close(fd);
-
-    header = lan_sync_header_set_data(header, data, readed);
-    lan_sync_encapsulate(out, header);
+    uint64_t ret_len = 0;
+    void *data = io.readAll(rs->path, ret_len);
     free(data);
-    LOG_DEBUG("[SYNC SER] [{}] : uri[{}] file size:{} ", SERVICE_NAME_REPLY_REQ_RESOURCE, uri, readed);
+
+    LOG_DEBUG("[SYNC SER] [{}] : uri[{}] file size:{} ", SERVICE_NAME_REPLY_REQ_RESOURCE, uri, ret_len);
 }
 
-void SyncServer::handleLanSyncGetResource(struct evbuffer *in, struct evbuffer *out, lan_sync_header_t *try_header, int recvLen)
+void SyncServer::handleLanSyncGetResource(struct bufferevent *bev, lan_sync_header_t *try_header, uint32_t recvLen)
 {
-    int total_len = try_header->total_len;
+    struct evbuffer *in = bufferevent_get_input(bev);
+    struct evbuffer *out = bufferevent_get_output(bev);
+
+    uint32_t total_len = ntohl(try_header->total_len);
     if (recvLen < total_len)
     {
         return;
@@ -173,11 +184,9 @@ void SyncServer::handleLanSyncGetResource(struct evbuffer *in, struct evbuffer *
     assert(recvLen == total_len);
 
     lan_sync_header_t *header = (lan_sync_header_t *)bufp;
-    string xhd_uri = lan_sync_header_query_xheader(header, XHEADER_URI);
-    char *reqUri = xhd_uri.data();
-    LOG_INFO("[SYNC SER] [{}] : uri[{}] ", SERVICE_NAME_REQ_RESOURCE, reqUri);
+    LanSyncPkt pkt(header);
 
-    replyResource(out, reqUri);
+    replyResource(bev, pkt);
 
     free(bufp);
 }
@@ -187,19 +196,19 @@ void SyncServer::handleTcpMsg(struct bufferevent *bev)
     struct evbuffer *in = bufferevent_get_input(bev);
     struct evbuffer *out = bufferevent_get_output(bev);
 
-    int recvLen = evbuffer_get_length(in);
-    char buf[lan_sync_header_len + 1] = {0};
-    evbuffer_copyout(in, buf, lan_sync_header_len);
+    uint32_t recvLen = evbuffer_get_length(in);
+    char buf[LEN_LAN_SYNC_HEADER_T + 1] = {0};
+    evbuffer_copyout(in, buf, LEN_LAN_SYNC_HEADER_T);
     lan_sync_header_t *try_header = (lan_sync_header_t *)buf;
     if (try_header->type == LAN_SYNC_TYPE_GET_TABLE_INDEX)
     {
         LOG_INFO("[SYNC SER] receive pkt: {}", SERVICE_NAME_REQ_TABLE_INDEX);
-        handleLanSyncGetTableIndex(in, out, try_header, recvLen);
+        handleLanSyncGetTableIndex(bev, try_header, recvLen);
     }
     else if (try_header->type == LAN_SYNC_TYPE_GET_RESOURCE)
     {
         LOG_INFO("[SYNC SER] receive pkt: {}", SERVICE_NAME_REQ_RESOURCE);
-        handleLanSyncGetResource(in, out, try_header, recvLen);
+        handleLanSyncGetResource(bev, try_header, recvLen);
     }
     else
     {
@@ -216,6 +225,7 @@ void SyncServer::start_tcp_server(struct event_base *base)
     setsockopt(tcp_sock, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(int));
     setsockopt(tcp_sock, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(int));
     setsockopt(tcp_sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
+    setsockopt(tcp_sock, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(int));
 
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;

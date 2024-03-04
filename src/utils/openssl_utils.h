@@ -1,5 +1,5 @@
-#ifndef OPENSSL_UTILS_H_
-#define OPENSSL_UTILS_H_
+#ifndef __OPENSSL_UTILS_H_
+#define __OPENSSL_UTILS_H_
 
 
 #include <cstdio>
@@ -13,6 +13,8 @@
 
 #include <openssl/err.h>
 #include <openssl/evp.h>
+
+#include "utils/io_utils.h"
 
 using namespace std;
 
