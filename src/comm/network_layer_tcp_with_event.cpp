@@ -116,6 +116,46 @@ void NetworkLayerWithEvent::addTcpServer(NetworkEndpoint *ne)
     events.push_back(accept_event_persist);
 }
 
+void NetworkLayerWithEvent::udp_read_cb(evutil_socket_t fd, short events, void *ctx)
+{
+    NetworkEndpoint *ne = (NetworkEndpoint *)ctx;
+
+    struct sockaddr_in target_addr;
+    socklen_t addrlen = sizeof(struct sockaddr_in);
+    char data[4096] = {0};
+
+    uint32_t receive = recvfrom(fd, data, 4096, 0, (sockaddr *)&target_addr, &addrlen);
+    if (receive <= 0)
+    {
+        LOG_WARN("[SYNC SER] cannot receive anything !");
+        return;
+    }
+    ne->recv((void *)data, receive);
+
+}
+
+void NetworkLayerWithEvent::addUdpServer(NetworkEndpoint *ne)
+{
+    int udp_sock = socket(AF_INET, SOCK_DGRAM, 0);
+    assert(udp_sock > 0);
+    int optval = 1;
+    setsockopt(udp_sock, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(int));
+    setsockopt(udp_sock, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(int));
+    setsockopt(udp_sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
+    evutil_make_socket_nonblocking(udp_sock);
+
+    assert(bind(udp_sock, (struct sockaddr *)ne->getAddr(), sizeof(struct sockaddr_in)) >= 0);
+
+    LOG_INFO("UDP listen:");
+
+    struct event *read_e = event_new(base, udp_sock, EV_READ | EV_PERSIST, udp_read_cb, base);
+    event_add(read_e, nullptr);
+    events.push_back(read_e);
+
+    // todo table for sockaddr
+
+}
+
 void NetworkLayerWithEvent::run()
 {
     if (base == nullptr)
@@ -123,8 +163,7 @@ void NetworkLayerWithEvent::run()
         printf("need to addTcpServer firstly!\n");
         return;
     }
-    
-    
+
     event_base_dispatch(base);
 }
 

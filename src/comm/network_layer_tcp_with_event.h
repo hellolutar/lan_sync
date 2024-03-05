@@ -28,13 +28,17 @@ public:
     static void event_cb(struct bufferevent *bev, short events, void *data);
     static void write_cb(struct bufferevent *bev, void *data);
     static void read_cb(struct bufferevent *bev, void *data);
+    static void udp_read_cb(evutil_socket_t fd, short events, void *ctx);
 
     static void addTcpServer(NetworkEndpoint *ne);
+    static void addUdpServer(NetworkEndpoint *ne);
     static void run();
     
     static void send(NetworkEndpoint *from, void *data, uint64_t data_len);
 
     static void free();
 };
+
+
 
 #endif
