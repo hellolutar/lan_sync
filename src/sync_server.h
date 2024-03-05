@@ -25,7 +25,7 @@
 #include "utils/io_utils.h"
 #include "constants.h"
 #include "comm/udp_cli.h"
-#include "components/SyncIOReadMonitor.h"
+#include "components/sync_io_read_monitor.h"
 
 using namespace std;
 

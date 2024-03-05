@@ -1,4 +1,6 @@
-#include "SyncIOReadMonitor.h"
+#include "sync_io_read_monitor.h"
+
+using namespace std;
 
 SyncIOReadMonitor::SyncIOReadMonitor(bufferevent *b, const Resource *r)
 {

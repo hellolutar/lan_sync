@@ -1,5 +1,7 @@
-#ifndef __SyncIOReadMonitor_H_
-#define __SyncIOReadMonitor_H_
+#ifndef __SYNC_IO_READ_MONITOR_H_
+#define __SYNC_IO_READ_MONITOR_H_
+
+#include <cstdio>
 
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
