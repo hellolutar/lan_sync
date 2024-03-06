@@ -34,7 +34,8 @@ public:
 
     static void addTcpServer(NetworkEndpoint *ne);
     static void addUdpServer(NetworkEndpoint *ne);
-    static NetworkOutputStream* connectWithTcp(NetworkEndpoint *ne);
+    static NetworkOutputStream *connectWithTcp(NetworkEndpoint *ne);
+    static NetworkOutputStream *connectWithUdp(NetworkEndpoint *peer);
     static void run();
     static void shutdown();
 
@@ -44,10 +45,11 @@ public:
 class NetworkContextWithEvent : public NetworkContext
 {
 private:
-    struct evbuffer *out; // release by libevent
+    struct evbuffer *out; // release by libevent#bufferevent
+    int peer_sock;
 
 public:
-    NetworkContextWithEvent(NetworkEndpoint *ne, struct evbuffer *out) : NetworkContext(ne), out(out){};
+    NetworkContextWithEvent(NetworkEndpoint *ne, struct evbuffer *out, int peer_sock) : NetworkContext(ne), out(out), peer_sock(peer_sock){};
     ~NetworkContextWithEvent();
     uint64_t write(void *data, uint64_t data_len) override;
 };

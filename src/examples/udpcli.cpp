@@ -41,19 +41,17 @@ bool UdpCli::isExtraAllDataNow(void *data, uint64_t data_len)
 
 int main(int argc, char const *argv[])
 {
-    struct sockaddr_in *peer = new sockaddr_in;
-    peer->sin_family = AF_INET;
-    peer->sin_port = htons(8080);
-    inet_aton("127.0.0.1", &(peer->sin_addr));
+    struct sockaddr_in peer;
+    peer.sin_family = AF_INET;
+    peer.sin_port = htons(8080);
+    inet_aton("127.0.0.1", &(peer.sin_addr));
 
-    NetworkOutputStream *out = NetworkLayerWithEvent::connectWithTcp(new UdpCli(peer));
+    NetworkOutputStream *out = NetworkLayerWithEvent::connectWithUdp(new UdpCli(&peer));
     if (out != nullptr)
     {
         std::string msg = "hello world";
         out->write(msg.data(), msg.size());
     }
-
-    NetworkLayerWithEvent::run();
 
     return 0;
 }

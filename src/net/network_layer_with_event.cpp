@@ -25,7 +25,6 @@ void NetworkLayerWithEvent::read_cb(struct bufferevent *bev, void *arg)
     if (recvLen == 0)
         return;
 
-    // sync_server->handleTcpMsg(bev);
     uint64_t data_len = evbuffer_get_length(in);
     uint8_t *data = new uint8_t[data_len];
     evbuffer_copyout(in, data, data_len);
@@ -49,20 +48,19 @@ void NetworkLayerWithEvent::tcp_accept(evutil_socket_t listener, short event, vo
     struct sockaddr_in *peer = new sockaddr_in();
     socklen_t slen = sizeof(struct sockaddr_in);
 
-    int fd = accept(listener, (struct sockaddr *)peer, &slen);
-    assert(fd > 0 && fd < FD_SETSIZE);
+    int sock = accept(listener, (struct sockaddr *)peer, &slen);
+    assert(sock > 0 && sock < FD_SETSIZE);
 
-    struct bufferevent *bev;
-    evutil_make_socket_nonblocking(fd);
-    evutil_make_listen_socket_reuseable_port(fd);
+    evutil_make_socket_nonblocking(sock);
+    evutil_make_listen_socket_reuseable_port(sock);
 
-    bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
+    struct bufferevent *bev = bufferevent_socket_new(base, sock, BEV_OPT_CLOSE_ON_FREE);
     size_t hw = 0;
     size_t lw = 0;
     bufferevent_getwatermark(bev, EV_WRITE, &lw, &hw);
     bufferevent_setwatermark(bev, EV_WRITE, 0, hw);
 
-    NetworkContextWithEvent *nctx = new NetworkContextWithEvent(ne, bufferevent_get_output(bev));
+    NetworkContextWithEvent *nctx = new NetworkContextWithEvent(ne, bufferevent_get_output(bev), sock);
     tcp_ctx.push_back(nctx);
     bufferevent_setcb(bev, read_cb, write_cb, nullptr, nctx);
     bufferevent_enable(bev, EV_READ | EV_WRITE);
@@ -90,8 +88,10 @@ void NetworkLayerWithEvent::addTcpServer(NetworkEndpoint *ne)
     if (res == -1)
     {
         LOG_ERROR("[SYNC SER] : {} ", strerror(errno));
-        exit(-1);
+        delete ne;
+        return;
     }
+    ne->setSock(tcp_sock);
 
     LOG_INFO("TCP listen: {}", ntohs(ne->getAddr()->sin_port));
 
@@ -133,10 +133,11 @@ void NetworkLayerWithEvent::addUdpServer(NetworkEndpoint *ne)
     evutil_make_socket_nonblocking(udp_sock);
 
     assert(bind(udp_sock, (struct sockaddr *)ne->getAddr(), sizeof(struct sockaddr_in)) >= 0);
+    ne->setSock(udp_sock);
 
     LOG_INFO("UDP listen: {}", ntohs(ne->getAddr()->sin_port));
 
-    NetworkContextWithEventForUDP *ctx = new NetworkContextWithEventForUDP(ne, udp_sock);
+    NetworkContextWithEventForUDP *ctx = new NetworkContextWithEventForUDP(ne, 0);
     udp_ctx.push_back(ctx);
 
     struct event *read_e = event_new(base, udp_sock, EV_READ | EV_PERSIST, udp_read_cb, ctx);
@@ -166,17 +167,45 @@ NetworkOutputStream *NetworkLayerWithEvent::connectWithTcp(NetworkEndpoint *peer
     if (ret < 0)
     {
         LOG_ERROR("TCP connect : {}:{}  REASON:{} ", ip, port, strerror(errno));
+        delete peer;
         return nullptr;
     }
+    peer->setSock(tcpsock);
 
     struct bufferevent *bev = bufferevent_socket_new(base, tcpsock, BEV_OPT_CLOSE_ON_FREE);
 
-    NetworkContextWithEvent *nctx = new NetworkContextWithEvent(peer, bufferevent_get_output(bev));
+    NetworkContextWithEvent *nctx = new NetworkContextWithEvent(peer, bufferevent_get_output(bev), 0);
     tcp_ctx.push_back(nctx);
     bufferevent_setcb(bev, read_cb, write_cb, nullptr, nctx);
     bufferevent_enable(bev, EV_READ | EV_WRITE);
 
+    bev_peersock_table[bev] = nullptr; // target_addr free by  NetworkEndpoint
+
     return new NetworkOutputStreamWithEvent(bufferevent_get_output(bev)); // todo determine delete
+}
+
+NetworkOutputStream *NetworkLayerWithEvent::connectWithUdp(NetworkEndpoint *peer)
+{
+    if (base == nullptr)
+        base = event_base_new();
+
+    int udp_sock = socket(AF_INET, SOCK_DGRAM, 0);
+    assert(udp_sock > 0);
+
+    int optval = 1; // 这个值一定要设置，否则可能导致sendto()失败
+    setsockopt(udp_sock, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(int));
+    setsockopt(udp_sock, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(int));
+    setsockopt(udp_sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
+
+    struct sockaddr_in *target_addr = peer->getAddr(); // target_addr free by peer
+
+    auto tmpaddr = target_addr->sin_addr;
+    tmpaddr.s_addr = ntohl(tmpaddr.s_addr);
+    string ip(inet_ntoa(tmpaddr));
+    string port = to_string(ntohs(target_addr->sin_port));
+    LOG_INFO("UDP connect : {}:{}", ip, port);
+
+    return new NetworkOutputStreamForUDP(udp_sock, *target_addr);
 }
 
 void NetworkLayerWithEvent::run()
@@ -190,7 +219,8 @@ void NetworkLayerWithEvent::run()
     event_base_dispatch(base);
 }
 
-void NetworkLayerWithEvent::shutdown(){
+void NetworkLayerWithEvent::shutdown()
+{
     event_base_loopbreak(base);
     free();
 }
@@ -206,12 +236,16 @@ void NetworkLayerWithEvent::free()
     }
 
     set<struct bufferevent *> bevs;
-    set<struct sockaddr_in *> socks;
+    set<struct sockaddr_in *> sockaddrs;
 
     for (auto iter = bev_peersock_table.begin(); iter != bev_peersock_table.end();)
     {
-        bevs.insert(iter->first);
-        socks.insert(iter->second);
+        if (iter->first != nullptr)
+            bevs.insert(iter->first);
+
+        if (iter->second != nullptr)
+            sockaddrs.insert(iter->second);
+
         iter = bev_peersock_table.erase(iter);
     }
 
@@ -220,14 +254,18 @@ void NetworkLayerWithEvent::free()
         for (auto iter : bevs)
         {
             bevs.erase(iter);
+            if (bevs.size() == 0)
+                break;
         }
     }
 
-    if (socks.size() > 0)
+    if (sockaddrs.size() > 0)
     {
-        for (auto iter : socks)
+        for (auto iter : sockaddrs)
         {
-            socks.erase(iter);
+            sockaddrs.erase(iter);
+            if (bevs.size() == 0)
+                break;
         }
     }
 
