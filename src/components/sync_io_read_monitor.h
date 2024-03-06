@@ -8,6 +8,7 @@
 
 #include "utils/io_utils.h"
 #include "proto/lan_share_protocol.h"
+#include "net/network_layer_with_event.h"
 #include "resource/resource.h"
 
 class SyncIOReadMonitor : public IoReadMonitor
@@ -17,8 +18,20 @@ private:
     const struct Resource *rs;
 
 public:
-    SyncIOReadMonitor(struct bufferevent *bev, const struct Resource *rs) ;
+    SyncIOReadMonitor(struct bufferevent *bev, const struct Resource *rs);
     ~SyncIOReadMonitor();
+    void monitor(uint64_t from_pos, void *data, uint64_t data_len) override;
+};
+
+class SyncIOReadMonitor2 : public IoReadMonitor
+{
+private:
+    NetworkContext *ctx;
+    const struct Resource *rs;
+
+public:
+    SyncIOReadMonitor2(NetworkContext *ctx, const struct Resource *rs) : ctx(ctx), rs(rs){};
+    ~SyncIOReadMonitor2();
     void monitor(uint64_t from_pos, void *data, uint64_t data_len) override;
 };
 

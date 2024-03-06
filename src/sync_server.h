@@ -1,3 +1,6 @@
+#ifndef __SYNC_SERVER_H_
+#define __SYNC_SERVER_H_
+
 #include <fcntl.h>
 
 #include <cstring>
@@ -17,35 +20,66 @@
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
 
-// #include <spdlog/spdlog.h>
-
-#include "comm/lan_share_protocol.h"
+#include "proto/lan_share_protocol.h"
 #include "resource/resource_manager.h"
 #include "utils/logger.h"
 #include "utils/io_utils.h"
 #include "constants.h"
-#include "comm/udp_cli.h"
+#include "proto/udp_cli.h"
 #include "components/sync_io_read_monitor.h"
 
-using namespace std;
+#include <cstring>
 
-class SyncServer
+#include "net/network_layer_with_event.h"
+
+class SyncLogic;
+
+class SyncUdpServer : public NetworkEndpoint
 {
 private:
-    void handleLanSyncGetTableIndex(struct bufferevent *bev, lan_sync_header_t *try_header, uint32_t recvLen);
-    void handleLanSyncGetResource(struct bufferevent *bev, lan_sync_header_t *try_header, uint32_t recvLen);
-    void replyResource(struct bufferevent *bev, LanSyncPkt &pkt);
+    SyncLogic *logic;
+
+public:
+    SyncUdpServer(struct sockaddr_in *addr) : NetworkEndpoint(addr){};
+    ~SyncUdpServer();
+
+    void recv(void *data, uint64_t data_len, NetworkContext *ctx);
+    bool isExtraAllDataNow(void *data, uint64_t data_len);
+    void setLogic(SyncLogic *logic);
+};
+
+class SyncTcpServer : public NetworkEndpoint
+{
+private:
+    SyncLogic *logic;
+
+public:
+    SyncTcpServer(struct sockaddr_in *addr) : NetworkEndpoint(addr){};
+    ~SyncTcpServer();
+
+    void recv(void *data, uint64_t data_len, NetworkContext *ctx);
+    bool isExtraAllDataNow(void *data, uint64_t data_len);
+    void setLogic(SyncLogic *logic);
+};
+
+class SyncLogic
+{
+private:
+    NetworkEndpoint *udpserver;
+    NetworkEndpoint *tcpserver;
 
 public:
     enum state st;
-    struct event_base *base;
-    int udp_sock;
-    SyncServer(struct event_base *base);
-    ~SyncServer();
-    void start();
-    void start_tcp_server(struct event_base *base);
-    void handleTcpMsg(struct bufferevent *bev);
-    void handleUdpMsg(struct sockaddr_in target_addr, char *data, int data_len);
-
     ResourceManager rm = ResourceManager("static/server");
+
+    SyncLogic(NetworkEndpoint *udpserver, NetworkEndpoint *tcpserver);
+    ~SyncLogic();
+    void handleTcpMsg(struct bufferevent *bev);
+    void recvUdp(void *data, uint64_t data_len, NetworkContext *ctx);
+    void recvTcp(void *data, uint64_t data_len, NetworkContext *ctx);
+
+    void replyTableIndex(NetworkContext *ctx);
+    void replyResource(lan_sync_header_t *header, NetworkContext *ctx);
 };
+
+#endif

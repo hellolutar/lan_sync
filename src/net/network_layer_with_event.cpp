@@ -1,4 +1,4 @@
-#include "network_layer_tcp_with_event.h"
+#include "network_layer_with_event.h"
 
 using namespace std;
 
@@ -28,6 +28,7 @@ void NetworkLayerWithEvent::read_cb(struct bufferevent *bev, void *arg)
     // sync_server->handleTcpMsg(bev);
     uint64_t data_len = evbuffer_get_length(in);
     uint8_t *data = new uint8_t[data_len];
+    evbuffer_copyout(in, data, data_len);
 
     NetworkContextWithEvent *ctx = (NetworkContextWithEvent *)arg;
     NetworkEndpoint *ne = ctx->getNetworkEndpoint();
@@ -91,7 +92,8 @@ void NetworkLayerWithEvent::addTcpServer(NetworkEndpoint *ne)
         LOG_ERROR("[SYNC SER] : {} ", strerror(errno));
         exit(-1);
     }
-    // LOG_INFO("[SYNC SER] TCP listen : {}", DISCOVER_SERVER_TCP_PORT);
+
+    LOG_INFO("TCP listen: {}", ntohs(ne->getAddr()->sin_port));
 
     struct event *accept_event_persist = event_new(base, tcp_sock, EV_READ | EV_PERSIST, tcp_accept, (void *)ne);
     event_add(accept_event_persist, nullptr);
@@ -132,7 +134,7 @@ void NetworkLayerWithEvent::addUdpServer(NetworkEndpoint *ne)
 
     assert(bind(udp_sock, (struct sockaddr *)ne->getAddr(), sizeof(struct sockaddr_in)) >= 0);
 
-    LOG_INFO("UDP listen:");
+    LOG_INFO("UDP listen: {}", ntohs(ne->getAddr()->sin_port));
 
     NetworkContextWithEventForUDP *ctx = new NetworkContextWithEventForUDP(ne, udp_sock);
     udp_ctx.push_back(ctx);
