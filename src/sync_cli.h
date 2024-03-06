@@ -22,9 +22,9 @@
 #include <event2/bufferevent.h>
 #include <event2/buffer.h>
 
-#include "comm/lan_share_protocol.h"
+#include "proto/lan_share_protocol.h"
 #include "resource/resource_manager.h"
-#include "comm/udp_cli.h"
+#include "proto/udp_cli.h"
 #include "utils/logger.h"
 #include "utils/io_utils.h"
 #include "constants.h"

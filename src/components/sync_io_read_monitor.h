@@ -26,11 +26,11 @@ public:
 class SyncIOReadMonitor2 : public IoReadMonitor
 {
 private:
-    NetworkContext *ctx;
+    NetworkConnCtx *ctx;
     const struct Resource *rs;
 
 public:
-    SyncIOReadMonitor2(NetworkContext *ctx, const struct Resource *rs) : ctx(ctx), rs(rs){};
+    SyncIOReadMonitor2(NetworkConnCtx *ctx, const struct Resource *rs) : ctx(ctx), rs(rs){};
     ~SyncIOReadMonitor2();
     void monitor(uint64_t from_pos, void *data, uint64_t data_len) override;
 };

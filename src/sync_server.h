@@ -34,30 +34,30 @@
 
 class SyncLogic;
 
-class SyncUdpServer : public NetworkEndpoint
+class SyncUdpServer : public NetworkEndpointWithEvent
 {
 private:
     SyncLogic *logic;
 
 public:
-    SyncUdpServer(struct sockaddr_in *addr) : NetworkEndpoint(addr){};
+    SyncUdpServer(struct sockaddr_in *addr) : NetworkEndpointWithEvent(addr){};
     ~SyncUdpServer();
 
-    void recv(void *data, uint64_t data_len, NetworkContext *ctx);
+    void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
     bool isExtraAllDataNow(void *data, uint64_t data_len);
     void setLogic(SyncLogic *logic);
 };
 
-class SyncTcpServer : public NetworkEndpoint
+class SyncTcpServer : public NetworkEndpointWithEvent
 {
 private:
     SyncLogic *logic;
 
 public:
-    SyncTcpServer(struct sockaddr_in *addr) : NetworkEndpoint(addr){};
+    SyncTcpServer(struct sockaddr_in *addr) : NetworkEndpointWithEvent(addr){};
     ~SyncTcpServer();
 
-    void recv(void *data, uint64_t data_len, NetworkContext *ctx);
+    void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
     bool isExtraAllDataNow(void *data, uint64_t data_len);
     void setLogic(SyncLogic *logic);
 };
@@ -75,11 +75,11 @@ public:
     SyncLogic(NetworkEndpoint *udpserver, NetworkEndpoint *tcpserver);
     ~SyncLogic();
     void handleTcpMsg(struct bufferevent *bev);
-    void recvUdp(void *data, uint64_t data_len, NetworkContext *ctx);
-    void recvTcp(void *data, uint64_t data_len, NetworkContext *ctx);
+    void recvUdp(void *data, uint64_t data_len, NetworkConnCtx *ctx);
+    void recvTcp(void *data, uint64_t data_len, NetworkConnCtx *ctx);
 
-    void replyTableIndex(NetworkContext *ctx);
-    void replyResource(lan_sync_header_t *header, NetworkContext *ctx);
+    void replyTableIndex(NetworkConnCtx *ctx);
+    void replyResource(lan_sync_header_t *header, NetworkConnCtx *ctx);
 };
 
 #endif

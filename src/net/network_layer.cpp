@@ -24,26 +24,24 @@ struct sockaddr_in *NetworkEndpoint::getAddr()
     return addr;
 }
 
-NetworkContext::~NetworkContext()
+NetworkConnCtx::~NetworkConnCtx()
 {
 }
 
-NetworkEndpoint *NetworkContext::getNetworkEndpoint()
+NetworkEndpoint *NetworkConnCtx::getNetworkEndpoint()
 {
     return ne;
 }
 
-NetworkOutputStream::~NetworkOutputStream()
+void NetworkConnCtx::destroy()
 {
-}
-
-NetworkOutputStreamForUDP::~NetworkOutputStreamForUDP()
-{
-    if (sock > 0)
-        close(sock);
-}
-
-uint64_t NetworkOutputStreamForUDP::write(void *data, uint64_t data_len)
-{
-    return sendto(sock, data, data_len, 0, (sockaddr *)&peer, sizeof(sockaddr_in));
+    for (auto iter = head->end() - 1; iter >= head->begin(); iter--)
+    {
+        if (*iter == this)
+        {
+            head->erase(iter);
+            break;
+        }
+    }
+    delete this;
 }

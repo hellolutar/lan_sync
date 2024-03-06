@@ -3,14 +3,14 @@
 
 #include "net/network_layer_with_event.h"
 
-class TcpServer : public NetworkEndpoint
+class TcpServer : public NetworkEndpointWithEvent
 {
 private:
 public:
-    TcpServer(struct sockaddr_in *addr) : NetworkEndpoint(addr){};
+    TcpServer(struct sockaddr_in *addr) : NetworkEndpointWithEvent(addr){};
     ~TcpServer();
 
-    void recv(void *data, uint64_t data_len, NetworkContext *ctx);
+    void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
     bool isExtraAllDataNow(void *data, uint64_t data_len);
 };
 
@@ -18,7 +18,7 @@ TcpServer::~TcpServer()
 {
 }
 
-void TcpServer::recv(void *data, uint64_t data_len, NetworkContext *ctx)
+void TcpServer::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
     char *str = (char *)data;
     printf("recv:[%s]\n", str);
@@ -38,6 +38,7 @@ int main(int argc, char const *argv[])
 
     NetworkLayerWithEvent::addTcpServer(new TcpServer(&sock));
     NetworkLayerWithEvent::run();
+    NetworkLayerWithEvent::free();
 
     return 0;
 }

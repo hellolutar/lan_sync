@@ -2,14 +2,14 @@
 
 #include "net/network_layer_with_event.h"
 
-class UdpServer : public NetworkEndpoint
+class UdpServer : public NetworkEndpointWithEvent
 {
 private:
 public:
-    UdpServer(struct sockaddr_in *addr) : NetworkEndpoint(addr){};
+    UdpServer(struct sockaddr_in *addr) : NetworkEndpointWithEvent(addr){};
     ~UdpServer();
 
-    void recv(void *data, uint64_t data_len, NetworkContext *ctx);
+    void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
     bool isExtraAllDataNow(void *data, uint64_t data_len);
 };
 
@@ -17,7 +17,7 @@ UdpServer::~UdpServer()
 {
 }
 
-void UdpServer::recv(void *data, uint64_t data_len, NetworkContext *ctx)
+void UdpServer::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
     char *str = (char *)data;
     printf("recv:[%s]\n", str);
@@ -37,6 +37,7 @@ int main(int argc, char const *argv[])
 
     NetworkLayerWithEvent::addUdpServer(new UdpServer(&sock));
     NetworkLayerWithEvent::run();
+    NetworkLayerWithEvent::free();
 
     return 0;
 }

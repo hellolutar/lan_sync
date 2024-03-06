@@ -6,14 +6,14 @@
 
 int count = 0;
 
-class UdpCli : public NetworkEndpoint
+class UdpCli : public NetworkEndpointWithEvent
 {
 private:
 public:
-    UdpCli(struct sockaddr_in *addr) : NetworkEndpoint(addr){};
+    UdpCli(struct sockaddr_in *addr) : NetworkEndpointWithEvent(addr){};
     ~UdpCli();
 
-    void recv(void *data, uint64_t data_len, NetworkContext *ctx);
+    void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
     bool isExtraAllDataNow(void *data, uint64_t data_len);
 };
 
@@ -21,10 +21,11 @@ UdpCli::~UdpCli()
 {
 }
 
-void UdpCli::recv(void *data, uint64_t data_len, NetworkContext *ctx)
+void UdpCli::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
     if (count >= 5)
     {
+        printf("Done\n");
         NetworkLayerWithEvent::shutdown();
         return;
     }
@@ -46,14 +47,15 @@ int main(int argc, char const *argv[])
     peer->sin_port = htons(8080);
     inet_aton("127.0.0.1", &(peer->sin_addr));
 
-    NetworkOutputStream *out = NetworkLayerWithEvent::connectWithTcp(new UdpCli(peer));
-    if (out != nullptr)
+    NetworkConnCtx *ctx = NetworkLayerWithEvent::connectWithTcp(new UdpCli(peer));
+    if (ctx != nullptr)
     {
         std::string msg = "hello world";
-        out->write(msg.data(), msg.size());
+        ctx->write(msg.data(), msg.size());
     }
 
     NetworkLayerWithEvent::run();
+    NetworkLayerWithEvent::free();
 
     return 0;
 }

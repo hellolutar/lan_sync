@@ -4,7 +4,7 @@ SyncUdpServer::~SyncUdpServer()
 {
 }
 
-void SyncUdpServer::recv(void *data, uint64_t data_len, NetworkContext *ctx)
+void SyncUdpServer::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
     logic->recvUdp(data, data_len, ctx);
 }
@@ -22,7 +22,7 @@ SyncTcpServer::~SyncTcpServer()
 {
 }
 
-void SyncTcpServer::recv(void *data, uint64_t data_len, NetworkContext *ctx)
+void SyncTcpServer::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
     logic->recvTcp(data, data_len, ctx);
 }
@@ -53,7 +53,7 @@ SyncLogic::~SyncLogic()
 {
 }
 
-void SyncLogic::recvUdp(void *data, uint64_t data_len, NetworkContext *ctx)
+void SyncLogic::recvUdp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
     lan_sync_header_t *header = (lan_sync_header_t *)data;
 
@@ -92,7 +92,7 @@ void SyncLogic::recvUdp(void *data, uint64_t data_len, NetworkContext *ctx)
                  inet_ntoa(target_addr->sin_addr), ntohs(target_addr->sin_port), header->type);
 }
 
-void SyncLogic::recvTcp(void *data, uint64_t data_len, NetworkContext *ctx)
+void SyncLogic::recvTcp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
     lan_sync_header_t *header = (lan_sync_header_t *)data;
 
@@ -111,7 +111,7 @@ void SyncLogic::recvTcp(void *data, uint64_t data_len, NetworkContext *ctx)
         LOG_INFO("[SYNC SER] : receive pkt: the type is unsupport!");
 }
 
-void SyncLogic::replyTableIndex(NetworkContext *ctx)
+void SyncLogic::replyTableIndex(NetworkConnCtx *ctx)
 {
     vector<struct Resource *> table = rm.getTable();
     uint32_t table_len = sizeof(struct Resource) * table.size();
@@ -135,7 +135,7 @@ void SyncLogic::replyTableIndex(NetworkContext *ctx)
     LOG_INFO("[SYNC SER] [{}] : entry num: {} ", SERVICE_NAME_REPLY_TABLE_INDEX, table.size());
 }
 
-void SyncLogic::replyResource(lan_sync_header_t *header, NetworkContext *ctx)
+void SyncLogic::replyResource(lan_sync_header_t *header, NetworkConnCtx *ctx)
 {
     LanSyncPkt pkt(header);
 
@@ -187,6 +187,7 @@ int main(int argc, char const *argv[])
     delete tcpserver;
     delete udpserver;
     delete logic;
+    NetworkLayerWithEvent::free();
 
     return 0;
 }
