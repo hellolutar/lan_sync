@@ -38,4 +38,13 @@ public:
     virtual struct sockaddr_in *getAddr();
 };
 
+
+class NetworkOutputStream
+{
+public:
+    virtual ~NetworkOutputStream() = 0;
+
+    virtual uint64_t write(void *data, uint64_t data_len) = 0;
+};
+
 #endif

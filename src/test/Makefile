@@ -1,6 +1,6 @@
 include ../Makefile
 
-all := tcpserver ${OBJS} ${TARGETS}
+all := ${OBJS} ${TARGETS}
 
 resource_manager_test: resource_manager_test.o ${COMMON_OBJS}
 	@echo $@

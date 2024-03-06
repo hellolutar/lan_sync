@@ -23,3 +23,8 @@ NetworkEndpoint *NetworkContext::getNetworkEndpoint()
 {
     return ne;
 }
+
+
+NetworkOutputStream::~NetworkOutputStream()
+{
+}

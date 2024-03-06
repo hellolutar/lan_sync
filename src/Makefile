@@ -16,16 +16,17 @@ TARGET_OBJS += ${SRC_C:.cpp=.o}
 OBJS+=${COMMON_OBJS}
 OBJS+=${TARGET_OBJS}
 TARGETS := $(patsubst %.cpp,%,$(SRC_C))
+BIN_TARGETS:= $(patsubst %.cpp,%.bin,$(SRC_C))
 
 CC=g++
 CXXFLAGS=-g -Wno-format-contains-nul -Wno-write-strings
 LDFLAGS:=
 LIBS:=-levent -lcrypto -lssl -lgtest -lfmt -lspdlog
 CPLUS_INCLUDE_PATH +=${WORKSPACE}
-COMPILE_OPT:=RELEASE#RELEASE or DEV
+COMPILE_OPT:=DEV#RELEASE or DEV
 RELEASE:=RELEASE
 
-all: ${OBJS} ${TARGETS}
+all: ${OBJS} ${BIN_TARGETS}
 
 
 %.o: %.cpp
@@ -40,13 +41,13 @@ else
 	@echo "skip sync_cli"
 endif
 
-# sync_server: sync_server.o ${COMMON_OBJS} 
-# ifneq (${COMPILE_OPT}, ${RELEASE})
-# 	@echo $@
-# 	@$(CC) -I${CPLUS_INCLUDE_PATH} $(CXXFLAGS) $(LDFLAGS) -D${COMPILE_OPT} $^ $(LIBS) -o $@
-# else
-# 	@echo "skip sync_server"
-# endif
+sync_server: sync_server.o ${COMMON_OBJS} 
+ifneq (${COMPILE_OPT}, ${RELEASE})
+	@echo $@
+	@$(CC) -I${CPLUS_INCLUDE_PATH} $(CXXFLAGS) $(LDFLAGS) -D${COMPILE_OPT} $^ $(LIBS) -o $@
+else
+	@echo "skip sync_server"
+endif
 
 # sync: ${COMMON_OBJS} ${TARGET_OBJS}
 # ifeq (${COMPILE_OPT}, ${RELEASE})
@@ -60,7 +61,7 @@ endif
 wc:
 	git ls-files | xargs cat | wc -l
 clean:
-	rm -rf $(TARGETS) logs *.o *.so *.a *.dll sync_cli sync_server 
+	rm -rf ${TARGETS} ${BIN_TARGETS} logs *.o *.so *.a *.dll sync_cli sync_server 
 
 cleanall: clean
 	rm -rf ${COMMON_OBJS}

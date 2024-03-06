@@ -6,6 +6,7 @@
 
 #include <netinet/tcp.h>
 
+#include <arpa/inet.h>
 #include <event2/event.h>
 #include <event2/buffer.h>
 #include <event2/listener.h>
@@ -33,7 +34,9 @@ public:
 
     static void addTcpServer(NetworkEndpoint *ne);
     static void addUdpServer(NetworkEndpoint *ne);
+    static NetworkOutputStream* connectWithTcp(NetworkEndpoint *ne);
     static void run();
+    static void shutdown();
 
     static void free();
 };
@@ -60,6 +63,17 @@ public:
     ~NetworkContextWithEventForUDP();
     void setPeerSockAddr(struct sockaddr_in peer);
     uint64_t write(void *data, uint64_t data_len) override;
+};
+
+class NetworkOutputStreamWithEvent : public NetworkOutputStream
+{
+private:
+    struct evbuffer *out;
+
+public:
+    NetworkOutputStreamWithEvent(struct evbuffer *out) : out(out){};
+    virtual ~NetworkOutputStreamWithEvent();
+    virtual uint64_t write(void *data, uint64_t data_len) override;
 };
 
 #endif

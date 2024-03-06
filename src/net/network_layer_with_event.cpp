@@ -144,6 +144,41 @@ void NetworkLayerWithEvent::addUdpServer(NetworkEndpoint *ne)
     events.push_back(read_e);
 }
 
+NetworkOutputStream *NetworkLayerWithEvent::connectWithTcp(NetworkEndpoint *peer)
+{
+    if (base == nullptr)
+        base = event_base_new();
+
+    struct sockaddr_in *target_addr = peer->getAddr();
+
+    auto tmpaddr = target_addr->sin_addr;
+    tmpaddr.s_addr = ntohl(tmpaddr.s_addr);
+    string ip(inet_ntoa(tmpaddr));
+    string port = to_string(ntohs(target_addr->sin_port));
+    LOG_INFO("TCP connect : {}:{}", ip, port);
+
+    struct sockaddr_in myaddr;
+    myaddr.sin_family = AF_INET;
+    myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    int tcpsock = socket(AF_INET, SOCK_STREAM, 0);
+    int ret = connect(tcpsock, (struct sockaddr *)target_addr, sizeof(struct sockaddr_in));
+    if (ret < 0)
+    {
+        LOG_ERROR("TCP connect : {}:{}  REASON:{} ", ip, port, strerror(errno));
+        return nullptr;
+    }
+
+    struct bufferevent *bev = bufferevent_socket_new(base, tcpsock, BEV_OPT_CLOSE_ON_FREE);
+
+    NetworkContextWithEvent *nctx = new NetworkContextWithEvent(peer, bufferevent_get_output(bev));
+    tcp_ctx.push_back(nctx);
+    bufferevent_setcb(bev, read_cb, write_cb, nullptr, nctx);
+    bufferevent_enable(bev, EV_READ | EV_WRITE);
+
+    return new NetworkOutputStreamWithEvent(bufferevent_get_output(bev)); // todo determine delete
+}
+
 void NetworkLayerWithEvent::run()
 {
     if (base == nullptr)
@@ -155,11 +190,16 @@ void NetworkLayerWithEvent::run()
     event_base_dispatch(base);
 }
 
+void NetworkLayerWithEvent::shutdown(){
+    event_base_loopbreak(base);
+    free();
+}
+
 void NetworkLayerWithEvent::free()
 {
     event_base_free(base);
 
-    for (size_t i = events.size() - 1; i >= 0; i--)
+    for (int i = events.size() - 1; i >= 0; i--)
     {
         struct event *e = events[i];
         event_free(e);
@@ -191,12 +231,12 @@ void NetworkLayerWithEvent::free()
         }
     }
 
-    for (size_t i = tcp_ctx.size() - 1; i >= 0; i--)
+    for (int i = tcp_ctx.size() - 1; i >= 0; i--)
     {
         delete tcp_ctx[i];
     }
 
-    for (size_t i = udp_ctx.size() - 1; i >= 0; i--)
+    for (int i = udp_ctx.size() - 1; i >= 0; i--)
     {
         delete udp_ctx[i];
     }
@@ -224,4 +264,13 @@ void NetworkContextWithEventForUDP::setPeerSockAddr(struct sockaddr_in peer)
 uint64_t NetworkContextWithEventForUDP::write(void *data, uint64_t data_len)
 {
     return sendto(fd, data, data_len, 0, (struct sockaddr *)&peer, sizeof(struct sockaddr_in));
+}
+
+NetworkOutputStreamWithEvent::~NetworkOutputStreamWithEvent()
+{
+}
+
+uint64_t NetworkOutputStreamWithEvent::write(void *data, uint64_t data_len)
+{
+    return evbuffer_add(out, data, data_len);
 }
