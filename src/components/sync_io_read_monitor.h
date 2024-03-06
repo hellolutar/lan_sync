@@ -7,7 +7,7 @@
 #include <event2/bufferevent.h>
 
 #include "utils/io_utils.h"
-#include "comm/lan_share_protocol.h"
+#include "proto/lan_share_protocol.h"
 #include "resource/resource.h"
 
 class SyncIOReadMonitor : public IoReadMonitor

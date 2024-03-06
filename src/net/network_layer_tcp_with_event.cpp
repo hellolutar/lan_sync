@@ -173,14 +173,20 @@ void NetworkLayerWithEvent::free()
         iter = bev_peersock_table.erase(iter);
     }
 
-    for (auto iter : bevs)
+    if (bevs.size() > 0)
     {
-        bevs.erase(iter);
+        for (auto iter : bevs)
+        {
+            bevs.erase(iter);
+        }
     }
 
-    for (auto iter : socks)
+    if (socks.size() > 0)
     {
-        socks.erase(iter);
+        for (auto iter : socks)
+        {
+            socks.erase(iter);
+        }
     }
 
     for (size_t i = tcp_ctx.size() - 1; i >= 0; i--)

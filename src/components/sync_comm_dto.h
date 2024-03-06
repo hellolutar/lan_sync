@@ -1,7 +1,7 @@
 #ifndef __SYNC_COMM_DTO_H_
 #define __SYNC_COMM_DTO_H_
 
-#include "comm/comm_mediator.h"
+#include "proto/comm_mediator.h"
 
 class SyncCommDto:public CommDto
 {

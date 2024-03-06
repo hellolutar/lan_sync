@@ -13,6 +13,8 @@ ResourceManager::~ResourceManager()
 
 void ResourceManager::freeTable()
 {
+    if (table.size() ==0)
+        return;
 
     for (auto it : table)
     {

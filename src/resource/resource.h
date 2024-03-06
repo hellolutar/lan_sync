@@ -7,7 +7,7 @@
 
 #include <malloc.h>
 
-#include "comm/lan_share_protocol.h"
+#include "proto/lan_share_protocol.h"
 
 using namespace std;
 

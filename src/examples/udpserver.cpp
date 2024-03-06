@@ -1,6 +1,6 @@
 #include <cstring>
 
-#include "comm/network_layer_tcp_with_event.h"
+#include "net/network_layer_tcp_with_event.h"
 
 class Udp : public NetworkEndpoint
 {

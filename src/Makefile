@@ -3,13 +3,15 @@
 WORKSPACE:=/home/lutar/code/c/lan_sync/src
 SRC_C := $(wildcard *.cpp)
 SRC_UTILS := $(wildcard ${WORKSPACE}/utils/*.cpp)
-SRC_COMMS := $(wildcard ${WORKSPACE}/comm/*.cpp)
+SRC_PROTOS := $(wildcard ${WORKSPACE}/proto/*.cpp)
 SRC_RESOURCE := $(wildcard ${WORKSPACE}/resource/*.cpp)
 SRC_COMPONENTS := $(wildcard ${WORKSPACE}/components/*.cpp)
+SRC_NETS := $(wildcard ${WORKSPACE}/net/*.cpp)
 COMMON_OBJS := ${SRC_UTILS:.cpp=.o}
-COMMON_OBJS += ${SRC_COMMS:.cpp=.o}
+COMMON_OBJS += ${SRC_PROTOS:.cpp=.o}
 COMMON_OBJS += ${SRC_RESOURCE:.cpp=.o}
 COMMON_OBJS += ${SRC_COMPONENTS:.cpp=.o}
+COMMON_OBJS += ${SRC_NETS:.cpp=.o}
 TARGET_OBJS += ${SRC_C:.cpp=.o} 
 OBJS+=${COMMON_OBJS}
 OBJS+=${TARGET_OBJS}
@@ -54,9 +56,6 @@ endif
 # 	@echo "skip sync"
 # endif
 
-main: main.o comm/network_layer_tcp_with_event.o comm/network_layer.o
-	$(CC) -I${CPLUS_INCLUDE_PATH}  $(CXXFLAGS)  $(LDFLAGS) $^ $(LIBS) -o $@
-	
 
 wc:
 	git ls-files | xargs cat | wc -l
