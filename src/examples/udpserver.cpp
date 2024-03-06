@@ -2,28 +2,28 @@
 
 #include "comm/network_layer_tcp_with_event.h"
 
-class TcpServer : public NetworkEndpoint
+class Udp : public NetworkEndpoint
 {
 private:
 public:
-    TcpServer(struct sockaddr_in *addr) : NetworkEndpoint(addr){};
-    ~TcpServer();
+    Udp(struct sockaddr_in *addr) : NetworkEndpoint(addr){};
+    ~Udp();
 
     void recv(void *data, uint64_t data_len, NetworkContext *ctx);
     bool isExtraAllDataNow(void *data, uint64_t data_len);
 };
 
-TcpServer::~TcpServer()
+Udp::~Udp()
 {
 }
 
-void TcpServer::recv(void *data, uint64_t data_len, NetworkContext *ctx)
+void Udp::recv(void *data, uint64_t data_len, NetworkContext *ctx)
 {
     char *str = (char *)data;
     printf("recv:[%s]\n", str);
     ctx->write(data, data_len);
 }
-bool TcpServer::isExtraAllDataNow(void *data, uint64_t data_len)
+bool Udp::isExtraAllDataNow(void *data, uint64_t data_len)
 {
     return true;
 }
@@ -35,7 +35,7 @@ int main(int argc, char const *argv[])
     sock.sin_port = htons(8080);
     sock.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    NetworkLayerWithEvent::addTcpServer(new TcpServer(&sock));
+    NetworkLayerWithEvent::addUdpServer(new Udp(&sock));
     NetworkLayerWithEvent::run();
 
     return 0;

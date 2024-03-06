@@ -5,7 +5,6 @@ NetworkLayer::~NetworkLayer()
 {
 }
 
-
 NetworkEndpoint::~NetworkEndpoint()
 {
     free(addr);
@@ -14,4 +13,13 @@ NetworkEndpoint::~NetworkEndpoint()
 struct sockaddr_in *NetworkEndpoint::getAddr()
 {
     return addr;
+}
+
+NetworkContext::~NetworkContext()
+{
+}
+
+NetworkEndpoint *NetworkContext::getNetworkEndpoint()
+{
+    return ne;
 }

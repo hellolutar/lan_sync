@@ -18,9 +18,10 @@ class NetworkLayerWithEvent : public NetworkLayer
 {
 private:
     static struct event_base *base;
-    static std::map<struct bufferevent *, NetworkEndpoint *> bev_ept_table;
     static std::map<struct bufferevent *, struct sockaddr_in *> bev_peersock_table;
     static std::vector<event *> events; // only persist event need to add
+    static std::vector<NetworkContext *> tcp_ctx;
+    static std::vector<NetworkContext *> udp_ctx;
 
     static void tcp_accept(evutil_socket_t listener, short event, void *ctx);
 
@@ -33,12 +34,32 @@ public:
     static void addTcpServer(NetworkEndpoint *ne);
     static void addUdpServer(NetworkEndpoint *ne);
     static void run();
-    
-    static void send(NetworkEndpoint *from, void *data, uint64_t data_len);
 
     static void free();
 };
 
+class NetworkContextWithEvent : public NetworkContext
+{
+private:
+    struct evbuffer *out; // release by libevent
 
+public:
+    NetworkContextWithEvent(NetworkEndpoint *ne, struct evbuffer *out) : NetworkContext(ne), out(out){};
+    ~NetworkContextWithEvent();
+    uint64_t write(void *data, uint64_t data_len) override;
+};
+
+class NetworkContextWithEventForUDP : public NetworkContext
+{
+private:
+    int fd;
+    struct sockaddr_in peer;
+
+public:
+    NetworkContextWithEventForUDP(NetworkEndpoint *ne, int sock) : NetworkContext(ne), fd(sock){};
+    ~NetworkContextWithEventForUDP();
+    void setPeerSockAddr(struct sockaddr_in peer);
+    uint64_t write(void *data, uint64_t data_len) override;
+};
 
 #endif
