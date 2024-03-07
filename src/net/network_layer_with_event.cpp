@@ -191,6 +191,7 @@ NetworkConnCtx *NetworkLayerWithEvent::connectWithUdp(NetworkEndpointWithEvent *
     setsockopt(peer_sock, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(int));
     setsockopt(peer_sock, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(int));
     setsockopt(peer_sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
+    evutil_make_socket_nonblocking(peer_sock);
 
     struct sockaddr_in *target_addr = peer_ne->getAddr(); // target_addr free by peer
 
@@ -202,6 +203,11 @@ NetworkConnCtx *NetworkLayerWithEvent::connectWithUdp(NetworkEndpointWithEvent *
 
     NetworkConnCtxWithEventForUDP *nctx = new NetworkConnCtxWithEventForUDP(&udp_ctx, peer_ne, peer_sock, *(peer_ne->getAddr()));
     udp_ctx.push_back(nctx);
+
+    struct event *read_e = event_new(base, peer_sock, EV_READ | EV_PERSIST, udp_read_cb, nctx);
+    event_add(read_e, nullptr);
+    peer_ne->setEvent(read_e);
+
     return nctx;
 }
 

@@ -53,5 +53,7 @@ int main(int argc, char const *argv[])
         ctx->write(msg.data(), msg.size());
     }
 
+    NetworkLayerWithEvent::run();
+
     return 0;
 }
