@@ -7,11 +7,15 @@ SRC_PROTOS := $(wildcard ${WORKSPACE}/proto/*.cpp)
 SRC_RESOURCE := $(wildcard ${WORKSPACE}/resource/*.cpp)
 SRC_COMPONENTS := $(wildcard ${WORKSPACE}/components/*.cpp)
 SRC_NETS := $(wildcard ${WORKSPACE}/net/*.cpp)
+SRC_TIMER:= $(wildcard ${WORKSPACE}/timer/*.cpp)
+SRC_MODULES:= $(wildcard ${WORKSPACE}/modules/*.cpp)
 COMMON_OBJS := ${SRC_UTILS:.cpp=.o}
 COMMON_OBJS += ${SRC_PROTOS:.cpp=.o}
 COMMON_OBJS += ${SRC_RESOURCE:.cpp=.o}
 COMMON_OBJS += ${SRC_COMPONENTS:.cpp=.o}
 COMMON_OBJS += ${SRC_NETS:.cpp=.o}
+COMMON_OBJS += ${SRC_TIMER:.cpp=.o}
+COMMON_OBJS += ${SRC_MODULES:.cpp=.o}
 TARGET_OBJS += ${SRC_C:.cpp=.o} 
 OBJS+=${COMMON_OBJS}
 OBJS+=${TARGET_OBJS}
@@ -28,6 +32,9 @@ RELEASE:=RELEASE
 
 all: ${OBJS} ${BIN_TARGETS}
 
+%.bin: %.o ${COMMON_OBJS} 
+	@echo $@
+	@$(CC) -I${CPLUS_INCLUDE_PATH}  $(CXXFLAGS)  $(LDFLAGS) $^ $(LIBS) -o $@
 
 %.o: %.cpp
 	@echo $@

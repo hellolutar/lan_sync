@@ -230,8 +230,6 @@ void LanSyncPkt::write(struct evbuffer *out)
 
     evbuffer_add(out, hd, total_len);
     evbuffer_add_cb(out, evbuffer_cb_for_free, hd);
-
-    printf("[DEBUG] [TCP] send pkt, header info: total_len:%d, header_len:%d \n", total_len, header_len);
 }
 
 void LanSyncPkt::write(struct bufferevent *bev)

@@ -284,6 +284,8 @@ void NetworkConnCtxWithEventForUDP::setPeerSockAddr(struct sockaddr_in peer_addr
 
 uint64_t NetworkConnCtxWithEventForUDP::write(void *data, uint64_t data_len)
 {
+
+    LOG_INFO("[UDP] sendto [{}], len:{}", NetAddr::fromBe(peer_addr).str().data(), data_len);
     return sendto(peer_sock, data, data_len, 0, (struct sockaddr *)&peer_addr, sizeof(struct sockaddr_in));
 }
 

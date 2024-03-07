@@ -2,6 +2,7 @@
 #define __NETWORK_LAYER_H_
 
 #include <cstdint>
+#include <string>
 #include <vector>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -45,6 +46,4 @@ public:
     virtual struct sockaddr_in *getAddr();
     virtual void setSock(int sock);
 };
-
-
 #endif

@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-
+#include <fstream>
 #include "resource/resource_manager.h"
 
 TEST(HelloTest, BasicAssertions)
@@ -9,7 +9,17 @@ TEST(HelloTest, BasicAssertions)
 
 TEST(ResourceManagerTest, getResourcesTest)
 {
-    ResourceManager rm("../../resources");
+    string rsdirstr = "test_resource_dir";
+    filesystem::path rsdir(rsdirstr);
+    filesystem::create_directories(rsdir);
+
+    ofstream ofs;
+    ofs.open(rsdirstr + "/demo.txt", std::ios::app);
+    ofs << "hello world" << endl;
+    ofs.close();
+
+    ResourceManager rm(rsdirstr);
+
     vector<Resource *> rs = rm.getTable();
     ASSERT_GT(rs.size(), 0);
     ASSERT_GT(strlen(rs.at(0)->name), 0);
@@ -17,6 +27,8 @@ TEST(ResourceManagerTest, getResourcesTest)
     ASSERT_GT(strlen(rs.at(0)->uri), 0);
     ASSERT_GT(strlen(rs.at(0)->hash), 0);
     ASSERT_GT(rs.at(0)->size, 0);
+
+    filesystem::remove_all(rsdir);
 }
 
 int main(int argc, char **argv)

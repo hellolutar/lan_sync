@@ -20,7 +20,7 @@ class Trigger
 {
 protected:
     struct timeval period;
-    
+
     bool persist;
 
 public:
@@ -30,6 +30,8 @@ public:
 
     virtual struct timeval &getPeriod();
     virtual bool &getPersist();
+
+    static timeval second(size_t s);
 };
 
 #endif

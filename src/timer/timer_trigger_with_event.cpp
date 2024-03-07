@@ -29,6 +29,7 @@ bool TimerWithEvent::addTr(TriggerWithEvent *tr)
     if (base == nullptr)
     {
         LOG_ERROR("please TimerWithEvent::init()");
+        exit(-1);
         return false;
     }
 
@@ -38,7 +39,11 @@ bool TimerWithEvent::addTr(TriggerWithEvent *tr)
         return false;
     }
 
-    struct event *timeout = event_new(base, -1, EV_TIMEOUT | EV_PERSIST, timeout_cb, tr);
+    int flag = EV_TIMEOUT;
+    if (tr->getPersist())
+        flag |= EV_PERSIST;
+
+    struct event *timeout = event_new(base, -1, flag, timeout_cb, tr);
     tr->setEvent(timeout);
 
     struct timeval &period = tr->getPeriod();

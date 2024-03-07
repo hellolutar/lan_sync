@@ -13,6 +13,7 @@
 #include <event2/bufferevent.h>
 
 #include "network_layer.h"
+#include "net_addr.h"
 #include "utils/logger.h"
 
 class NetworkConnCtxWithEvent;
