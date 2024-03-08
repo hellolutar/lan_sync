@@ -6,14 +6,15 @@ SyncUdpServer::~SyncUdpServer()
 
 void SyncUdpServer::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
-    logic->recvUdp(data, data_len, ctx);
+    logic->recv(data, data_len, ctx);
 }
+
 bool SyncUdpServer::isExtraAllDataNow(void *data, uint64_t data_len)
 {
     return true;
 }
 
-void SyncUdpServer::setLogic(SyncLogic *logic)
+void SyncUdpServer::setLogic(LogicUdp *logic)
 {
     this->logic = logic;
 }
@@ -24,7 +25,7 @@ SyncTcpServer::~SyncTcpServer()
 
 void SyncTcpServer::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
-    logic->recvTcp(data, data_len, ctx);
+    logic->recv(data, data_len, ctx);
 }
 bool SyncTcpServer::isExtraAllDataNow(void *data, uint64_t data_len)
 {
@@ -39,7 +40,7 @@ bool SyncTcpServer::isExtraAllDataNow(void *data, uint64_t data_len)
     return true;
 }
 
-void SyncTcpServer::setLogic(SyncLogic *logic)
+void SyncTcpServer::setLogic(LogicTcp *logic)
 {
     this->logic = logic;
 }
@@ -53,7 +54,7 @@ SyncLogic::~SyncLogic()
 {
 }
 
-void SyncLogic::recvUdp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
+void SyncLogic::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
     lan_sync_header_t *header = (lan_sync_header_t *)data;
 
@@ -92,7 +93,7 @@ void SyncLogic::recvUdp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
                  inet_ntoa(target_addr->sin_addr), ntohs(target_addr->sin_port), header->type);
 }
 
-void SyncLogic::recvTcp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
+void SyncLogic::recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
     lan_sync_header_t *header = (lan_sync_header_t *)data;
 
@@ -179,8 +180,11 @@ int main(int argc, char const *argv[])
     NetworkLayerWithEvent::addTcpServer(tcpserver);
 
     SyncLogic *logic = new SyncLogic(udpserver, tcpserver);
-    udpserver->setLogic(logic);
-    tcpserver->setLogic(logic);
+    LogicTcp *tcplogic = logic;
+    LogicUdp *udplogic = logic;
+
+    udpserver->setLogic(udplogic);
+    tcpserver->setLogic(tcplogic);
 
     NetworkLayerWithEvent::run();
 

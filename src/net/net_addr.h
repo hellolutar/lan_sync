@@ -13,7 +13,8 @@ private:
     sockaddr_in le_addr;
 
 public:
-    NetAddr(){};
+    NetAddr();
+    // NetAddr(NetAddr &addr);
     NetAddr(std::string ipport);
     NetAddr(sockaddr_in le_addr) : le_addr(le_addr){};
     ~NetAddr();

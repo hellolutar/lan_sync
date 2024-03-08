@@ -8,6 +8,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include "net_addr.h"
+
+
 class NetworkEndpoint;
 
 class NetworkLayer
@@ -21,13 +24,16 @@ class NetworkConnCtx
 protected:
     NetworkEndpoint *ne;
     std::vector<NetworkConnCtx *> *head;
+    NetAddr *peer;
 
 public:
-    NetworkConnCtx(std::vector<NetworkConnCtx *> *head, NetworkEndpoint *ne) : head(head), ne(ne){};
+    NetworkConnCtx(std::vector<NetworkConnCtx *> *head, NetworkEndpoint *ne, NetAddr *peer) : head(head), ne(ne), peer(peer){};
     virtual ~NetworkConnCtx();
     virtual uint64_t write(void *data, uint64_t data_len) = 0;
     virtual NetworkEndpoint *getNetworkEndpoint();
     virtual void destroy();
+    virtual NetAddr& getPeer();
+    virtual void setNetAddr(NetAddr *peer);
 };
 
 class NetworkEndpoint

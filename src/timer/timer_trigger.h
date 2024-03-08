@@ -16,7 +16,14 @@ public:
     virtual ~Timer();
 };
 
-class Trigger
+class TriggerBehavior
+{
+public:
+    virtual ~TriggerBehavior(){};
+    virtual void exec() = 0;
+};
+
+class Trigger : public TriggerBehavior
 {
 protected:
     struct timeval period;
@@ -26,7 +33,6 @@ protected:
 public:
     Trigger(struct timeval period, bool persist) : period(period), persist(persist){};
     virtual ~Trigger();
-    virtual void exec() = 0;
 
     virtual struct timeval &getPeriod();
     virtual bool &getPersist();

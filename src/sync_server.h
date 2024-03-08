@@ -26,6 +26,7 @@
 #include "utils/io_utils.h"
 #include "constants.h"
 #include "proto/udp_cli.h"
+#include "modules/logic.h"
 #include "components/sync_io_read_monitor.h"
 
 #include <cstring>
@@ -37,7 +38,7 @@ class SyncLogic;
 class SyncUdpServer : public NetworkEndpointWithEvent
 {
 private:
-    SyncLogic *logic;
+    Logic *logic;
 
 public:
     SyncUdpServer(struct sockaddr_in *addr) : NetworkEndpointWithEvent(addr){};
@@ -45,13 +46,13 @@ public:
 
     void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
     bool isExtraAllDataNow(void *data, uint64_t data_len);
-    void setLogic(SyncLogic *logic);
+    void setLogic(LogicUdp *logic);
 };
 
 class SyncTcpServer : public NetworkEndpointWithEvent
 {
 private:
-    SyncLogic *logic;
+    Logic *logic;
 
 public:
     SyncTcpServer(struct sockaddr_in *addr) : NetworkEndpointWithEvent(addr){};
@@ -59,10 +60,10 @@ public:
 
     void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
     bool isExtraAllDataNow(void *data, uint64_t data_len);
-    void setLogic(SyncLogic *logic);
+    void setLogic(LogicTcp *logic);
 };
 
-class SyncLogic
+class SyncLogic : public LogicUdp, public LogicTcp
 {
 private:
     NetworkEndpoint *udpserver;
@@ -75,8 +76,8 @@ public:
     SyncLogic(NetworkEndpoint *udpserver, NetworkEndpoint *tcpserver);
     ~SyncLogic();
     void handleTcpMsg(struct bufferevent *bev);
-    void recvUdp(void *data, uint64_t data_len, NetworkConnCtx *ctx);
-    void recvTcp(void *data, uint64_t data_len, NetworkConnCtx *ctx);
+    void recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
+    void recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
 
     void replyTableIndex(NetworkConnCtx *ctx);
     void replyResource(lan_sync_header_t *header, NetworkConnCtx *ctx);

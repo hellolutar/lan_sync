@@ -51,11 +51,10 @@ class NetworkConnCtxWithEvent : public NetworkConnCtx
 private:
     struct bufferevent *bev;
     int peer_sock;
-    struct sockaddr_in peer_addr;
 
 public:
-    NetworkConnCtxWithEvent(std::vector<NetworkConnCtx *> *head, NetworkEndpoint *ne, struct bufferevent *bev, int peer_sock, struct sockaddr_in peer_addr)
-        : NetworkConnCtx(head, ne), bev(bev), peer_sock(peer_sock), peer_addr(peer_addr){};
+    NetworkConnCtxWithEvent(std::vector<NetworkConnCtx *> *head, NetworkEndpoint *ne, struct bufferevent *bev, int peer_sock, NetAddr *peer_addr)
+        : NetworkConnCtx(head, ne, peer), bev(bev), peer_sock(peer_sock){};
 
     ~NetworkConnCtxWithEvent();
     uint64_t write(void *data, uint64_t data_len) override;
@@ -65,15 +64,13 @@ class NetworkConnCtxWithEventForUDP : public NetworkConnCtx
 {
 private:
     int peer_sock;
-    struct sockaddr_in peer_addr;
 
 public:
-    NetworkConnCtxWithEventForUDP(std::vector<NetworkConnCtx *> *head, NetworkEndpoint *ne, int peer_sock, struct sockaddr_in peer_addr)
-        : NetworkConnCtx(head, ne), peer_sock(peer_sock), peer_addr(peer_addr){};
+    NetworkConnCtxWithEventForUDP(std::vector<NetworkConnCtx *> *head, NetworkEndpoint *ne, int peer_sock, NetAddr *peer_addr)
+        : NetworkConnCtx(head, ne, peer_addr), peer_sock(peer_sock){};
     ~NetworkConnCtxWithEventForUDP();
 
     uint64_t write(void *data, uint64_t data_len) override;
-    void setPeerSockAddr(struct sockaddr_in peer_addr);
 };
 
 class NetworkEndpointWithEvent : public NetworkEndpoint

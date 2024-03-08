@@ -4,6 +4,12 @@
 
 using namespace std;
 
+NetAddr::NetAddr(){
+    le_addr.sin_addr.s_addr = 0;
+    le_addr.sin_family= 0;
+    le_addr.sin_port = 0;
+}
+
 NetAddr::NetAddr(string ipport)
 {
     size_t pos = ipport.find(':');
@@ -15,6 +21,11 @@ NetAddr::NetAddr(string ipport)
     le_addr.sin_addr.s_addr = ntohl(le_addr.sin_addr.s_addr);
     le_addr.sin_port = atoi(port.data());
 }
+
+// NetAddr::NetAddr(NetAddr &addr)
+// {
+//     this->le_addr = addr.le_addr;
+// }
 
 NetAddr::~NetAddr()
 {

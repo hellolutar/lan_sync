@@ -59,7 +59,7 @@ void NetworkLayerWithEvent::tcp_accept(evutil_socket_t listener, short event, vo
     bufferevent_getwatermark(bev, EV_WRITE, &lw, &hw);
     bufferevent_setwatermark(bev, EV_WRITE, 0, hw);
 
-    NetworkConnCtxWithEvent *nctx = new NetworkConnCtxWithEvent(&tcp_ctx, ne, bev, peer_sock, peer);
+    NetworkConnCtxWithEvent *nctx = new NetworkConnCtxWithEvent(&tcp_ctx, ne, bev, peer_sock, new NetAddr(NetAddr::fromBe(peer).getAddr()));
     tcp_ctx.push_back(nctx);
     bufferevent_setcb(bev, read_cb, write_cb, nullptr, nctx);
     bufferevent_enable(bev, EV_READ | EV_WRITE);
@@ -111,7 +111,10 @@ void NetworkLayerWithEvent::udp_read_cb(evutil_socket_t fd, short events, void *
         return;
     }
     NetworkConnCtxWithEventForUDP *nctx = (NetworkConnCtxWithEventForUDP *)arg;
-    nctx->setPeerSockAddr(target_addr);
+
+    NetAddr *peer_net_addr = new NetAddr(NetAddr::fromBe(target_addr).getAddr());
+    nctx->setNetAddr(peer_net_addr);
+
     NetworkEndpoint *ne = nctx->getNetworkEndpoint();
     ne->recv((void *)data, receive, nctx);
 }
@@ -134,8 +137,8 @@ void NetworkLayerWithEvent::addUdpServer(NetworkEndpointWithEvent *ne)
 
     LOG_INFO("UDP listen: {}", ntohs(ne->getAddr()->sin_port));
 
-    struct sockaddr_in addr_will_be_udpate_follow;
-    NetworkConnCtxWithEventForUDP *nctx = new NetworkConnCtxWithEventForUDP(&udp_ctx, ne, udp_sock, addr_will_be_udpate_follow); // udp_sock close many time: 1.NetworkEndpointWithEvent; 2.NetworkConnCtx
+    NetAddr addr_will_be_udpate_follow;
+    NetworkConnCtxWithEventForUDP *nctx = new NetworkConnCtxWithEventForUDP(&udp_ctx, ne, udp_sock, &addr_will_be_udpate_follow); // udp_sock close many time: 1.NetworkEndpointWithEvent; 2.NetworkConnCtx
     udp_ctx.push_back(nctx);
 
     struct event *read_e = event_new(base, udp_sock, EV_READ | EV_PERSIST, udp_read_cb, nctx);
@@ -171,7 +174,8 @@ NetworkConnCtx *NetworkLayerWithEvent::connectWithTcp(NetworkEndpointWithEvent *
 
     struct bufferevent *bev = bufferevent_socket_new(base, peer_sock, BEV_OPT_CLOSE_ON_FREE);
 
-    NetworkConnCtxWithEvent *nctx = new NetworkConnCtxWithEvent(&tcp_ctx, peer_ne, bev, peer_sock, *(peer_ne->getAddr())); //
+    NetAddr *peer_net_addr = new NetAddr(NetAddr::fromBe(*(peer_ne->getAddr())).getAddr());
+    NetworkConnCtxWithEvent *nctx = new NetworkConnCtxWithEvent(&tcp_ctx, peer_ne, bev, peer_sock, peer_net_addr); //
     tcp_ctx.push_back(nctx);
     bufferevent_setcb(bev, read_cb, write_cb, nullptr, nctx);
     bufferevent_enable(bev, EV_READ | EV_WRITE);
@@ -201,7 +205,8 @@ NetworkConnCtx *NetworkLayerWithEvent::connectWithUdp(NetworkEndpointWithEvent *
     string port = to_string(ntohs(target_addr->sin_port));
     LOG_INFO("UDP connect : {}:{}", ip, port);
 
-    NetworkConnCtxWithEventForUDP *nctx = new NetworkConnCtxWithEventForUDP(&udp_ctx, peer_ne, peer_sock, *(peer_ne->getAddr()));
+    NetAddr *peer_net_addr = new NetAddr(NetAddr::fromBe(*(peer_ne->getAddr())).getAddr());
+    NetworkConnCtxWithEventForUDP *nctx = new NetworkConnCtxWithEventForUDP(&udp_ctx, peer_ne, peer_sock, peer_net_addr);
     udp_ctx.push_back(nctx);
 
     struct event *read_e = event_new(base, peer_sock, EV_READ | EV_PERSIST, udp_read_cb, nctx);
@@ -277,16 +282,11 @@ NetworkConnCtxWithEventForUDP::~NetworkConnCtxWithEventForUDP()
         close(peer_sock);
 }
 
-void NetworkConnCtxWithEventForUDP::setPeerSockAddr(struct sockaddr_in peer_addr)
-{
-    this->peer_addr = peer_addr;
-}
-
 uint64_t NetworkConnCtxWithEventForUDP::write(void *data, uint64_t data_len)
 {
-
-    LOG_INFO("[UDP] sendto [{}], len:{}", NetAddr::fromBe(peer_addr).str().data(), data_len);
-    return sendto(peer_sock, data, data_len, 0, (struct sockaddr *)&peer_addr, sizeof(struct sockaddr_in));
+    LOG_INFO("[UDP] sendto [{}], len:{}", this->peer->str().data(), data_len);
+    sockaddr_in be_addr = this->peer->getBeAddr();
+    return sendto(peer_sock, data, data_len, 0, (struct sockaddr *)&be_addr, sizeof(struct sockaddr_in));
 }
 
 NetworkEndpointWithEvent::~NetworkEndpointWithEvent()

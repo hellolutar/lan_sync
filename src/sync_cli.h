@@ -1,18 +1,12 @@
 #ifndef __SYNC_CLI_H_
 #define __SYNC_CLI_H_
 
-#include "modules/discovery_trigger.h"
+#include <cstdlib>
 
-class SyncCli
-{
-private:
+#include "modules/logic.h"
+#include "modules/sync_cli_logic.h"
+#include "modules/net_trigger.h"
+#include "modules/net_cli_discover.h"
 
-public:
-    DiscoveryTrigger *discovery;
-    
-    SyncCli();
-    ~SyncCli();
-    void setDiscoveryTrigger(DiscoveryTrigger *tr);
-};
 
 #endif

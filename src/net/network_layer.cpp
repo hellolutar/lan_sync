@@ -26,6 +26,8 @@ struct sockaddr_in *NetworkEndpoint::getAddr()
 
 NetworkConnCtx::~NetworkConnCtx()
 {
+    if (peer!=nullptr)
+        delete peer;
 }
 
 NetworkEndpoint *NetworkConnCtx::getNetworkEndpoint()
@@ -33,6 +35,12 @@ NetworkEndpoint *NetworkConnCtx::getNetworkEndpoint()
     return ne;
 }
 
+NetAddr& NetworkConnCtx::getPeer(){
+    return *peer;
+}
+void NetworkConnCtx::setNetAddr(NetAddr *peer){
+    this->peer = peer;
+}
 void NetworkConnCtx::destroy()
 {
     for (auto iter = head->end() - 1; iter >= head->begin(); iter--)

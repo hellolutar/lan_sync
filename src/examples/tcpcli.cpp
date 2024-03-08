@@ -6,22 +6,22 @@
 
 int count = 0;
 
-class UdpCli : public NetworkEndpointWithEvent
+class TcpCli : public NetworkEndpointWithEvent
 {
 private:
 public:
-    UdpCli(struct sockaddr_in *addr) : NetworkEndpointWithEvent(addr){};
-    ~UdpCli();
+    TcpCli(struct sockaddr_in *addr) : NetworkEndpointWithEvent(addr){};
+    ~TcpCli();
 
     void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
     bool isExtraAllDataNow(void *data, uint64_t data_len);
 };
 
-UdpCli::~UdpCli()
+TcpCli::~TcpCli()
 {
 }
 
-void UdpCli::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
+void TcpCli::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
     if (count >= 5)
     {
@@ -35,7 +35,7 @@ void UdpCli::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
     ctx->write(data, data_len);
     count++;
 }
-bool UdpCli::isExtraAllDataNow(void *data, uint64_t data_len)
+bool TcpCli::isExtraAllDataNow(void *data, uint64_t data_len)
 {
     return true;
 }
@@ -47,7 +47,7 @@ int main(int argc, char const *argv[])
     peer->sin_port = htons(8080);
     inet_aton("127.0.0.1", &(peer->sin_addr));
 
-    NetworkConnCtx *ctx = NetworkLayerWithEvent::connectWithTcp(new UdpCli(peer));
+    NetworkConnCtx *ctx = NetworkLayerWithEvent::connectWithTcp(new TcpCli(peer));
     if (ctx != nullptr)
     {
         std::string msg = "hello world";
