@@ -3,11 +3,9 @@
 
 #include <cstdlib>
 
-#include "modules/logic.h"
 #include "modules/sync_cli_logic.h"
-#include "modules/net_trigger.h"
-#include "modules/net_cli_discover.h"
-#include "modules/net_cli_req_table_index.h"
+#include "modules/net_cli_conn_setup_for_discover.h"
+#include "modules/net_cli_conn_setup_for_req_tb_idx.h"
 
 
 #endif

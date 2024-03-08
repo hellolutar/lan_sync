@@ -36,9 +36,9 @@ all: ${OBJS} ${BIN_TARGETS}
 	@echo $@
 	@$(CC) -I${CPLUS_INCLUDE_PATH}  $(CXXFLAGS)  $(LDFLAGS) $^ $(LIBS) -o $@
 
-%.o: %.cpp
+%.o: %.cpp %.h
 	@echo $@
-	@$(CC) -I${CPLUS_INCLUDE_PATH} -c $(CXXFLAGS) $(LDFLAGS) -D${COMPILE_OPT}  $^ $(LIBS) -o $@
+	@$(CC) -I${CPLUS_INCLUDE_PATH} -c $(CXXFLAGS) $(LDFLAGS) -D${COMPILE_OPT}  $< $(LIBS) -o $@
 
 sync_cli: sync_cli.o ${COMMON_OBJS} 
 ifneq (${COMPILE_OPT} , ${RELEASE})

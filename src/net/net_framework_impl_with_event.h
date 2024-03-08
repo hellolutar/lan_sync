@@ -1,5 +1,5 @@
-#ifndef __NETWORK_LAYER_TCP_WITH_EVENT_H_
-#define __NETWORK_LAYER_TCP_WITH_EVENT_H_
+#ifndef __NET_FRAMEWORK_IMPL_WITH_EVENT_H_
+#define __NET_FRAMEWORK_IMPL_WITH_EVENT_H_
 
 #include <map>
 #include <set>

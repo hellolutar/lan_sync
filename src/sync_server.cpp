@@ -54,6 +54,19 @@ SyncLogic::~SyncLogic()
 {
 }
 
+bool SyncLogic::isExtraAllDataNow(void *data, uint64_t data_len)
+{
+    if (data_len < LEN_LAN_SYNC_HEADER_T)
+        return false;
+
+    lan_sync_header_t *header = (lan_sync_header_t *)data;
+
+    if (data_len < ntohl(header->total_len))
+        return false;
+
+    return true;
+}
+
 void SyncLogic::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
     lan_sync_header_t *header = (lan_sync_header_t *)data;
@@ -160,6 +173,9 @@ void SyncLogic::replyResource(lan_sync_header_t *header, NetworkConnCtx *ctx)
 
 int main(int argc, char const *argv[])
 {
+    struct event_base *base = event_base_new();
+    NetFrameworkImplWithEvent::init(base);
+    
     struct sockaddr_in udpsock;
     udpsock.sin_family = AF_INET;
     udpsock.sin_port = htons(DISCOVER_SERVER_UDP_PORT);

@@ -8,7 +8,7 @@
 
 #include "utils/io_utils.h"
 #include "proto/lan_share_protocol.h"
-#include "net/network_layer_with_event.h"
+#include "net/net_framework_impl_with_event.h"
 #include "resource/resource.h"
 
 class SyncIOReadMonitor : public IoReadMonitor

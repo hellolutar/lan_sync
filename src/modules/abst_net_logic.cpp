@@ -1,4 +1,4 @@
-#include "logic.h"
+#include "abst_net_logic.h"
 
 void LogicTcp::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {

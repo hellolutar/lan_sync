@@ -1,4 +1,4 @@
-#include "network_cli.h"
+#include "net_cli_logic_container.h"
 
 void NetCliLogicContainer::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
@@ -6,15 +6,7 @@ void NetCliLogicContainer::recv(void *data, uint64_t data_len, NetworkConnCtx *c
 }
 bool NetCliLogicContainer::isExtraAllDataNow(void *data, uint64_t data_len)
 {
-    if (data_len < LEN_LAN_SYNC_HEADER_T)
-        return false;
-
-    lan_sync_header_t *header = (lan_sync_header_t *)data;
-
-    if (data_len < ntohl(header->total_len))
-        return false;
-
-    return true;
+    return logic.isExtraAllDataNow(data, data_len);
 }
 
 void NetCliLogicContainer::setCtx(NetworkConnCtx *ctx)

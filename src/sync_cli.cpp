@@ -10,7 +10,7 @@ int main(int argc, char const *argv[])
     SyncCliLogicUdp udplogic = logic;
     SyncCliLogicTcp tcplogic = logic;
 
-    NetCliConnDiscover discover_conn;
+    NetCliConnSetupForDiscover discover_conn;
     NetTrigger *discover_tr = new NetTrigger(Trigger::second(2), true, udplogic, discover_conn);
     logic.setDiscoveryTrigger(discover_tr);
     TimerWithEvent::addTr(discover_tr);
@@ -26,7 +26,7 @@ int main(int argc, char const *argv[])
         logic.getDiscoveryTrigger().addNetAddr(addr);
     }
 
-    NetCliConnReqTableIndex reqidx_conn;
+    NetCliConnSetupForReqTbIdx reqidx_conn;
     NetTrigger *reqidx_tr = new NetTrigger(Trigger::second(5), true, tcplogic, reqidx_conn);
     logic.setReqTableIndexTrigger(reqidx_tr);
     TimerWithEvent::addTr(reqidx_tr);

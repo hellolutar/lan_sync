@@ -1,4 +1,4 @@
-#include "network_layer_with_event.h"
+#include "net_framework_impl_with_event.h"
 
 using namespace std;
 
@@ -162,13 +162,7 @@ NetworkConnCtx *NetFrameworkImplWithEvent::connectWithTcp(NetAbilityImplWithEven
 {
     init_check();
 
-    struct sockaddr_in target_addr = peer_ne->getAddr().getBeAddr();
-
-    auto tmpaddr = target_addr.sin_addr;
-    tmpaddr.s_addr = ntohl(tmpaddr.s_addr);
-    string ip(inet_ntoa(tmpaddr));
-    string port = to_string(ntohs(target_addr.sin_port));
-    LOG_INFO("TCP connect : {}:{}", ip, port);
+    LOG_INFO("TCP connect : {}", peer_ne->getAddr().str());
 
     struct sockaddr_in myaddr;
     myaddr.sin_family = AF_INET;
@@ -178,7 +172,7 @@ NetworkConnCtx *NetFrameworkImplWithEvent::connectWithTcp(NetAbilityImplWithEven
     int ret = connect(peer_sock, (struct sockaddr *)&(peer_ne->getAddr()), sizeof(struct sockaddr_in));
     if (ret < 0)
     {
-        LOG_ERROR("TCP connect : {}:{}  REASON:{} ", ip, port, strerror(errno));
+        LOG_ERROR("TCP connect fail : {}  REASON:{} ", peer_ne->getAddr().str(), strerror(errno));
         delete peer_ne;
         return nullptr;
     }

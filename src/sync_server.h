@@ -26,19 +26,19 @@
 #include "utils/io_utils.h"
 #include "constants.h"
 #include "proto/udp_cli.h"
-#include "modules/logic.h"
+#include "modules/abst_net_logic.h"
 #include "components/sync_io_read_monitor.h"
 
 #include <cstring>
 
-#include "net/network_layer_with_event.h"
+#include "net/net_framework_impl_with_event.h"
 
 class SyncLogic;
 
 class SyncUdpServer : public NetAbilityImplWithEvent
 {
 private:
-    Logic *logic;
+    AbstNetLogic *logic;
 
 public:
     SyncUdpServer(struct sockaddr_in addr) : NetAbilityImplWithEvent(addr){};
@@ -52,7 +52,7 @@ public:
 class SyncTcpServer : public NetAbilityImplWithEvent
 {
 private:
-    Logic *logic;
+    AbstNetLogic *logic;
 
 public:
     SyncTcpServer(struct sockaddr_in addr) : NetAbilityImplWithEvent(addr){};
@@ -78,6 +78,7 @@ public:
     void handleTcpMsg(struct bufferevent *bev);
     void recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
     void recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
+    bool isExtraAllDataNow(void *data, uint64_t data_len) override;
 
     void replyTableIndex(NetworkConnCtx *ctx);
     void replyResource(lan_sync_header_t *header, NetworkConnCtx *ctx);

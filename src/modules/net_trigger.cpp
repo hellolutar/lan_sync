@@ -2,11 +2,7 @@
 
 using namespace std;
 
-AbstNetConnSetup::~AbstNetConnSetup()
-{
-}
-
-NetTrigger::NetTrigger(struct timeval period, bool persist, Logic &logic, AbstNetConnSetup &cliconn)
+NetTrigger::NetTrigger(struct timeval period, bool persist, AbstNetLogic &logic, AbstNetConnSetup &cliconn)
     : TriggerWithEvent(period, persist), logic(logic), cliconn(cliconn){};
 
 void NetTrigger::exec()

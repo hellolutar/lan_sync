@@ -1,16 +1,17 @@
-#ifndef __LOGIC_H_
-#define __LOGIC_H_
+#ifndef __ABST_NET_LOGIC_H_
+#define __ABST_NET_LOGIC_H_
 
 #include "net/network_layer.h"
 
-class Logic
+class AbstNetLogic
 {
 public:
-    virtual ~Logic(){};
+    virtual ~AbstNetLogic(){};
     virtual void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx) = 0;
+    virtual bool isExtraAllDataNow(void *data, uint64_t data_len) = 0;
 };
 
-class LogicTcp : public Logic
+class LogicTcp : public AbstNetLogic
 {
 public:
     virtual ~LogicTcp(){};
@@ -18,7 +19,7 @@ public:
     virtual void recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx) = 0;
 };
 
-class LogicUdp : public Logic
+class LogicUdp : public AbstNetLogic
 {
 public:
     virtual ~LogicUdp(){};

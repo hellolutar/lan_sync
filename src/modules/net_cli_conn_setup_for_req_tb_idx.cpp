@@ -1,15 +1,15 @@
-#include "net_cli_req_table_index.h"
+#include "net_cli_conn_setup_for_req_tb_idx.h"
 
 using namespace std;
-NetCliConnReqTableIndex::NetCliConnReqTableIndex(/* args */)
+NetCliConnSetupForReqTbIdx::NetCliConnSetupForReqTbIdx(/* args */)
 {
 }
 
-NetCliConnReqTableIndex::~NetCliConnReqTableIndex()
+NetCliConnSetupForReqTbIdx::~NetCliConnSetupForReqTbIdx()
 {
 }
 
-NetCliLogicContainer *NetCliConnReqTableIndex::setupConn(NetAddr peer, Logic &logic)
+NetCliLogicContainer *NetCliConnSetupForReqTbIdx::setupConn(NetAddr peer, AbstNetLogic &logic)
 {
     NetCliLogicContainer *tcpcli = new NetCliLogicContainer(peer, logic);                     // ne 何时释放
     NetworkConnCtx *nctx = NetFrameworkImplWithEvent::connectWithTcp(tcpcli); // nctx 何时释放: 由NetworkLayerWithEvent负责释放
@@ -17,7 +17,7 @@ NetCliLogicContainer *NetCliConnReqTableIndex::setupConn(NetAddr peer, Logic &lo
     return tcpcli;
 }
 
-void NetCliConnReqTableIndex::exec(NetworkConnCtx &ctx)
+void NetCliConnSetupForReqTbIdx::exec(NetworkConnCtx &ctx)
 {
     // TODO
 }

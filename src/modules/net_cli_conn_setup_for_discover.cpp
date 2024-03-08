@@ -1,24 +1,24 @@
-#include "net_cli_discover.h"
+#include "net_cli_conn_setup_for_discover.h"
 
 using namespace std;
-NetCliConnDiscover::NetCliConnDiscover(/* args */)
+NetCliConnSetupForDiscover::NetCliConnSetupForDiscover(/* args */)
 {
 }
 
-NetCliConnDiscover::~NetCliConnDiscover()
+NetCliConnSetupForDiscover::~NetCliConnSetupForDiscover()
 {
 }
 
-NetCliLogicContainer *NetCliConnDiscover::setupConn(NetAddr peer, Logic &logic)
+NetCliLogicContainer *NetCliConnSetupForDiscover::setupConn(NetAddr peer, AbstNetLogic &logic)
 {
-    // LOG_INFO("NetCliConnDiscover setupConn: {}",)
+    // LOG_INFO("NetCliConnSetupForDiscover setupConn: {}",)
     NetCliLogicContainer *udpcli = new NetCliLogicContainer(peer, logic);                     // ne 何时释放
     NetworkConnCtx *nctx = NetFrameworkImplWithEvent::connectWithUdp(udpcli); // nctx 何时释放: 由NetworkLayerWithEvent负责释放
     udpcli->setCtx(nctx);
     return udpcli;
 }
 
-void NetCliConnDiscover::exec(NetworkConnCtx &ctx)
+void NetCliConnSetupForDiscover::exec(NetworkConnCtx &ctx)
 {
     LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_HELLO);
     struct evbuffer *buf = evbuffer_new();
