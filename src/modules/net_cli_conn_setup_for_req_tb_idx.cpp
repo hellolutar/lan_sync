@@ -19,5 +19,5 @@ NetCliLogicContainer *NetCliConnSetupForReqTbIdx::setupConn(NetAddr peer, AbstNe
 
 void NetCliConnSetupForReqTbIdx::exec(NetworkConnCtx &ctx)
 {
-    // TODO
+    printf("NetCliConnSetupForReqTbIdx::exec() todo\n");
 }

@@ -169,7 +169,9 @@ NetworkConnCtx *NetFrameworkImplWithEvent::connectWithTcp(NetAbilityImplWithEven
     myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     int peer_sock = socket(AF_INET, SOCK_STREAM, 0);
-    int ret = connect(peer_sock, (struct sockaddr *)&(peer_ne->getAddr()), sizeof(struct sockaddr_in));
+    
+    sockaddr_in be_addr = peer_ne->getAddr().getBeAddr();
+    int ret = connect(peer_sock, (struct sockaddr *)&be_addr, sizeof(struct sockaddr_in));
     if (ret < 0)
     {
         LOG_ERROR("TCP connect fail : {}  REASON:{} ", peer_ne->getAddr().str(), strerror(errno));
