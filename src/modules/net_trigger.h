@@ -15,22 +15,22 @@ public:
     virtual void exec(NetworkConnCtx &ctx) = 0;
 };
 
-class NetCliConn : public NetCliConnBehavior
+class AbstNetConnSetup : public NetCliConnBehavior
 {
 public:
-    virtual ~NetCliConn();
-    virtual NetworkCli *setupConn(struct sockaddr_in *peer, Logic &logic) = 0;
+    virtual ~AbstNetConnSetup();
+    virtual NetCliLogicContainer *setupConn(NetAddr peer, Logic &logic) = 0;
 };
 
 class NetTrigger : public TriggerWithEvent
 {
 private:
-    std::map<NetAddr, NetworkCli *> conns;
+    std::map<NetAddr, NetCliLogicContainer *> conns;
     Logic &logic;
-    NetCliConn &cliconn;
+    AbstNetConnSetup &cliconn;
 
 public:
-    NetTrigger(struct timeval period, bool persist, Logic &logic, NetCliConn &cliconn);
+    NetTrigger(struct timeval period, bool persist, Logic &logic, AbstNetConnSetup &cliconn);
     ~NetTrigger(){};
 
     void exec() override;

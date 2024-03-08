@@ -10,46 +10,45 @@
 
 #include "net_addr.h"
 
+class NetAbility;
 
-class NetworkEndpoint;
-
-class NetworkLayer
+class AbstNetFramework
 {
 public:
-    virtual ~NetworkLayer();
+    virtual ~AbstNetFramework();
 };
 
 class NetworkConnCtx
 {
 protected:
-    NetworkEndpoint *ne;
+    NetAbility *ne;
     std::vector<NetworkConnCtx *> *head;
-    NetAddr *peer;
+    NetAddr peer;
 
 public:
-    NetworkConnCtx(std::vector<NetworkConnCtx *> *head, NetworkEndpoint *ne, NetAddr *peer) : head(head), ne(ne), peer(peer){};
+    NetworkConnCtx(std::vector<NetworkConnCtx *> *head, NetAbility *ne, NetAddr peer) : head(head), ne(ne), peer(peer){};
     virtual ~NetworkConnCtx();
     virtual uint64_t write(void *data, uint64_t data_len) = 0;
-    virtual NetworkEndpoint *getNetworkEndpoint();
+    virtual NetAbility *getNetworkEndpoint();
     virtual void destroy();
-    virtual NetAddr& getPeer();
-    virtual void setNetAddr(NetAddr *peer);
+    virtual NetAddr &getPeer();
+    virtual void setNetAddr(NetAddr peer);
 };
 
-class NetworkEndpoint
+class NetAbility
 {
 protected:
-    struct sockaddr_in *addr;
+    NetAddr addr;
     int sock = 0;
 
 public:
-    NetworkEndpoint(struct sockaddr_in *addr) : addr(addr){};
-    virtual ~NetworkEndpoint();
+    NetAbility(NetAddr addr) : addr(addr){};
+    virtual ~NetAbility();
 
     virtual void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx) = 0;
     virtual bool isExtraAllDataNow(void *data, uint64_t data_len) = 0;
 
-    virtual struct sockaddr_in *getAddr();
+    virtual NetAddr &getAddr();
     virtual void setSock(int sock);
 };
 #endif

@@ -2,11 +2,11 @@
 
 #include "net/network_layer_with_event.h"
 
-class UdpServer : public NetworkEndpointWithEvent
+class UdpServer : public NetAbilityImplWithEvent
 {
 private:
 public:
-    UdpServer(struct sockaddr_in *addr) : NetworkEndpointWithEvent(addr){};
+    UdpServer(struct sockaddr_in addr) : NetAbilityImplWithEvent(addr){};
     ~UdpServer();
 
     void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
@@ -30,14 +30,14 @@ bool UdpServer::isExtraAllDataNow(void *data, uint64_t data_len)
 
 int main(int argc, char const *argv[])
 {
-    struct sockaddr_in sock;
-    sock.sin_family = AF_INET;
-    sock.sin_port = htons(8080);
-    sock.sin_addr.s_addr = htonl(INADDR_ANY);
+    struct sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(8080);
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    NetworkLayerWithEvent::addUdpServer(new UdpServer(&sock));
-    NetworkLayerWithEvent::run();
-    NetworkLayerWithEvent::free();
+    NetFrameworkImplWithEvent::addUdpServer(new UdpServer(addr));
+    NetFrameworkImplWithEvent::run();
+    NetFrameworkImplWithEvent::free();
 
     return 0;
 }

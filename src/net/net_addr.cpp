@@ -4,9 +4,10 @@
 
 using namespace std;
 
-NetAddr::NetAddr(){
+NetAddr::NetAddr()
+{
     le_addr.sin_addr.s_addr = 0;
-    le_addr.sin_family= 0;
+    le_addr.sin_family = 0;
     le_addr.sin_port = 0;
 }
 
@@ -80,4 +81,14 @@ NetAddr NetAddr::fromBe(sockaddr_in be)
     ip += ":";
     ip += to_string(port);
     return NetAddr(ip);
+}
+
+void NetAddr::setPort(int le_port)
+{
+    le_addr.sin_port = le_port;
+}
+void NetAddr::setIp(string ip)
+{
+    inet_aton(ip.data(), &(le_addr.sin_addr));
+    le_addr.sin_addr.s_addr = ntohl(le_addr.sin_addr.s_addr);
 }

@@ -2,43 +2,39 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-NetworkLayer::~NetworkLayer()
+AbstNetFramework::~AbstNetFramework()
 {
 }
 
-NetworkEndpoint::~NetworkEndpoint()
+NetAbility::~NetAbility()
 {
     if (sock > 0)
         close(sock);
-
-    free(addr);
 }
 
-void NetworkEndpoint::setSock(int sock)
+void NetAbility::setSock(int sock)
 {
     this->sock = sock;
 }
 
-struct sockaddr_in *NetworkEndpoint::getAddr()
+struct NetAddr &NetAbility::getAddr()
 {
     return addr;
 }
 
 NetworkConnCtx::~NetworkConnCtx()
 {
-    if (peer!=nullptr)
-        delete peer;
 }
 
-NetworkEndpoint *NetworkConnCtx::getNetworkEndpoint()
+NetAbility *NetworkConnCtx::getNetworkEndpoint()
 {
     return ne;
 }
 
 NetAddr& NetworkConnCtx::getPeer(){
-    return *peer;
+    return peer;
 }
-void NetworkConnCtx::setNetAddr(NetAddr *peer){
+void NetworkConnCtx::setNetAddr(NetAddr peer){
     this->peer = peer;
 }
 void NetworkConnCtx::destroy()

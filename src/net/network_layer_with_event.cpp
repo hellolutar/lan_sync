@@ -2,21 +2,21 @@
 
 using namespace std;
 
-struct event_base *NetworkLayerWithEvent::base;
-std::vector<event *> NetworkLayerWithEvent::events; // only persist event need to add
-std::vector<NetworkConnCtx *> NetworkLayerWithEvent::tcp_ctx;
-std::vector<NetworkConnCtx *> NetworkLayerWithEvent::udp_ctx;
+struct event_base *NetFrameworkImplWithEvent::base;
+std::vector<event *> NetFrameworkImplWithEvent::events; // only persist event need to add
+std::vector<NetworkConnCtx *> NetFrameworkImplWithEvent::tcp_ctx;
+std::vector<NetworkConnCtx *> NetFrameworkImplWithEvent::udp_ctx;
 
-void NetworkLayerWithEvent::event_cb(struct bufferevent *bev, short events, void *data)
+void NetFrameworkImplWithEvent::event_cb(struct bufferevent *bev, short events, void *data)
 {
 }
 
-void NetworkLayerWithEvent::write_cb(struct bufferevent *bev, void *data)
+void NetFrameworkImplWithEvent::write_cb(struct bufferevent *bev, void *data)
 {
     LOG_INFO("[SYNC CLI] call tcp_writecb!");
 }
 
-void NetworkLayerWithEvent::read_cb(struct bufferevent *bev, void *arg)
+void NetFrameworkImplWithEvent::read_cb(struct bufferevent *bev, void *arg)
 {
     struct evbuffer *in = bufferevent_get_input(bev);
 
@@ -29,7 +29,7 @@ void NetworkLayerWithEvent::read_cb(struct bufferevent *bev, void *arg)
     evbuffer_copyout(in, data, data_len);
 
     NetworkConnCtxWithEvent *ctx = (NetworkConnCtxWithEvent *)arg;
-    NetworkEndpoint *ne = ctx->getNetworkEndpoint();
+    NetAbility *ne = ctx->getNetworkEndpoint();
     if (ne->isExtraAllDataNow((void *)data, data_len))
     {
         memset(data, 0, data_len);
@@ -40,9 +40,9 @@ void NetworkLayerWithEvent::read_cb(struct bufferevent *bev, void *arg)
     delete[] data;
 }
 
-void NetworkLayerWithEvent::tcp_accept(evutil_socket_t listener, short event, void *ctx)
+void NetFrameworkImplWithEvent::tcp_accept(evutil_socket_t listener, short event, void *ctx)
 {
-    NetworkEndpoint *ne = (NetworkEndpoint *)ctx;
+    NetAbility *ne = (NetAbility *)ctx;
 
     struct sockaddr_in peer;
     socklen_t slen = sizeof(struct sockaddr_in);
@@ -59,13 +59,13 @@ void NetworkLayerWithEvent::tcp_accept(evutil_socket_t listener, short event, vo
     bufferevent_getwatermark(bev, EV_WRITE, &lw, &hw);
     bufferevent_setwatermark(bev, EV_WRITE, 0, hw);
 
-    NetworkConnCtxWithEvent *nctx = new NetworkConnCtxWithEvent(&tcp_ctx, ne, bev, peer_sock, new NetAddr(NetAddr::fromBe(peer).getAddr()));
+    NetworkConnCtxWithEvent *nctx = new NetworkConnCtxWithEvent(&tcp_ctx, ne, bev, peer_sock, NetAddr::fromBe(peer));
     tcp_ctx.push_back(nctx);
     bufferevent_setcb(bev, read_cb, write_cb, nullptr, nctx);
     bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
 
-void NetworkLayerWithEvent::addTcpServer(NetworkEndpointWithEvent *ne)
+void NetFrameworkImplWithEvent::addTcpServer(NetAbilityImplWithEvent *ne)
 {
     if (base == nullptr)
         base = event_base_new();
@@ -79,7 +79,7 @@ void NetworkLayerWithEvent::addTcpServer(NetworkEndpointWithEvent *ne)
     setsockopt(tcp_sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
     setsockopt(tcp_sock, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(int));
 
-    assert(bind(tcp_sock, (struct sockaddr *)ne->getAddr(), sizeof(struct sockaddr_in)) == 0);
+    assert(bind(tcp_sock, (struct sockaddr *)&(ne->getAddr()), sizeof(struct sockaddr_in)) == 0);
 
     int res = listen(tcp_sock, 100);
     if (res == -1)
@@ -90,7 +90,7 @@ void NetworkLayerWithEvent::addTcpServer(NetworkEndpointWithEvent *ne)
     }
     ne->setSock(tcp_sock);
 
-    LOG_INFO("TCP listen: {}", ntohs(ne->getAddr()->sin_port));
+    LOG_INFO("TCP listen: {}", ntohs(ne->getAddr().getAddr().sin_port));
 
     struct event *accept_event_persist = event_new(base, tcp_sock, EV_READ | EV_PERSIST, tcp_accept, (void *)ne);
     event_add(accept_event_persist, nullptr);
@@ -98,7 +98,7 @@ void NetworkLayerWithEvent::addTcpServer(NetworkEndpointWithEvent *ne)
     ne->setEvent(accept_event_persist);
 }
 
-void NetworkLayerWithEvent::udp_read_cb(evutil_socket_t fd, short events, void *arg)
+void NetFrameworkImplWithEvent::udp_read_cb(evutil_socket_t fd, short events, void *arg)
 {
     struct sockaddr_in target_addr;
     socklen_t addrlen = sizeof(struct sockaddr_in);
@@ -112,14 +112,13 @@ void NetworkLayerWithEvent::udp_read_cb(evutil_socket_t fd, short events, void *
     }
     NetworkConnCtxWithEventForUDP *nctx = (NetworkConnCtxWithEventForUDP *)arg;
 
-    NetAddr *peer_net_addr = new NetAddr(NetAddr::fromBe(target_addr).getAddr());
-    nctx->setNetAddr(peer_net_addr);
+    nctx->setNetAddr(NetAddr::fromBe(target_addr));
 
-    NetworkEndpoint *ne = nctx->getNetworkEndpoint();
+    NetAbility *ne = nctx->getNetworkEndpoint();
     ne->recv((void *)data, receive, nctx);
 }
 
-void NetworkLayerWithEvent::addUdpServer(NetworkEndpointWithEvent *ne)
+void NetFrameworkImplWithEvent::addUdpServer(NetAbilityImplWithEvent *ne)
 {
     if (base == nullptr)
         base = event_base_new();
@@ -132,13 +131,14 @@ void NetworkLayerWithEvent::addUdpServer(NetworkEndpointWithEvent *ne)
     setsockopt(udp_sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
     evutil_make_socket_nonblocking(udp_sock);
 
-    assert(bind(udp_sock, (struct sockaddr *)ne->getAddr(), sizeof(struct sockaddr_in)) >= 0);
+    auto addr = ne->getAddr();
+    assert(bind(udp_sock, (struct sockaddr *)&addr, sizeof(struct sockaddr_in)) >= 0);
     ne->setSock(udp_sock);
 
-    LOG_INFO("UDP listen: {}", ntohs(ne->getAddr()->sin_port));
+    LOG_INFO("UDP listen: {}", ntohs(ne->getAddr().getAddr().sin_port));
 
     NetAddr addr_will_be_udpate_follow;
-    NetworkConnCtxWithEventForUDP *nctx = new NetworkConnCtxWithEventForUDP(&udp_ctx, ne, udp_sock, &addr_will_be_udpate_follow); // udp_sock close many time: 1.NetworkEndpointWithEvent; 2.NetworkConnCtx
+    NetworkConnCtxWithEventForUDP *nctx = new NetworkConnCtxWithEventForUDP(&udp_ctx, ne, udp_sock, addr_will_be_udpate_follow); // udp_sock close many time: 1.NetworkEndpointWithEvent; 2.NetworkConnCtx
     udp_ctx.push_back(nctx);
 
     struct event *read_e = event_new(base, udp_sock, EV_READ | EV_PERSIST, udp_read_cb, nctx);
@@ -146,17 +146,17 @@ void NetworkLayerWithEvent::addUdpServer(NetworkEndpointWithEvent *ne)
     ne->setEvent(read_e);
 }
 
-NetworkConnCtx *NetworkLayerWithEvent::connectWithTcp(NetworkEndpointWithEvent *peer_ne)
+NetworkConnCtx *NetFrameworkImplWithEvent::connectWithTcp(NetAbilityImplWithEvent *peer_ne)
 {
     if (base == nullptr)
         base = event_base_new();
 
-    struct sockaddr_in *target_addr = peer_ne->getAddr();
+    struct sockaddr_in target_addr = peer_ne->getAddr().getBeAddr();
 
-    auto tmpaddr = target_addr->sin_addr;
+    auto tmpaddr = target_addr.sin_addr;
     tmpaddr.s_addr = ntohl(tmpaddr.s_addr);
     string ip(inet_ntoa(tmpaddr));
-    string port = to_string(ntohs(target_addr->sin_port));
+    string port = to_string(ntohs(target_addr.sin_port));
     LOG_INFO("TCP connect : {}:{}", ip, port);
 
     struct sockaddr_in myaddr;
@@ -164,7 +164,7 @@ NetworkConnCtx *NetworkLayerWithEvent::connectWithTcp(NetworkEndpointWithEvent *
     myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     int peer_sock = socket(AF_INET, SOCK_STREAM, 0);
-    int ret = connect(peer_sock, (struct sockaddr *)peer_ne->getAddr(), sizeof(struct sockaddr_in));
+    int ret = connect(peer_sock, (struct sockaddr *)&(peer_ne->getAddr()), sizeof(struct sockaddr_in));
     if (ret < 0)
     {
         LOG_ERROR("TCP connect : {}:{}  REASON:{} ", ip, port, strerror(errno));
@@ -174,8 +174,7 @@ NetworkConnCtx *NetworkLayerWithEvent::connectWithTcp(NetworkEndpointWithEvent *
 
     struct bufferevent *bev = bufferevent_socket_new(base, peer_sock, BEV_OPT_CLOSE_ON_FREE);
 
-    NetAddr *peer_net_addr = new NetAddr(NetAddr::fromBe(*(peer_ne->getAddr())).getAddr());
-    NetworkConnCtxWithEvent *nctx = new NetworkConnCtxWithEvent(&tcp_ctx, peer_ne, bev, peer_sock, peer_net_addr); //
+    NetworkConnCtxWithEvent *nctx = new NetworkConnCtxWithEvent(&tcp_ctx, peer_ne, bev, peer_sock, peer_ne->getAddr());
     tcp_ctx.push_back(nctx);
     bufferevent_setcb(bev, read_cb, write_cb, nullptr, nctx);
     bufferevent_enable(bev, EV_READ | EV_WRITE);
@@ -183,7 +182,7 @@ NetworkConnCtx *NetworkLayerWithEvent::connectWithTcp(NetworkEndpointWithEvent *
     return nctx; // todo determine delete
 }
 
-NetworkConnCtx *NetworkLayerWithEvent::connectWithUdp(NetworkEndpointWithEvent *peer_ne)
+NetworkConnCtx *NetFrameworkImplWithEvent::connectWithUdp(NetAbilityImplWithEvent *peer_ne)
 {
     if (base == nullptr)
         base = event_base_new();
@@ -197,16 +196,9 @@ NetworkConnCtx *NetworkLayerWithEvent::connectWithUdp(NetworkEndpointWithEvent *
     setsockopt(peer_sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
     evutil_make_socket_nonblocking(peer_sock);
 
-    struct sockaddr_in *target_addr = peer_ne->getAddr(); // target_addr free by peer
+    LOG_INFO("UDP connect : {}", peer_ne->getAddr().str().data());
 
-    auto tmpaddr = target_addr->sin_addr;
-    tmpaddr.s_addr = ntohl(tmpaddr.s_addr);
-    string ip(inet_ntoa(tmpaddr));
-    string port = to_string(ntohs(target_addr->sin_port));
-    LOG_INFO("UDP connect : {}:{}", ip, port);
-
-    NetAddr *peer_net_addr = new NetAddr(NetAddr::fromBe(*(peer_ne->getAddr())).getAddr());
-    NetworkConnCtxWithEventForUDP *nctx = new NetworkConnCtxWithEventForUDP(&udp_ctx, peer_ne, peer_sock, peer_net_addr);
+    NetworkConnCtxWithEventForUDP *nctx = new NetworkConnCtxWithEventForUDP(&udp_ctx, peer_ne, peer_sock, peer_ne->getAddr()); // todo &peer_ne maybe a problem
     udp_ctx.push_back(nctx);
 
     struct event *read_e = event_new(base, peer_sock, EV_READ | EV_PERSIST, udp_read_cb, nctx);
@@ -216,7 +208,7 @@ NetworkConnCtx *NetworkLayerWithEvent::connectWithUdp(NetworkEndpointWithEvent *
     return nctx;
 }
 
-void NetworkLayerWithEvent::run()
+void NetFrameworkImplWithEvent::run()
 {
     if (base == nullptr)
     {
@@ -227,13 +219,13 @@ void NetworkLayerWithEvent::run()
     event_base_dispatch(base);
 }
 
-void NetworkLayerWithEvent::shutdown()
+void NetFrameworkImplWithEvent::shutdown()
 {
     event_base_loopbreak(base);
     cleanup();
 }
 
-void NetworkLayerWithEvent::cleanup()
+void NetFrameworkImplWithEvent::cleanup()
 {
     for (int i = events.size() - 1; i >= 0; i--)
     {
@@ -255,7 +247,7 @@ void NetworkLayerWithEvent::cleanup()
     }
 }
 
-void NetworkLayerWithEvent::free()
+void NetFrameworkImplWithEvent::free()
 {
     cleanup();
     event_base_free(base);
@@ -284,18 +276,18 @@ NetworkConnCtxWithEventForUDP::~NetworkConnCtxWithEventForUDP()
 
 uint64_t NetworkConnCtxWithEventForUDP::write(void *data, uint64_t data_len)
 {
-    LOG_INFO("[UDP] sendto [{}], len:{}", this->peer->str().data(), data_len);
-    sockaddr_in be_addr = this->peer->getBeAddr();
+    LOG_INFO("[UDP] sendto [{}], len:{}", this->peer.str().data(), data_len);
+    sockaddr_in be_addr = peer.getBeAddr();
     return sendto(peer_sock, data, data_len, 0, (struct sockaddr *)&be_addr, sizeof(struct sockaddr_in));
 }
 
-NetworkEndpointWithEvent::~NetworkEndpointWithEvent()
+NetAbilityImplWithEvent::~NetAbilityImplWithEvent()
 {
     if (e != nullptr)
         event_free(e);
 }
 
-void NetworkEndpointWithEvent::setEvent(struct event *e)
+void NetAbilityImplWithEvent::setEvent(struct event *e)
 {
     this->e = e;
 }

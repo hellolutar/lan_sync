@@ -2,11 +2,11 @@
 
 using namespace std;
 
-NetCliConn::~NetCliConn()
+AbstNetConnSetup::~AbstNetConnSetup()
 {
 }
 
-NetTrigger::NetTrigger(struct timeval period, bool persist, Logic &logic, NetCliConn &cliconn)
+NetTrigger::NetTrigger(struct timeval period, bool persist, Logic &logic, AbstNetConnSetup &cliconn)
     : TriggerWithEvent(period, persist), logic(logic), cliconn(cliconn){};
 
 void NetTrigger::exec()
@@ -19,15 +19,11 @@ void NetTrigger::exec()
 
 bool NetTrigger::addNetAddr(NetAddr addr)
 {
-    NetworkCli *netcli = conns[addr];
+    NetCliLogicContainer *netcli = conns[addr];
     if (netcli != nullptr)
         return false;
 
-    struct sockaddr_in peer = addr.getBeAddr();
-    struct sockaddr_in *peerp = (struct sockaddr_in *)malloc(sizeof(sockaddr_in));
-    memcpy(peerp, &peer, sizeof(sockaddr_in));
-
-    netcli = cliconn.setupConn(peerp, logic);
+    netcli = cliconn.setupConn(addr, logic);
 
     conns[addr] = netcli;
 
@@ -36,7 +32,7 @@ bool NetTrigger::addNetAddr(NetAddr addr)
 
 bool NetTrigger::delNetAddr(NetAddr addr)
 {
-    NetworkCli *udpcli = conns[addr];
+    NetCliLogicContainer *udpcli = conns[addr];
     if (udpcli == nullptr)
         return false;
     else

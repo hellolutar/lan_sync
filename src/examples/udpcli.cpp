@@ -6,11 +6,11 @@
 
 int count = 0;
 
-class UdpCli : public NetworkEndpointWithEvent
+class UdpCli : public NetAbilityImplWithEvent
 {
 private:
 public:
-    UdpCli(struct sockaddr_in *addr) : NetworkEndpointWithEvent(addr){};
+    UdpCli(NetAddr addr) : NetAbilityImplWithEvent(addr){};
     ~UdpCli();
 
     void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
@@ -25,7 +25,7 @@ void UdpCli::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
     if (count >= 5)
     {
-        NetworkLayerWithEvent::shutdown();
+        NetFrameworkImplWithEvent::shutdown();
         return;
     }
 
@@ -41,19 +41,14 @@ bool UdpCli::isExtraAllDataNow(void *data, uint64_t data_len)
 
 int main(int argc, char const *argv[])
 {
-    struct sockaddr_in peer;
-    peer.sin_family = AF_INET;
-    peer.sin_port = htons(8080);
-    inet_aton("127.0.0.1", &(peer.sin_addr));
-
-    NetworkConnCtx *ctx = NetworkLayerWithEvent::connectWithUdp(new UdpCli(&peer));
+    NetworkConnCtx *ctx = NetFrameworkImplWithEvent::connectWithUdp(new UdpCli(NetAddr("127.0.0.1:8080")));
     if (ctx != nullptr)
     {
         std::string msg = "hello world";
         ctx->write(msg.data(), msg.size());
     }
 
-    NetworkLayerWithEvent::run();
+    NetFrameworkImplWithEvent::run();
 
     return 0;
 }

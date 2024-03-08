@@ -1,5 +1,5 @@
-#ifndef __NET_CLI_DISCOVER_
-#define __NET_CLI_DISCOVER_
+#ifndef __NET_CLI_REQ_TABLE_INDEX_H_
+#define __NET_CLI_REQ_TABLE_INDEX_H_
 
 #include "timer/timer_trigger_with_event.h"
 #include "proto/lan_share_protocol.h"
@@ -9,13 +9,13 @@
 #include "network_cli.h"
 #include "net_trigger.h"
 
-class NetCliConnDiscover : public AbstNetConnSetup
+class NetCliConnReqTableIndex : public AbstNetConnSetup
 {
 private:
     /* data */
 public:
-    NetCliConnDiscover(/* args */);
-    ~NetCliConnDiscover();
+    NetCliConnReqTableIndex(/* args */);
+    ~NetCliConnReqTableIndex();
     NetCliLogicContainer *setupConn(NetAddr peer, Logic &logic) override;
     void exec(NetworkConnCtx &ctx) override;
 };

@@ -3,6 +3,7 @@
 int main(int argc, char const *argv[])
 {
     struct event_base *base = event_base_new();
+    TimerWithEvent::init(base);
 
     SyncCliLogic logic;
     SyncCliLogicUdp udplogic = logic;
@@ -11,6 +12,7 @@ int main(int argc, char const *argv[])
     NetCliConnDiscover discover_conn;
     NetTrigger *discover_tr = new NetTrigger(Trigger::second(2), true, udplogic, discover_conn);
     logic.setDiscoveryTrigger(discover_tr);
+    TimerWithEvent::addTr(discover_tr);
 
     vector<LocalPort> ports = LocalPort::query();
 
@@ -18,13 +20,17 @@ int main(int argc, char const *argv[])
     {
         LocalPort port = ports[i];
         auto broadaddr = port.getBroadAddr();
-        broadaddr.sin_port = htons(DISCOVER_SERVER_UDP_PORT);
         NetAddr addr = NetAddr::fromBe(broadaddr);
-        logic.discovery->addNetAddr(addr);
+        addr.setPort(DISCOVER_SERVER_UDP_PORT);
+        logic.getDiscoveryTrigger().addNetAddr(addr);
     }
 
-    TimerWithEvent::init(base);
-    TimerWithEvent::addTr(discover_tr);
+    NetCliConnReqTableIndex reqidx_conn;
+    NetTrigger *reqidx_tr = new NetTrigger(Trigger::second(5), true, tcplogic, reqidx_conn);
+    logic.setReqTableIndexTrigger(reqidx_tr);
+    TimerWithEvent::addTr(reqidx_tr);
+
+
     TimerWithEvent::run();
 
     return 0;

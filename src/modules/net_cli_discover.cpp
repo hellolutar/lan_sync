@@ -9,10 +9,11 @@ NetCliConnDiscover::~NetCliConnDiscover()
 {
 }
 
-NetworkCli *NetCliConnDiscover::setupConn(struct sockaddr_in *peer, Logic &logic)
+NetCliLogicContainer *NetCliConnDiscover::setupConn(NetAddr peer, Logic &logic)
 {
-    NetworkCli *udpcli = new NetworkCli(peer, logic);                     // ne 何时释放
-    NetworkConnCtx *nctx = NetworkLayerWithEvent::connectWithUdp(udpcli); // nctx 何时释放: 由NetworkLayerWithEvent负责释放
+    // LOG_INFO("NetCliConnDiscover setupConn: {}",)
+    NetCliLogicContainer *udpcli = new NetCliLogicContainer(peer, logic);                     // ne 何时释放
+    NetworkConnCtx *nctx = NetFrameworkImplWithEvent::connectWithUdp(udpcli); // nctx 何时释放: 由NetworkLayerWithEvent负责释放
     udpcli->setCtx(nctx);
     return udpcli;
 }

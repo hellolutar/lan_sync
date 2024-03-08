@@ -6,11 +6,11 @@
 
 int count = 0;
 
-class TcpCli : public NetworkEndpointWithEvent
+class TcpCli : public NetAbilityImplWithEvent
 {
 private:
 public:
-    TcpCli(struct sockaddr_in *addr) : NetworkEndpointWithEvent(addr){};
+    TcpCli(struct sockaddr_in addr) : NetAbilityImplWithEvent(addr){};
     ~TcpCli();
 
     void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
@@ -26,7 +26,7 @@ void TcpCli::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
     if (count >= 5)
     {
         printf("Done\n");
-        NetworkLayerWithEvent::shutdown();
+        NetFrameworkImplWithEvent::shutdown();
         return;
     }
 
@@ -42,20 +42,20 @@ bool TcpCli::isExtraAllDataNow(void *data, uint64_t data_len)
 
 int main(int argc, char const *argv[])
 {
-    struct sockaddr_in *peer = new sockaddr_in;
-    peer->sin_family = AF_INET;
-    peer->sin_port = htons(8080);
-    inet_aton("127.0.0.1", &(peer->sin_addr));
+    struct sockaddr_in peer ;
+    peer.sin_family = AF_INET;
+    peer.sin_port = htons(8080);
+    inet_aton("127.0.0.1", &(peer.sin_addr));
 
-    NetworkConnCtx *ctx = NetworkLayerWithEvent::connectWithTcp(new TcpCli(peer));
+    NetworkConnCtx *ctx = NetFrameworkImplWithEvent::connectWithTcp(new TcpCli(peer));
     if (ctx != nullptr)
     {
         std::string msg = "hello world";
         ctx->write(msg.data(), msg.size());
     }
 
-    NetworkLayerWithEvent::run();
-    NetworkLayerWithEvent::free();
+    NetFrameworkImplWithEvent::run();
+    NetFrameworkImplWithEvent::free();
 
     return 0;
 }

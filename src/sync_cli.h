@@ -7,6 +7,7 @@
 #include "modules/sync_cli_logic.h"
 #include "modules/net_trigger.h"
 #include "modules/net_cli_discover.h"
+#include "modules/net_cli_req_table_index.h"
 
 
 #endif

@@ -9,19 +9,23 @@
 class SyncCliLogic : public LogicTcp, public LogicUdp
 {
 private:
-    void handleHelloAck(LanSyncPkt &pkt);
+    void handleHelloAck(LanSyncPkt &pkt, NetworkConnCtx &ctx);
+    NetTrigger *discovery;
+    NetTrigger *req_table_index;
 
 public:
     enum state st;
-    NetTrigger *discovery;
-
 
     SyncCliLogic(){};
     ~SyncCliLogic();
     void recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
     void recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
-    void setDiscoveryTrigger(NetTrigger * tr);
-    NetTrigger& getDiscoveryTrigger();
+
+    void setDiscoveryTrigger(NetTrigger *tr);
+    NetTrigger &getDiscoveryTrigger();
+
+    void setReqTableIndexTrigger(NetTrigger *tr);
+    NetTrigger &ReqTableIndexTrigger();
 };
 
 class SyncCliLogicTcp : public LogicTcp

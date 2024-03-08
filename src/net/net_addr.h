@@ -18,14 +18,16 @@ public:
     NetAddr(std::string ipport);
     NetAddr(sockaddr_in le_addr) : le_addr(le_addr){};
     ~NetAddr();
+    static NetAddr fromBe(sockaddr_in be);
     sockaddr_in getBeAddr();
     sockaddr_in getAddr();
+    void setPort(int le_port);
+    void setIp(std::string ip);
     friend bool operator<(const NetAddr &l, const NetAddr &r);
     bool operator==(NetAddr &p);
 
     std::string str();
 
-    static NetAddr fromBe(sockaddr_in be);
 };
 
 #endif

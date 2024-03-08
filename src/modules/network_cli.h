@@ -7,15 +7,15 @@
 #include "net/net_addr.h"
 #include "logic.h"
 
-class NetworkCli : public NetworkEndpointWithEvent
+class NetCliLogicContainer : public NetAbilityImplWithEvent
 {
 private:
     NetworkConnCtx *net_ctx;
     Logic &logic;
 
 public:
-    NetworkCli(struct sockaddr_in *addr, Logic &logic) : NetworkEndpointWithEvent(addr), logic(logic){};
-    virtual ~NetworkCli(){};
+    NetCliLogicContainer(NetAddr addr, Logic &logic) : NetAbilityImplWithEvent(addr), logic(logic){};
+    virtual ~NetCliLogicContainer(){};
 
     void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
     bool isExtraAllDataNow(void *data, uint64_t data_len);

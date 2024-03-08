@@ -45,7 +45,7 @@ void SyncTcpServer::setLogic(LogicTcp *logic)
     this->logic = logic;
 }
 
-SyncLogic::SyncLogic(NetworkEndpoint *udpserver, NetworkEndpoint *tcpserver) : udpserver(udpserver), tcpserver(tcpserver)
+SyncLogic::SyncLogic(NetAbility *udpserver, NetAbility *tcpserver) : udpserver(udpserver), tcpserver(tcpserver)
 {
     st = STATE_DISCOVERING;
 }
@@ -57,10 +57,6 @@ SyncLogic::~SyncLogic()
 void SyncLogic::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
     lan_sync_header_t *header = (lan_sync_header_t *)data;
-
-    auto target_addr = ctx->getNetworkEndpoint()->getAddr();
-    target_addr->sin_addr.s_addr = ntohl(target_addr->sin_addr.s_addr);
-    target_addr->sin_port = ntohs(target_addr->sin_port);
 
     if (header->type == LAN_SYNC_TYPE_HELLO)
     {
@@ -89,8 +85,7 @@ void SyncLogic::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
         free(reply_data);
     }
     else
-        LOG_WARN("[SYNC SER] receive pkt[{}:{}] : the type is unsupport : {}",
-                 inet_ntoa(target_addr->sin_addr), ntohs(target_addr->sin_port), header->type);
+        LOG_WARN("[SYNC SER] receive pkt[{}] : the type is unsupport : {}", ctx->getNetworkEndpoint()->getAddr().str().data(), header->type);
 }
 
 void SyncLogic::recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
@@ -169,15 +164,15 @@ int main(int argc, char const *argv[])
     udpsock.sin_family = AF_INET;
     udpsock.sin_port = htons(DISCOVER_SERVER_UDP_PORT);
     udpsock.sin_addr.s_addr = htonl(INADDR_ANY);
-    auto udpserver = new SyncUdpServer(&udpsock);
-    NetworkLayerWithEvent::addUdpServer(udpserver);
+    auto udpserver = new SyncUdpServer(udpsock);
+    NetFrameworkImplWithEvent::addUdpServer(udpserver);
 
     struct sockaddr_in tcpsock;
     tcpsock.sin_family = AF_INET;
     tcpsock.sin_port = htons(DISCOVER_SERVER_TCP_PORT);
     tcpsock.sin_addr.s_addr = htonl(INADDR_ANY);
-    auto tcpserver = new SyncTcpServer(&tcpsock);
-    NetworkLayerWithEvent::addTcpServer(tcpserver);
+    auto tcpserver = new SyncTcpServer(tcpsock);
+    NetFrameworkImplWithEvent::addTcpServer(tcpserver);
 
     SyncLogic *logic = new SyncLogic(udpserver, tcpserver);
     LogicTcp *tcplogic = logic;
@@ -186,12 +181,12 @@ int main(int argc, char const *argv[])
     udpserver->setLogic(udplogic);
     tcpserver->setLogic(tcplogic);
 
-    NetworkLayerWithEvent::run();
+    NetFrameworkImplWithEvent::run();
 
     delete tcpserver;
     delete udpserver;
     delete logic;
-    NetworkLayerWithEvent::free();
+    NetFrameworkImplWithEvent::free();
 
     return 0;
 }

@@ -3,11 +3,11 @@
 
 #include "net/network_layer_with_event.h"
 
-class TcpServer : public NetworkEndpointWithEvent
+class TcpServer : public NetAbilityImplWithEvent
 {
 private:
 public:
-    TcpServer(struct sockaddr_in *addr) : NetworkEndpointWithEvent(addr){};
+    TcpServer(struct sockaddr_in addr) : NetAbilityImplWithEvent(addr){};
     ~TcpServer();
 
     void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
@@ -31,14 +31,14 @@ bool TcpServer::isExtraAllDataNow(void *data, uint64_t data_len)
 
 int main(int argc, char const *argv[])
 {
-    struct sockaddr_in sock;
-    sock.sin_family = AF_INET;
-    sock.sin_port = htons(8080);
-    sock.sin_addr.s_addr = htonl(INADDR_ANY);
+    struct sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(8080);
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    NetworkLayerWithEvent::addTcpServer(new TcpServer(&sock));
-    NetworkLayerWithEvent::run();
-    NetworkLayerWithEvent::free();
+    NetFrameworkImplWithEvent::addTcpServer(new TcpServer(addr));
+    NetFrameworkImplWithEvent::run();
+    NetFrameworkImplWithEvent::free();
 
     return 0;
 }

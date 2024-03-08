@@ -8,13 +8,22 @@ void SyncCliLogic::setDiscoveryTrigger(NetTrigger *tr)
 {
     discovery = tr;
 }
+void SyncCliLogic::setReqTableIndexTrigger(NetTrigger *tr)
+{
+    req_table_index = tr;
+}
 
 NetTrigger &SyncCliLogic::getDiscoveryTrigger()
 {
     return *discovery;
 }
 
-void SyncCliLogic::handleHelloAck(LanSyncPkt &pkt)
+NetTrigger &SyncCliLogic::ReqTableIndexTrigger()
+{
+    return *req_table_index;
+}
+
+void SyncCliLogic::handleHelloAck(LanSyncPkt &pkt, NetworkConnCtx &ctx)
 {
     string peer_tcp_port_str = pkt.queryXheader(XHEADER_TCPPORT);
     uint16_t peer_tcp_port = atoi(peer_tcp_port_str.data());
@@ -24,21 +33,11 @@ void SyncCliLogic::handleHelloAck(LanSyncPkt &pkt)
     LOG_DEBUG("[SYNC CLI] recive [HELLO ACK], data_len:{} , peer tcp port: {}", data_len, peer_tcp_port);
 
     if (st == STATE_DISCOVERING)
-    {
         st = STATE_SYNC_READY;
-        // todo(lutar) 形成 RESOURCE_TABLE, 这里是不是也可以引入状态机
-        // connPeerWithTcp(target_addr, peer_tcp_port);
-        // 向trigger中添加连接
-    }
-    // else
-    // {
-    //     if (!existTcpSessionByAddr(target_addr.sin_addr.s_addr))
-    //     {
-    //         connPeerWithTcp(target_addr, peer_tcp_port);
-    //     }
-    // }
 
-    // todo add tcp cli trigger
+    NetAddr peer_tcp_addr = ctx.getPeer();
+    peer_tcp_addr.setPort(peer_tcp_port);
+    this->req_table_index->addNetAddr(peer_tcp_addr);
 }
 
 void SyncCliLogic::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
@@ -47,7 +46,7 @@ void SyncCliLogic::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
     LanSyncPkt pkt(header);
 
     if (pkt.getType() == LAN_SYNC_TYPE_HELLO_ACK)
-        handleHelloAck(pkt);
+        handleHelloAck(pkt, *ctx);
     else
         LOG_WARN("[SYNC CLI] recive [404]{} : {}", "unsupport type, do not reply ", header->type);
 }

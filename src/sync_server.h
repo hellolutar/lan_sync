@@ -35,13 +35,13 @@
 
 class SyncLogic;
 
-class SyncUdpServer : public NetworkEndpointWithEvent
+class SyncUdpServer : public NetAbilityImplWithEvent
 {
 private:
     Logic *logic;
 
 public:
-    SyncUdpServer(struct sockaddr_in *addr) : NetworkEndpointWithEvent(addr){};
+    SyncUdpServer(struct sockaddr_in addr) : NetAbilityImplWithEvent(addr){};
     ~SyncUdpServer();
 
     void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
@@ -49,13 +49,13 @@ public:
     void setLogic(LogicUdp *logic);
 };
 
-class SyncTcpServer : public NetworkEndpointWithEvent
+class SyncTcpServer : public NetAbilityImplWithEvent
 {
 private:
     Logic *logic;
 
 public:
-    SyncTcpServer(struct sockaddr_in *addr) : NetworkEndpointWithEvent(addr){};
+    SyncTcpServer(struct sockaddr_in addr) : NetAbilityImplWithEvent(addr){};
     ~SyncTcpServer();
 
     void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
@@ -66,14 +66,14 @@ public:
 class SyncLogic : public LogicUdp, public LogicTcp
 {
 private:
-    NetworkEndpoint *udpserver;
-    NetworkEndpoint *tcpserver;
+    NetAbility *udpserver;
+    NetAbility *tcpserver;
 
 public:
     enum state st;
     ResourceManager rm = ResourceManager("static/server");
 
-    SyncLogic(NetworkEndpoint *udpserver, NetworkEndpoint *tcpserver);
+    SyncLogic(NetAbility *udpserver, NetAbility *tcpserver);
     ~SyncLogic();
     void handleTcpMsg(struct bufferevent *bev);
     void recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;

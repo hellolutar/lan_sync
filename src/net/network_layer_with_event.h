@@ -17,9 +17,9 @@
 #include "utils/logger.h"
 
 class NetworkConnCtxWithEvent;
-class NetworkEndpointWithEvent;
+class NetAbilityImplWithEvent;
 
-class NetworkLayerWithEvent : public NetworkLayer
+class NetFrameworkImplWithEvent : public AbstNetFramework
 {
 private:
     static struct event_base *base;
@@ -35,10 +35,10 @@ public:
     static void read_cb(struct bufferevent *bev, void *data);
     static void udp_read_cb(evutil_socket_t fd, short events, void *ctx);
 
-    static void addTcpServer(NetworkEndpointWithEvent *ne);
-    static void addUdpServer(NetworkEndpointWithEvent *ne);
-    static NetworkConnCtx *connectWithTcp(NetworkEndpointWithEvent *ne);
-    static NetworkConnCtx *connectWithUdp(NetworkEndpointWithEvent *peer);
+    static void addTcpServer(NetAbilityImplWithEvent *ne);
+    static void addUdpServer(NetAbilityImplWithEvent *ne);
+    static NetworkConnCtx *connectWithTcp(NetAbilityImplWithEvent *ne);
+    static NetworkConnCtx *connectWithUdp(NetAbilityImplWithEvent *peer);
     static void run();
     static void shutdown();
 
@@ -53,7 +53,7 @@ private:
     int peer_sock;
 
 public:
-    NetworkConnCtxWithEvent(std::vector<NetworkConnCtx *> *head, NetworkEndpoint *ne, struct bufferevent *bev, int peer_sock, NetAddr *peer_addr)
+    NetworkConnCtxWithEvent(std::vector<NetworkConnCtx *> *head, NetAbility *ne, struct bufferevent *bev, int peer_sock, NetAddr peer)
         : NetworkConnCtx(head, ne, peer), bev(bev), peer_sock(peer_sock){};
 
     ~NetworkConnCtxWithEvent();
@@ -66,21 +66,21 @@ private:
     int peer_sock;
 
 public:
-    NetworkConnCtxWithEventForUDP(std::vector<NetworkConnCtx *> *head, NetworkEndpoint *ne, int peer_sock, NetAddr *peer_addr)
+    NetworkConnCtxWithEventForUDP(std::vector<NetworkConnCtx *> *head, NetAbility *ne, int peer_sock, NetAddr peer_addr)
         : NetworkConnCtx(head, ne, peer_addr), peer_sock(peer_sock){};
     ~NetworkConnCtxWithEventForUDP();
 
     uint64_t write(void *data, uint64_t data_len) override;
 };
 
-class NetworkEndpointWithEvent : public NetworkEndpoint
+class NetAbilityImplWithEvent : public NetAbility
 {
 protected:
     struct event *e = nullptr;
 
 public:
-    NetworkEndpointWithEvent(struct sockaddr_in *addr) : NetworkEndpoint(addr){};
-    ~NetworkEndpointWithEvent();
+    NetAbilityImplWithEvent(NetAddr addr) : NetAbility(addr){};
+    ~NetAbilityImplWithEvent();
     void setEvent(struct event *e);
 };
 
