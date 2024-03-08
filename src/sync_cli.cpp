@@ -4,6 +4,7 @@ int main(int argc, char const *argv[])
 {
     struct event_base *base = event_base_new();
     TimerWithEvent::init(base);
+    NetFrameworkImplWithEvent::init(base);
 
     SyncCliLogic logic;
     SyncCliLogicUdp udplogic = logic;
@@ -29,7 +30,6 @@ int main(int argc, char const *argv[])
     NetTrigger *reqidx_tr = new NetTrigger(Trigger::second(5), true, tcplogic, reqidx_conn);
     logic.setReqTableIndexTrigger(reqidx_tr);
     TimerWithEvent::addTr(reqidx_tr);
-
 
     TimerWithEvent::run();
 

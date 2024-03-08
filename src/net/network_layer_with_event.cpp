@@ -7,6 +7,20 @@ std::vector<event *> NetFrameworkImplWithEvent::events; // only persist event ne
 std::vector<NetworkConnCtx *> NetFrameworkImplWithEvent::tcp_ctx;
 std::vector<NetworkConnCtx *> NetFrameworkImplWithEvent::udp_ctx;
 
+void NetFrameworkImplWithEvent::init(struct event_base *eb)
+{
+    base = eb;
+}
+
+void NetFrameworkImplWithEvent::init_check()
+{
+    if (base == nullptr)
+    {
+        LOG_ERROR("please NetFrameworkImplWithEvent::init()");
+        exit(-1);
+    }
+}
+
 void NetFrameworkImplWithEvent::event_cb(struct bufferevent *bev, short events, void *data)
 {
 }
@@ -67,8 +81,7 @@ void NetFrameworkImplWithEvent::tcp_accept(evutil_socket_t listener, short event
 
 void NetFrameworkImplWithEvent::addTcpServer(NetAbilityImplWithEvent *ne)
 {
-    if (base == nullptr)
-        base = event_base_new();
+    init_check();
 
     int tcp_sock = socket(AF_INET, SOCK_STREAM, 0);
     assert(tcp_sock > 0);
@@ -120,8 +133,7 @@ void NetFrameworkImplWithEvent::udp_read_cb(evutil_socket_t fd, short events, vo
 
 void NetFrameworkImplWithEvent::addUdpServer(NetAbilityImplWithEvent *ne)
 {
-    if (base == nullptr)
-        base = event_base_new();
+    init_check();
 
     int udp_sock = socket(AF_INET, SOCK_DGRAM, 0);
     assert(udp_sock > 0);
@@ -148,8 +160,7 @@ void NetFrameworkImplWithEvent::addUdpServer(NetAbilityImplWithEvent *ne)
 
 NetworkConnCtx *NetFrameworkImplWithEvent::connectWithTcp(NetAbilityImplWithEvent *peer_ne)
 {
-    if (base == nullptr)
-        base = event_base_new();
+    init_check();
 
     struct sockaddr_in target_addr = peer_ne->getAddr().getBeAddr();
 
@@ -184,8 +195,7 @@ NetworkConnCtx *NetFrameworkImplWithEvent::connectWithTcp(NetAbilityImplWithEven
 
 NetworkConnCtx *NetFrameworkImplWithEvent::connectWithUdp(NetAbilityImplWithEvent *peer_ne)
 {
-    if (base == nullptr)
-        base = event_base_new();
+    init_check();
 
     int peer_sock = socket(AF_INET, SOCK_DGRAM, 0);
     assert(peer_sock > 0);
@@ -210,11 +220,7 @@ NetworkConnCtx *NetFrameworkImplWithEvent::connectWithUdp(NetAbilityImplWithEven
 
 void NetFrameworkImplWithEvent::run()
 {
-    if (base == nullptr)
-    {
-        printf("need to addTcpServer/addUdpServer firstly!\n");
-        return;
-    }
+    init_check();
 
     event_base_dispatch(base);
 }
