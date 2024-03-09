@@ -23,7 +23,7 @@
 #include <event2/buffer.h>
 
 #include "proto/lan_share_protocol.h"
-#include "resource/resource_manager.h"
+#include "modules/resource_manager.h"
 #include "proto/udp_cli.h"
 #include "utils/logger.h"
 #include "utils/io_utils.h"

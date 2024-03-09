@@ -26,7 +26,6 @@ int main(int argc, char const *argv[])
         main_logic.getDiscoveryTrigger().addNetAddr(addr);
     }
 
-    
     NetTrigger *reqidx_tr = new TcpTrigger(Trigger::second(5), true, tcplogic, main_logic.getSyncCliReqTbIdxLogic());
     main_logic.setReqTableIndexTrigger(reqidx_tr);
     TimerWithEvent::addTr(reqidx_tr);

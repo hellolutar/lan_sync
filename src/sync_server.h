@@ -21,7 +21,7 @@
 #include <event2/bufferevent.h>
 
 #include "proto/lan_share_protocol.h"
-#include "resource/resource_manager.h"
+#include "modules/resource_manager.h"
 #include "utils/logger.h"
 #include "utils/io_utils.h"
 #include "constants.h"

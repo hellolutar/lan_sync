@@ -4,20 +4,22 @@ WORKSPACE:=/home/lutar/code/c/lan_sync/src
 SRC_C := $(wildcard *.cpp)
 SRC_UTILS := $(wildcard ${WORKSPACE}/utils/*.cpp)
 SRC_PROTOS := $(wildcard ${WORKSPACE}/proto/*.cpp)
-SRC_RESOURCE := $(wildcard ${WORKSPACE}/resource/*.cpp)
 SRC_COMPONENTS := $(wildcard ${WORKSPACE}/components/*.cpp)
 SRC_NETS := $(wildcard ${WORKSPACE}/net/*.cpp)
 SRC_TIMER:= $(wildcard ${WORKSPACE}/timer/*.cpp)
 SRC_MODULES:= $(wildcard ${WORKSPACE}/modules/*.cpp)
 SRC_LOGICS:= $(wildcard ${WORKSPACE}/logics/*.cpp)
+SRC_VOS:= $(wildcard ${WORKSPACE}/vo/*.cpp)
+SRC_DTOS:= $(wildcard ${WORKSPACE}/vo/dto/*.cpp)
 COMMON_OBJS := ${SRC_UTILS:.cpp=.o}
 COMMON_OBJS += ${SRC_PROTOS:.cpp=.o}
-COMMON_OBJS += ${SRC_RESOURCE:.cpp=.o}
 COMMON_OBJS += ${SRC_COMPONENTS:.cpp=.o}
 COMMON_OBJS += ${SRC_NETS:.cpp=.o}
 COMMON_OBJS += ${SRC_TIMER:.cpp=.o}
 COMMON_OBJS += ${SRC_MODULES:.cpp=.o}
 COMMON_OBJS += ${SRC_LOGICS:.cpp=.o}
+COMMON_OBJS += ${SRC_VOS:.cpp=.o}
+COMMON_OBJS += ${SRC_DTOS:.cpp=.o}
 TARGET_OBJS += ${SRC_C:.cpp=.o} 
 OBJS+=${COMMON_OBJS}
 OBJS+=${TARGET_OBJS}

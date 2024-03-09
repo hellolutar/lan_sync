@@ -154,6 +154,7 @@ public:
 
     uint16_t getHeaderLen();
     uint32_t getTotalLen();
+    uint32_t getDataLen();
     enum lan_sync_version getVersion();
     enum lan_sync_type_enum getType();
     const map<string, string> getXheaders();
@@ -196,6 +197,8 @@ public:
     uint64_t getStartPos();
     uint64_t getSize();
     string to_string();
+
+    static string defaultStr;
 };
 
 #endif

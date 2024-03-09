@@ -27,7 +27,7 @@ void NetFrameworkImplWithEvent::event_cb(struct bufferevent *bev, short events, 
 
 void NetFrameworkImplWithEvent::write_cb(struct bufferevent *bev, void *data)
 {
-    LOG_INFO("[SYNC CLI] call tcp_writecb!");
+    LOG_INFO("tcp_writecb!");
 }
 
 void NetFrameworkImplWithEvent::read_cb(struct bufferevent *bev, void *arg)

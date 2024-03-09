@@ -295,6 +295,9 @@ uint32_t LanSyncPkt::getTotalLen()
 {
     return total_len;
 }
+uint32_t LanSyncPkt::getDataLen(){
+    return total_len - header_len;
+}
 
 enum lan_sync_version LanSyncPkt::getVersion()
 {
@@ -365,6 +368,8 @@ string ContentRange::to_string()
     return ss.str();
 }
 
+ string Range::defaultStr = "0-0/0/last";
+
 // str like : 0-500
 // str like : 0-
 Range::Range(string str)
@@ -393,6 +398,7 @@ uint64_t Range::getSize()
 {
     return size;
 }
+
 
 // str like : 0-500
 // str like : 0-

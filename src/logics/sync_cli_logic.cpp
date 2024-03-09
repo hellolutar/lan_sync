@@ -1,10 +1,25 @@
 #include "sync_cli_logic.h"
 
-SyncCliLogic::SyncCliLogic()
+bool SyncCliLogicTcp::isExtraAllDataNow(void *data, uint64_t data_len)
 {
+    return recv_logic.isExtraAllDataNow(data, data_len);
+}
+void SyncCliLogicTcp::recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
+{
+    recv_logic.recv_tcp(data, data_len, ctx);
 }
 
-SyncCliLogic::~SyncCliLogic()
+void SyncCliLogicUdp::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
+{
+    recv_logic.recv_udp(data, data_len, ctx);
+}
+
+bool SyncCliLogicUdp::isExtraAllDataNow(void *data, uint64_t data_len)
+{
+    return recv_logic.isExtraAllDataNow(data, data_len);
+}
+
+SyncCliLogic::SyncCliLogic()
 {
 }
 
@@ -32,9 +47,22 @@ NetTrigger &SyncCliLogic::getDiscoveryTrigger()
     return *discovery;
 }
 
-NetTrigger &SyncCliLogic::ReqTableIndexTrigger()
+NetTrigger &SyncCliLogic::getReqTableIndexTrigger()
 {
     return *req_table_index;
+}
+
+bool SyncCliLogic::isExtraAllDataNow(void *data, uint64_t data_len)
+{
+    if (data_len < LEN_LAN_SYNC_HEADER_T)
+        return false;
+
+    lan_sync_header_t *header = (lan_sync_header_t *)data;
+
+    if (data_len < ntohl(header->total_len))
+        return false;
+
+    return true;
 }
 
 void SyncCliLogic::handleHelloAck(LanSyncPkt &pkt, NetworkConnCtx &ctx)
@@ -67,44 +95,54 @@ void SyncCliLogic::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 
 void SyncCliLogic::recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
-}
-
-bool SyncCliLogic::isExtraAllDataNow(void *data, uint64_t data_len)
-{
-    if (data_len < LEN_LAN_SYNC_HEADER_T)
-        return false;
-
     lan_sync_header_t *header = (lan_sync_header_t *)data;
 
-    if (data_len < ntohl(header->total_len))
-        return false;
+    if (header->type == LAN_SYNC_TYPE_REPLY_TABLE_INDEX)
+        handleLanSyncReplyTableIndex(data, data_len, ctx, header);
+    else if (header->type == LAN_SYNC_TYPE_REPLY_RESOURCE)
+        handleLanSyncReplyResource(data, data_len, ctx, header);
+    else
+        LOG_WARN("[SYNC CLI] receive tcp pkt : the type is unsupport!");
 
-    return true;
+    free(data);
 }
 
-SyncCliLogicTcp::~SyncCliLogicTcp()
+void SyncCliLogic::handleLanSyncReplyTableIndex(void *data, uint64_t data_len, NetworkConnCtx *ctx, lan_sync_header_t *header)
 {
+    LanSyncPkt pkt(header);
+
+    // 提取记录数量
+    uint64_t res_size = pkt.getDataLen() / sizeof(struct Resource);
+
+    struct Resource *table = (struct Resource *)pkt.getData();
+    rm.analysisThenUpdateSyncTable(table, res_size);
 }
 
-bool SyncCliLogicTcp::isExtraAllDataNow(void *data, uint64_t data_len)
+void SyncCliLogic::handleLanSyncReplyResource(void *data, uint64_t data_len, NetworkConnCtx *ctx, lan_sync_header_t *header)
 {
-    return recv_logic.isExtraAllDataNow(data, data_len);
-}
-void SyncCliLogicTcp::recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
-{
-    recv_logic.recv_tcp(data, data_len, ctx);
-}
+    LanSyncPkt pkt(header);
 
-SyncCliLogicUdp::~SyncCliLogicUdp()
-{
-}
+    string uri = pkt.queryXheader(XHEADER_URI);
+    if (uri == "")
+    {
+        LOG_ERROR("[SYNC CLI] handleLanSyncReplyResource() query header is failed! ");
+        return;
+    }
 
-void SyncCliLogicUdp::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
-{
-    recv_logic.recv_udp(data, data_len, ctx);
-}
+    string content_range_str = pkt.queryXheader(XHEADER_CONTENT_RANGE);
+    ContentRange cr(content_range_str);
 
-bool SyncCliLogicUdp::isExtraAllDataNow(void *data, uint64_t data_len)
-{
-    return recv_logic.isExtraAllDataNow(data, data_len);
+    uint8_t *data_pos = (uint8_t *)data + pkt.getHeaderLen();
+    bool write_ret = rm.saveLocal(uri, data_pos, cr.getStartPos(), cr.getSize());
+    if (!write_ret)
+    {
+        rm.updateSyncEntryStatus(uri, FAIL);
+        return;
+    }
+
+    if (cr.isLast())
+    {
+        string hash = pkt.queryXheader(XHEADER_HASH);
+        rm.validRes(uri, hash);
+    }
 }

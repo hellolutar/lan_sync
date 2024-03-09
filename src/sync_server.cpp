@@ -125,7 +125,7 @@ void SyncLogic::replyTableIndex(NetworkConnCtx *ctx)
     vector<struct Resource *> table = rm.getTable();
     uint32_t table_len = sizeof(struct Resource) * table.size();
 
-    struct Resource *reply_table = resource_convert_vec_to_arr(table);
+    struct Resource *reply_table = Resource::vecToArr(table);
 
     struct evbuffer *buf = evbuffer_new();
 
@@ -175,7 +175,7 @@ int main(int argc, char const *argv[])
 {
     struct event_base *base = event_base_new();
     NetFrameworkImplWithEvent::init(base);
-    
+
     struct sockaddr_in udpsock;
     udpsock.sin_family = AF_INET;
     udpsock.sin_port = htons(DISCOVER_SERVER_UDP_PORT);

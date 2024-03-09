@@ -293,7 +293,7 @@ void SyncCli::handleLanSyncReplyResource(struct bufferevent *bev, lan_sync_heade
     if (cr.isLast())
     {
         string hash = pkt.queryXheader(XHEADER_HASH);
-        if (rm.checkHash(uri, hash))
+        if (rm.validRes(uri, hash))
         {
             updateSyncResourceStatus(uri, SUCCESS);
             delSyncResource(uri);

@@ -9,7 +9,7 @@
 #include "utils/io_utils.h"
 #include "proto/lan_share_protocol.h"
 #include "net/net_framework_impl_with_event.h"
-#include "resource/resource.h"
+#include "vo/dto/resource.h"
 
 class SyncIOReadMonitor : public IoReadMonitor
 {

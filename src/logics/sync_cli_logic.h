@@ -7,6 +7,8 @@
 #include "modules/net_trigger.h"
 #include "sync_cli_discover_logic.h"
 #include "sync_cli_sync_logic.h"
+#include "modules/resource_manager.h"
+#include "vo/want_to_sync_vo.h"
 
 class SyncCliLogic : public LogicTcp, public LogicUdp
 {
@@ -18,11 +20,15 @@ private:
     SyncCliDiscoverLogic discover_logic;
     SyncCliReqTbIdxLogic req_tb_idx_logic;
 
+    void handleLanSyncReplyTableIndex(void *data, uint64_t data_len, NetworkConnCtx *ctx, lan_sync_header_t *header);
+    void handleLanSyncReplyResource(void *data, uint64_t data_len, NetworkConnCtx *ctx, lan_sync_header_t *header);
+
 public:
     enum state st;
+    ResourceManager rm = ResourceManager("static/cli");
 
     SyncCliLogic();
-    ~SyncCliLogic();
+    ~SyncCliLogic(){};
     void recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
     void recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
     bool isExtraAllDataNow(void *data, uint64_t data_len) override;
@@ -31,7 +37,7 @@ public:
     NetTrigger &getDiscoveryTrigger();
 
     void setReqTableIndexTrigger(NetTrigger *tr);
-    NetTrigger &ReqTableIndexTrigger();
+    NetTrigger &getReqTableIndexTrigger();
 
     SyncCliDiscoverLogic &getDiscoverLogic();
     SyncCliReqTbIdxLogic &getSyncCliReqTbIdxLogic();
@@ -44,7 +50,7 @@ private:
 
 public:
     SyncCliLogicTcp(LogicTcp &recv_logic) : recv_logic(recv_logic){};
-    ~SyncCliLogicTcp();
+    ~SyncCliLogicTcp(){};
     void recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
     bool isExtraAllDataNow(void *data, uint64_t data_len) override;
 };
@@ -56,7 +62,7 @@ private:
 
 public:
     SyncCliLogicUdp(LogicUdp &recv_logic) : recv_logic(recv_logic){};
-    ~SyncCliLogicUdp();
+    ~SyncCliLogicUdp(){};
     void recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
     bool isExtraAllDataNow(void *data, uint64_t data_len) override;
 };
