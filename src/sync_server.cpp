@@ -122,7 +122,8 @@ void SyncLogic::recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 
 void SyncLogic::replyTableIndex(NetworkConnCtx *ctx)
 {
-    vector<struct Resource *> table = rm.getTable();
+    ResourceManager &rsm = ResourceManager::getRsm();
+    vector<struct Resource *> table = rsm.getTable();
     uint32_t table_len = sizeof(struct Resource) * table.size();
 
     struct Resource *reply_table = Resource::vecToArr(table);
@@ -155,7 +156,8 @@ void SyncLogic::replyResource(lan_sync_header_t *header, NetworkConnCtx *ctx)
     char *uri = xhd_uri.data();
     LOG_INFO("[SYNC SER] [{}] : uri[{}] ", SERVICE_NAME_REQ_RESOURCE, uri);
 
-    const struct Resource *rs = rm.queryByUri(uri);
+    ResourceManager &rsm = ResourceManager::getRsm();
+    const struct Resource *rs = rsm.queryByUri(uri);
     if (rs == nullptr)
         return;
 

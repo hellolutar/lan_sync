@@ -103,23 +103,22 @@ void SyncCliLogic::recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
         handleLanSyncReplyResource(data, data_len, ctx, header);
     else
         LOG_WARN("[SYNC CLI] receive tcp pkt : the type is unsupport!");
-
-    free(data);
 }
 
 void SyncCliLogic::handleLanSyncReplyTableIndex(void *data, uint64_t data_len, NetworkConnCtx *ctx, lan_sync_header_t *header)
 {
     LanSyncPkt pkt(header);
 
-    // 提取记录数量
     uint64_t res_size = pkt.getDataLen() / sizeof(struct Resource);
 
     struct Resource *table = (struct Resource *)pkt.getData();
-    rm.analysisThenUpdateSyncTable(table, res_size);
+    ResourceManager::getRsm().analysisThenUpdateSyncTable(table, res_size);
 }
 
 void SyncCliLogic::handleLanSyncReplyResource(void *data, uint64_t data_len, NetworkConnCtx *ctx, lan_sync_header_t *header)
 {
+    ResourceManager &rsm = ResourceManager::getRsm();
+
     LanSyncPkt pkt(header);
 
     string uri = pkt.queryXheader(XHEADER_URI);
@@ -133,16 +132,16 @@ void SyncCliLogic::handleLanSyncReplyResource(void *data, uint64_t data_len, Net
     ContentRange cr(content_range_str);
 
     uint8_t *data_pos = (uint8_t *)data + pkt.getHeaderLen();
-    bool write_ret = rm.saveLocal(uri, data_pos, cr.getStartPos(), cr.getSize());
+    bool write_ret = rsm.saveLocal(uri, data_pos, cr.getStartPos(), cr.getSize());
     if (!write_ret)
     {
-        rm.updateSyncEntryStatus(uri, FAIL);
+        rsm.updateSyncEntryStatus(uri, FAIL);
         return;
     }
 
     if (cr.isLast())
     {
         string hash = pkt.queryXheader(XHEADER_HASH);
-        rm.validRes(uri, hash);
+        rsm.validRes(uri, hash);
     }
 }

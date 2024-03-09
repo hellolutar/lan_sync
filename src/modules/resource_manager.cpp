@@ -4,6 +4,22 @@
 
 using namespace std;
 
+static ResourceManager rsm("");
+
+void ResourceManager::init(string home)
+{
+    rsm = ResourceManager(home);
+}
+ResourceManager &ResourceManager::getRsm()
+{
+    if (rsm.getRsHome() == "")
+    {
+        LOG_ERROR("PLEASE run ResourceManager::init firstly!");
+        exit(-1);
+    }
+    return rsm;
+}
+
 ResourceManager::ResourceManager(string path)
 {
     rsHome = path;
@@ -160,7 +176,6 @@ std::vector<struct Resource> ResourceManager::queryNeedToSync(std::vector<struct
         if (strlen(peer_table[i].uri) == 0)
             continue;
 
-        LOG_DEBUG(" > uri: {}", peer_table[i].uri);
         filtered[peer_table[i].name] = peer_table[i];
     }
 
@@ -205,10 +220,16 @@ void ResourceManager::analysisThenUpdateSyncTable(struct Resource *table, uint64
         if (syncing_rs.getRange().getSize() > 0)
         {
             if (need_sync_rs.size > syncing_rs.getRange().getSize())
+            {
+                LOG_INFO("[SYNC CLI] SYNC RESET: URI:{}", syncing_rs.getUri().data());
                 syncing_rs.setStatus(RESET);
+            }
         }
         else
+        {
+            LOG_INFO("[SYNC CLI] SYNC PENDING: URI:{}", syncing_rs.getUri().data());
             syncTable[need_sync_rs.uri] = WantToSyncVO(need_sync_rs.uri, PENDING, Range(0, rs_size));
+        }
     }
 }
 
@@ -224,7 +245,7 @@ string ResourceManager::resourcePosition(string uri)
 
 bool ResourceManager::saveLocal(string uri, void *data, uint64_t offset, uint64_t data_len)
 {
-    // 写
+    LOG_INFO("[SYNC CLI] SYNC save to local: offset:{} data_len:{} URI:{}", offset, data_len, uri);
     string pathstr = resourcePosition(uri);
 
     auto path = filesystem::path(pathstr);
@@ -243,11 +264,10 @@ bool ResourceManager::saveLocal(string uri, void *data, uint64_t offset, uint64_
 
 void ResourceManager::updateSyncEntryStatus(std::string uri, WantSyncResourceStatusEnum status)
 {
-    WantToSyncVO vo = syncTable[uri];
+    if (syncTable[uri].getUri().size() > 0)
+        syncTable[uri].setStatus(status);
 
-    if (vo.getUri().size() > 0)
-        vo.setStatus(status);
-
+    LOG_INFO("[SYNC CLI] SYNC {}: URI:{}", WantSyncResourceStatusEnumToString(status), uri);
     switch (status)
     {
     case SUCCESS:
@@ -259,6 +279,12 @@ void ResourceManager::updateSyncEntryStatus(std::string uri, WantSyncResourceSta
             filesystem::remove(p);
         break;
     }
+}
+
+void ResourceManager::updateSyncEntryLastUpteTime(std::string uri, time_t t)
+{
+    if (syncTable[uri].getUri().size() > 0)
+        syncTable[uri].setLastUpdateTime(t);
 }
 
 void ResourceManager::delSyncEntry(std::string uri)

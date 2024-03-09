@@ -23,11 +23,11 @@ void NetFrameworkImplWithEvent::init_check()
 
 void NetFrameworkImplWithEvent::event_cb(struct bufferevent *bev, short events, void *data)
 {
+    LOG_WARN("TODO NetFrameworkImplWithEvent::event_cb");
 }
 
 void NetFrameworkImplWithEvent::write_cb(struct bufferevent *bev, void *data)
 {
-    LOG_INFO("tcp_writecb!");
 }
 
 void NetFrameworkImplWithEvent::read_cb(struct bufferevent *bev, void *arg)

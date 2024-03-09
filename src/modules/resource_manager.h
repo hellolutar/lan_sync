@@ -22,7 +22,7 @@ private:
     void freeTable();
     std::string rsHome;
 
-    std::map<std::string, WantToSyncVO> syncTable;
+    std::map<std::string, WantToSyncVO> syncTable;   // TODO need to care about <connection, rs>
 
     OpensslUtil opensslUtil;
 
@@ -51,7 +51,11 @@ public:
     bool saveLocal(std::string uri, void *data, uint64_t offset, uint64_t data_len);
 
     void updateSyncEntryStatus(std::string uri, WantSyncResourceStatusEnum status);
+    void updateSyncEntryLastUpteTime(std::string uri, time_t t);
     void delSyncEntry(std::string uri);
+
+    static ResourceManager& getRsm();
+    static void init(string home);
 
 };
 

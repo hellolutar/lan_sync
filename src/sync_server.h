@@ -71,7 +71,6 @@ private:
 
 public:
     enum state st;
-    ResourceManager rm = ResourceManager("static/server");
 
     SyncLogic(NetAbility *udpserver, NetAbility *tcpserver);
     ~SyncLogic();

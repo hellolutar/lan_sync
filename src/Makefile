@@ -40,7 +40,7 @@ all: ${OBJS} ${BIN_TARGETS}
 	@echo $@
 	@$(CC) -I${CPLUS_INCLUDE_PATH}  $(CXXFLAGS)  $(LDFLAGS) $^ $(LIBS) -o $@
 
-%.o: %.cpp %.h
+%.o: %.cpp
 	@echo $@
 	@$(CC) -I${CPLUS_INCLUDE_PATH} -c $(CXXFLAGS) $(LDFLAGS) -D${COMPILE_OPT}  $< $(LIBS) -o $@
 

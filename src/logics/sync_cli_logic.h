@@ -25,8 +25,6 @@ private:
 
 public:
     enum state st;
-    ResourceManager rm = ResourceManager("static/cli");
-
     SyncCliLogic();
     ~SyncCliLogic(){};
     void recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
