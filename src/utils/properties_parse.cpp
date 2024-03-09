@@ -4,7 +4,7 @@
 #include <fstream>
 #include <sstream>
 
-string &trim(string &s)
+string trim(string s)
 {
     if (s.empty())
     {
@@ -19,22 +19,15 @@ string &trim(string &s)
 PropertiesParse::PropertiesParse(string filepath)
 {
     ifstream ifs(filepath);
-    const int LINE_LENGTH = 1024;
+    const int LINE_LENGTH = 10240;
     char buf[LINE_LENGTH];
     while (ifs.getline(buf, LINE_LENGTH))
     {
-        for (size_t i = 0; i < strlen(buf); i++)
-        {
-            char ch = buf[i];
-            if (ch == '=')
-            {
-                string bufstr(buf);
-                string key = bufstr.substr(0, i);
-                string value = bufstr.substr(i + 1, bufstr.size());
-                properties[trim(key)] = trim(value);
-                break;
-            }
-        }
+        string line(buf);
+        size_t eq_pos = line.find("=");
+        string key = line.substr(0, eq_pos);
+        string value = line.substr(eq_pos + 1, line.size() - (eq_pos + 1));
+        properties[trim(key)] = trim(value);
         memset(buf, 0, LINE_LENGTH);
     }
     ifs.close();

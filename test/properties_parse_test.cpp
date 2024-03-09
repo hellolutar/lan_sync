@@ -8,9 +8,13 @@ TEST(HelloTest, BasicAssertions)
 
 TEST(PropertiesParseTest, queryTest)
 {
-    PropertiesParse pp("test.properties");
-    string value = pp.query("TCP_PORT");
-    ASSERT_STREQ("58080", value.data());
+    PropertiesParse pp("../src/properties.properties");
+    string tcp_port = pp.query("tcp.port");
+    string udp_port = pp.query("udp.port");
+    string rs_home = pp.query("resource.home");
+    ASSERT_STREQ("58081", tcp_port.data());
+    ASSERT_STREQ("58080", udp_port.data());
+    ASSERT_GT(rs_home.size(), 0);
 }
 
 int main(int argc, char **argv)
