@@ -20,7 +20,7 @@ class TriggerBehavior
 {
 public:
     virtual ~TriggerBehavior(){};
-    virtual void exec() = 0;
+    virtual void trigger() = 0;
 };
 
 class Trigger : public TriggerBehavior

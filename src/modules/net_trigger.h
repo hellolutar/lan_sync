@@ -3,21 +3,21 @@
 
 #include "timer/timer_trigger_with_event.h"
 #include "net/net_addr.h"
-#include "abst_net_conn_setup.h"
-
+#include "modules/abst_net_conn_setup.h"
+#include "modules/concrete_net_setup.h"
 
 class NetTrigger : public TriggerWithEvent
 {
-private:
+protected:
     std::map<NetAddr, NetCliLogicContainer *> conns;
-    AbstNetLogic &logic;
-    AbstNetConnSetup &cliconn;
+    AbstNetLogic &recv_logic;
+    NetCliConnSetupTriggerBehavior *trigger_behavior;
 
 public:
-    NetTrigger(struct timeval period, bool persist, AbstNetLogic &logic, AbstNetConnSetup &cliconn);
-    ~NetTrigger(){};
+    NetTrigger(struct timeval period, bool persist, AbstNetLogic &recv_logic, NetCliConnSetupTriggerBehavior *cliconn);
+    ~NetTrigger();
 
-    void exec() override;
+    void trigger() override;
     bool addNetAddr(NetAddr addr);
     bool delNetAddr(NetAddr addr);
     // virtual NetTrigger &operator=(const NetTrigger &);

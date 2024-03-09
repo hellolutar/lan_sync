@@ -16,7 +16,7 @@ TimerWithEvent::~TimerWithEvent()
 static void timeout_cb(evutil_socket_t, short, void *arg)
 {
     Trigger *tr = (Trigger *)arg;
-    tr->exec();
+    tr->trigger();
 }
 
 void TimerWithEvent::init(struct event_base *eb)

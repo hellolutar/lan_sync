@@ -2,11 +2,11 @@
 
 void NetCliLogicContainer::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
-    logic.recv(data, data_len, ctx);
+    recv_logic.recv(data, data_len, ctx);
 }
 bool NetCliLogicContainer::isExtraAllDataNow(void *data, uint64_t data_len)
 {
-    return logic.isExtraAllDataNow(data, data_len);
+    return recv_logic.isExtraAllDataNow(data, data_len);
 }
 
 void NetCliLogicContainer::setCtx(NetworkConnCtx *ctx)

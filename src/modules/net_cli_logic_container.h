@@ -3,16 +3,16 @@
 
 #include "net/net_framework_impl_with_event.h"
 #include "net/net_addr.h"
-#include "abst_net_logic.h"
+#include "modules/abst_net_logic.h"
 
 class NetCliLogicContainer : public NetAbilityImplWithEvent
 {
 private:
     NetworkConnCtx *net_ctx;
-    AbstNetLogic &logic;
+    AbstNetLogic &recv_logic;
 
 public:
-    NetCliLogicContainer(NetAddr addr, AbstNetLogic &logic) : NetAbilityImplWithEvent(addr), logic(logic){};
+    NetCliLogicContainer(NetAddr addr, AbstNetLogic &recv_logic) : NetAbilityImplWithEvent(addr), recv_logic(recv_logic){};
     virtual ~NetCliLogicContainer(){};
 
     virtual void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);

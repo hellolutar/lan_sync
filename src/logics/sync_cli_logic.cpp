@@ -1,5 +1,9 @@
 #include "sync_cli_logic.h"
 
+SyncCliLogic::SyncCliLogic()
+{
+}
+
 SyncCliLogic::~SyncCliLogic()
 {
 }
@@ -11,6 +15,16 @@ void SyncCliLogic::setDiscoveryTrigger(NetTrigger *tr)
 void SyncCliLogic::setReqTableIndexTrigger(NetTrigger *tr)
 {
     req_table_index = tr;
+}
+
+SyncCliDiscoverLogic &SyncCliLogic::getDiscoverLogic()
+{
+    return discover_logic;
+}
+
+SyncCliReqTbIdxLogic &SyncCliLogic::getSyncCliReqTbIdxLogic()
+{
+    return req_tb_idx_logic;
 }
 
 NetTrigger &SyncCliLogic::getDiscoveryTrigger()
@@ -74,11 +88,11 @@ SyncCliLogicTcp::~SyncCliLogicTcp()
 
 bool SyncCliLogicTcp::isExtraAllDataNow(void *data, uint64_t data_len)
 {
-    return logic.isExtraAllDataNow(data, data_len);
+    return recv_logic.isExtraAllDataNow(data, data_len);
 }
 void SyncCliLogicTcp::recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
-    logic.recv_tcp(data, data_len, ctx);
+    recv_logic.recv_tcp(data, data_len, ctx);
 }
 
 SyncCliLogicUdp::~SyncCliLogicUdp()
@@ -87,10 +101,10 @@ SyncCliLogicUdp::~SyncCliLogicUdp()
 
 void SyncCliLogicUdp::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
-    logic.recv_udp(data, data_len, ctx);
+    recv_logic.recv_udp(data, data_len, ctx);
 }
 
 bool SyncCliLogicUdp::isExtraAllDataNow(void *data, uint64_t data_len)
 {
-   return logic.isExtraAllDataNow(data, data_len);
+    return recv_logic.isExtraAllDataNow(data, data_len);
 }

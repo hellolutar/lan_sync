@@ -6,13 +6,13 @@ int main(int argc, char const *argv[])
     TimerWithEvent::init(base);
     NetFrameworkImplWithEvent::init(base);
 
-    SyncCliLogic logic;
-    SyncCliLogicUdp udplogic = logic;
-    SyncCliLogicTcp tcplogic = logic;
+    SyncCliLogic main_logic;
+    SyncCliLogicUdp udplogic = main_logic;
+    SyncCliLogicTcp tcplogic = main_logic;
 
-    NetCliConnSetupForDiscover discover_conn;
-    NetTrigger *discover_tr = new NetTrigger(Trigger::second(2), true, udplogic, discover_conn);
-    logic.setDiscoveryTrigger(discover_tr);
+    NetTrigger *discover_tr = new UdpTrigger(Trigger::second(2), true, udplogic, main_logic.getDiscoverLogic());
+
+    main_logic.setDiscoveryTrigger(discover_tr);
     TimerWithEvent::addTr(discover_tr);
 
     vector<LocalPort> ports = LocalPort::query();
@@ -23,12 +23,12 @@ int main(int argc, char const *argv[])
         auto broadaddr = port.getBroadAddr();
         NetAddr addr = NetAddr::fromBe(broadaddr);
         addr.setPort(DISCOVER_SERVER_UDP_PORT);
-        logic.getDiscoveryTrigger().addNetAddr(addr);
+        main_logic.getDiscoveryTrigger().addNetAddr(addr);
     }
 
-    NetCliConnSetupForReqTbIdx reqidx_conn;
-    NetTrigger *reqidx_tr = new NetTrigger(Trigger::second(5), true, tcplogic, reqidx_conn);
-    logic.setReqTableIndexTrigger(reqidx_tr);
+    
+    NetTrigger *reqidx_tr = new TcpTrigger(Trigger::second(5), true, tcplogic, main_logic.getSyncCliReqTbIdxLogic());
+    main_logic.setReqTableIndexTrigger(reqidx_tr);
     TimerWithEvent::addTr(reqidx_tr);
 
     TimerWithEvent::run();

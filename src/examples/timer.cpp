@@ -10,7 +10,7 @@ private:
 public:
     HelloTrigger(struct timeval period, bool persist) : TriggerWithEvent(period, persist){};
     ~HelloTrigger(){};
-    void exec()
+    void trigger() override
     {
         time_t t;
         time(&t);

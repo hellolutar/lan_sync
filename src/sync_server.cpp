@@ -6,7 +6,7 @@ SyncUdpServer::~SyncUdpServer()
 
 void SyncUdpServer::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
-    logic->recv(data, data_len, ctx);
+    recv_logic->recv(data, data_len, ctx);
 }
 
 bool SyncUdpServer::isExtraAllDataNow(void *data, uint64_t data_len)
@@ -14,9 +14,9 @@ bool SyncUdpServer::isExtraAllDataNow(void *data, uint64_t data_len)
     return true;
 }
 
-void SyncUdpServer::setLogic(LogicUdp *logic)
+void SyncUdpServer::setLogic(LogicUdp *recv_logic)
 {
-    this->logic = logic;
+    this->recv_logic = recv_logic;
 }
 
 SyncTcpServer::~SyncTcpServer()
@@ -25,7 +25,7 @@ SyncTcpServer::~SyncTcpServer()
 
 void SyncTcpServer::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
-    logic->recv(data, data_len, ctx);
+    recv_logic->recv(data, data_len, ctx);
 }
 bool SyncTcpServer::isExtraAllDataNow(void *data, uint64_t data_len)
 {
@@ -40,9 +40,9 @@ bool SyncTcpServer::isExtraAllDataNow(void *data, uint64_t data_len)
     return true;
 }
 
-void SyncTcpServer::setLogic(LogicTcp *logic)
+void SyncTcpServer::setLogic(LogicTcp *recv_logic)
 {
-    this->logic = logic;
+    this->recv_logic = recv_logic;
 }
 
 SyncLogic::SyncLogic(NetAbility *udpserver, NetAbility *tcpserver) : udpserver(udpserver), tcpserver(tcpserver)
@@ -190,9 +190,9 @@ int main(int argc, char const *argv[])
     auto tcpserver = new SyncTcpServer(tcpsock);
     NetFrameworkImplWithEvent::addTcpServer(tcpserver);
 
-    SyncLogic *logic = new SyncLogic(udpserver, tcpserver);
-    LogicTcp *tcplogic = logic;
-    LogicUdp *udplogic = logic;
+    SyncLogic *recv_logic = new SyncLogic(udpserver, tcpserver);
+    LogicTcp *tcplogic = recv_logic;
+    LogicUdp *udplogic = recv_logic;
 
     udpserver->setLogic(udplogic);
     tcpserver->setLogic(tcplogic);
@@ -201,7 +201,7 @@ int main(int argc, char const *argv[])
 
     delete tcpserver;
     delete udpserver;
-    delete logic;
+    delete recv_logic;
     NetFrameworkImplWithEvent::free();
 
     return 0;

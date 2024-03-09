@@ -9,6 +9,7 @@ SRC_COMPONENTS := $(wildcard ${WORKSPACE}/components/*.cpp)
 SRC_NETS := $(wildcard ${WORKSPACE}/net/*.cpp)
 SRC_TIMER:= $(wildcard ${WORKSPACE}/timer/*.cpp)
 SRC_MODULES:= $(wildcard ${WORKSPACE}/modules/*.cpp)
+SRC_LOGICS:= $(wildcard ${WORKSPACE}/logics/*.cpp)
 COMMON_OBJS := ${SRC_UTILS:.cpp=.o}
 COMMON_OBJS += ${SRC_PROTOS:.cpp=.o}
 COMMON_OBJS += ${SRC_RESOURCE:.cpp=.o}
@@ -16,6 +17,7 @@ COMMON_OBJS += ${SRC_COMPONENTS:.cpp=.o}
 COMMON_OBJS += ${SRC_NETS:.cpp=.o}
 COMMON_OBJS += ${SRC_TIMER:.cpp=.o}
 COMMON_OBJS += ${SRC_MODULES:.cpp=.o}
+COMMON_OBJS += ${SRC_LOGICS:.cpp=.o}
 TARGET_OBJS += ${SRC_C:.cpp=.o} 
 OBJS+=${COMMON_OBJS}
 OBJS+=${TARGET_OBJS}

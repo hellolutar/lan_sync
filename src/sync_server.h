@@ -38,7 +38,7 @@ class SyncLogic;
 class SyncUdpServer : public NetAbilityImplWithEvent
 {
 private:
-    AbstNetLogic *logic;
+    AbstNetLogic *recv_logic;
 
 public:
     SyncUdpServer(struct sockaddr_in addr) : NetAbilityImplWithEvent(addr){};
@@ -46,13 +46,13 @@ public:
 
     void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
     bool isExtraAllDataNow(void *data, uint64_t data_len);
-    void setLogic(LogicUdp *logic);
+    void setLogic(LogicUdp *recv_logic);
 };
 
 class SyncTcpServer : public NetAbilityImplWithEvent
 {
 private:
-    AbstNetLogic *logic;
+    AbstNetLogic *recv_logic;
 
 public:
     SyncTcpServer(struct sockaddr_in addr) : NetAbilityImplWithEvent(addr){};
@@ -60,7 +60,7 @@ public:
 
     void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
     bool isExtraAllDataNow(void *data, uint64_t data_len);
-    void setLogic(LogicTcp *logic);
+    void setLogic(LogicTcp *recv_logic);
 };
 
 class SyncLogic : public LogicUdp, public LogicTcp

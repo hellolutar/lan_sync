@@ -3,20 +3,25 @@
 
 #include "proto/lan_share_protocol.h"
 #include "utils/logger.h"
-#include "abst_net_logic.h"
-#include "net_trigger.h"
+#include "modules/abst_net_logic.h"
+#include "modules/net_trigger.h"
+#include "sync_cli_discover_logic.h"
+#include "sync_cli_sync_logic.h"
 
 class SyncCliLogic : public LogicTcp, public LogicUdp
 {
 private:
     void handleHelloAck(LanSyncPkt &pkt, NetworkConnCtx &ctx);
+
     NetTrigger *discovery;
     NetTrigger *req_table_index;
+    SyncCliDiscoverLogic discover_logic;
+    SyncCliReqTbIdxLogic req_tb_idx_logic;
 
 public:
     enum state st;
 
-    SyncCliLogic(){};
+    SyncCliLogic();
     ~SyncCliLogic();
     void recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
     void recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
@@ -27,15 +32,18 @@ public:
 
     void setReqTableIndexTrigger(NetTrigger *tr);
     NetTrigger &ReqTableIndexTrigger();
+
+    SyncCliDiscoverLogic &getDiscoverLogic();
+    SyncCliReqTbIdxLogic &getSyncCliReqTbIdxLogic();
 };
 
 class SyncCliLogicTcp : public LogicTcp
 {
 private:
-    LogicTcp &logic;
+    LogicTcp &recv_logic;
 
 public:
-    SyncCliLogicTcp(LogicTcp &logic) : logic(logic){};
+    SyncCliLogicTcp(LogicTcp &recv_logic) : recv_logic(recv_logic){};
     ~SyncCliLogicTcp();
     void recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
     bool isExtraAllDataNow(void *data, uint64_t data_len) override;
@@ -44,10 +52,10 @@ public:
 class SyncCliLogicUdp : public LogicUdp
 {
 private:
-    LogicUdp &logic;
+    LogicUdp &recv_logic;
 
 public:
-    SyncCliLogicUdp(LogicUdp &logic) : logic(logic){};
+    SyncCliLogicUdp(LogicUdp &recv_logic) : recv_logic(recv_logic){};
     ~SyncCliLogicUdp();
     void recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
     bool isExtraAllDataNow(void *data, uint64_t data_len) override;
