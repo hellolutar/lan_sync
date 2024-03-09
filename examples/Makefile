@@ -1,4 +1,4 @@
-include ../Makefile
+include ../src/Makefile
 
 %.bin: %.o ${COMMON_OBJS} 
 	@echo $@

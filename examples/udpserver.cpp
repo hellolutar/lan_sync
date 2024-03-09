@@ -1,12 +1,15 @@
 #include <cstring>
+#include <string>
 
 #include "net/net_framework_impl_with_event.h"
+
+using namespace std;
 
 class UdpServer : public NetAbilityImplWithEvent
 {
 private:
 public:
-    UdpServer(struct sockaddr_in addr) : NetAbilityImplWithEvent(addr){};
+    UdpServer(NetAddr addr) : NetAbilityImplWithEvent(addr){};
     ~UdpServer();
 
     void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
@@ -19,8 +22,15 @@ UdpServer::~UdpServer()
 
 void UdpServer::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
-    char *str = (char *)data;
-    printf("recv:[%s]\n", str);
+    string msg((char *)data);
+    printf("recv:[%s]\n", msg.data());
+    size_t pos = msg.find("exit");
+    if (pos != string::npos)
+    {
+        NetFrameworkImplWithEvent::shutdown();
+        return;
+    }
+
     ctx->write(data, data_len);
 }
 bool UdpServer::isExtraAllDataNow(void *data, uint64_t data_len)
@@ -30,12 +40,10 @@ bool UdpServer::isExtraAllDataNow(void *data, uint64_t data_len)
 
 int main(int argc, char const *argv[])
 {
-    struct sockaddr_in addr;
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(8080);
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    struct event_base *base = event_base_new();
+    NetFrameworkImplWithEvent::init(base);
 
-    NetFrameworkImplWithEvent::addUdpServer(new UdpServer(addr));
+    NetFrameworkImplWithEvent::addUdpServer(new UdpServer(NetAddr("127.0.0.1:8080")));
     NetFrameworkImplWithEvent::run();
     NetFrameworkImplWithEvent::free();
 

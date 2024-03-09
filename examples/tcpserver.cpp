@@ -1,13 +1,16 @@
 
 #include <cstring>
+#include <string>
 
 #include "net/net_framework_impl_with_event.h"
+
+using namespace std;
 
 class TcpServer : public NetAbilityImplWithEvent
 {
 private:
 public:
-    TcpServer(struct sockaddr_in addr) : NetAbilityImplWithEvent(addr){};
+    TcpServer(NetAddr addr) : NetAbilityImplWithEvent(addr){};
     ~TcpServer();
 
     void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
@@ -20,8 +23,15 @@ TcpServer::~TcpServer()
 
 void TcpServer::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
-    char *str = (char *)data;
-    printf("recv:[%s]\n", str);
+    string msg((char *)data);
+    printf("recv:[%s]\n", msg.data());
+    size_t pos = msg.find("exit");
+    if (pos != string::npos)
+    {
+        NetFrameworkImplWithEvent::shutdown();
+        return;
+    }
+
     ctx->write(data, data_len);
 }
 bool TcpServer::isExtraAllDataNow(void *data, uint64_t data_len)
@@ -31,12 +41,10 @@ bool TcpServer::isExtraAllDataNow(void *data, uint64_t data_len)
 
 int main(int argc, char const *argv[])
 {
-    struct sockaddr_in addr;
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(8080);
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    struct event_base *base = event_base_new();
+    NetFrameworkImplWithEvent::init(base);
 
-    NetFrameworkImplWithEvent::addTcpServer(new TcpServer(addr));
+    NetFrameworkImplWithEvent::addTcpServer(new TcpServer(NetAddr(":8080")));
     NetFrameworkImplWithEvent::run();
     NetFrameworkImplWithEvent::free();
 

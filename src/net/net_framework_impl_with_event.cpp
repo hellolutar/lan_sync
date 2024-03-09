@@ -84,7 +84,13 @@ void NetFrameworkImplWithEvent::addTcpServer(NetAbilityImplWithEvent *ne)
     init_check();
 
     int tcp_sock = socket(AF_INET, SOCK_STREAM, 0);
-    assert(tcp_sock > 0);
+    if (tcp_sock < 0)
+    {
+        LOG_ERROR("NetFrameworkImplWithEvent::addTcpServer : {}", strerror(errno));
+        shutdown();
+        return;
+    }
+
     evutil_make_socket_nonblocking(tcp_sock);
     int optval = 1;
     setsockopt(tcp_sock, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(int));
@@ -92,18 +98,24 @@ void NetFrameworkImplWithEvent::addTcpServer(NetAbilityImplWithEvent *ne)
     setsockopt(tcp_sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
     setsockopt(tcp_sock, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(int));
 
-    assert(bind(tcp_sock, (struct sockaddr *)&(ne->getAddr()), sizeof(struct sockaddr_in)) == 0);
+    sockaddr_in be_addr = ne->getAddr().getBeAddr();
+    if (bind(tcp_sock, (struct sockaddr *)&be_addr, sizeof(struct sockaddr_in)) != 0)
+    {
+        LOG_ERROR("NetFrameworkImplWithEvent::addTcpServer : {}", strerror(errno));
+        shutdown();
+        return;
+    }
 
     int res = listen(tcp_sock, 100);
     if (res == -1)
     {
-        LOG_ERROR("[SYNC SER] : {} ", strerror(errno));
-        delete ne;
+        LOG_ERROR("NetFrameworkImplWithEvent::addTcpServer : {}", strerror(errno));
+        shutdown();
         return;
     }
     ne->setSock(tcp_sock);
 
-    LOG_INFO("TCP listen: {}", ntohs(ne->getAddr().getAddr().sin_port));
+    LOG_INFO("TCP listen: {}", ne->getAddr().str().data());
 
     struct event *accept_event_persist = event_new(base, tcp_sock, EV_READ | EV_PERSIST, tcp_accept, (void *)ne);
     event_add(accept_event_persist, nullptr);
@@ -136,18 +148,31 @@ void NetFrameworkImplWithEvent::addUdpServer(NetAbilityImplWithEvent *ne)
     init_check();
 
     int udp_sock = socket(AF_INET, SOCK_DGRAM, 0);
-    assert(udp_sock > 0);
+    if (udp_sock <= 0)
+    {
+        LOG_ERROR("NetFrameworkImplWithEvent::addUdpServer : {}", strerror(errno));
+        shutdown();
+        return;
+    }
+
     int optval = 1;
     setsockopt(udp_sock, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(int));
     setsockopt(udp_sock, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(int));
     setsockopt(udp_sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
     evutil_make_socket_nonblocking(udp_sock);
 
-    auto addr = ne->getAddr();
-    assert(bind(udp_sock, (struct sockaddr *)&addr, sizeof(struct sockaddr_in)) >= 0);
+    auto be_addr = ne->getAddr().getBeAddr();
+
+    if (bind(udp_sock, (struct sockaddr *)&be_addr, sizeof(struct sockaddr_in) != 0))
+    {
+        LOG_ERROR("NetFrameworkImplWithEvent::addUdpServer : {}", strerror(errno));
+        shutdown();
+        return;
+    }
+
     ne->setSock(udp_sock);
 
-    LOG_INFO("UDP listen: {}", ntohs(ne->getAddr().getAddr().sin_port));
+    LOG_INFO("UDP listen: {}", ne->getAddr().str().data());
 
     NetAddr addr_will_be_udpate_follow;
     NetworkConnCtxWithEventForUDP *nctx = new NetworkConnCtxWithEventForUDP(&udp_ctx, ne, udp_sock, addr_will_be_udpate_follow); // udp_sock close many time: 1.NetworkEndpointWithEvent; 2.NetworkConnCtx
@@ -169,12 +194,12 @@ NetworkConnCtx *NetFrameworkImplWithEvent::connectWithTcp(NetAbilityImplWithEven
     myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     int peer_sock = socket(AF_INET, SOCK_STREAM, 0);
-    
+
     sockaddr_in be_addr = peer_ne->getAddr().getBeAddr();
     int ret = connect(peer_sock, (struct sockaddr *)&be_addr, sizeof(struct sockaddr_in));
     if (ret < 0)
     {
-        LOG_ERROR("TCP connect fail : {}  REASON:{} ", peer_ne->getAddr().str(), strerror(errno));
+        LOG_ERROR("NetFrameworkImplWithEvent::connectWithTcp {} : {}", peer_ne->getAddr().str(), strerror(errno));
         delete peer_ne;
         return nullptr;
     }
@@ -194,7 +219,12 @@ NetworkConnCtx *NetFrameworkImplWithEvent::connectWithUdp(NetAbilityImplWithEven
     init_check();
 
     int peer_sock = socket(AF_INET, SOCK_DGRAM, 0);
-    assert(peer_sock > 0);
+    if (peer_sock <= 0)
+    {
+        LOG_ERROR("NetFrameworkImplWithEvent::connectWithUdp {} : {}", peer_ne->getAddr().str(), strerror(errno));
+        delete peer_ne;
+        return nullptr;
+    }
 
     int optval = 1; // 这个值一定要设置，否则可能导致sendto()失败
     setsockopt(peer_sock, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(int));

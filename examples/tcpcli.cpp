@@ -6,25 +6,26 @@
 
 int count = 0;
 
-class UdpCli : public NetAbilityImplWithEvent
+class TcpCli : public NetAbilityImplWithEvent
 {
 private:
 public:
-    UdpCli(NetAddr addr) : NetAbilityImplWithEvent(addr){};
-    ~UdpCli();
+    TcpCli(NetAddr addr) : NetAbilityImplWithEvent(addr){};
+    ~TcpCli();
 
     void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
     bool isExtraAllDataNow(void *data, uint64_t data_len);
 };
 
-UdpCli::~UdpCli()
+TcpCli::~TcpCli()
 {
 }
 
-void UdpCli::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
+void TcpCli::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
     if (count >= 5)
     {
+        printf("Done\n");
         NetFrameworkImplWithEvent::shutdown();
         return;
     }
@@ -34,14 +35,17 @@ void UdpCli::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
     ctx->write(data, data_len);
     count++;
 }
-bool UdpCli::isExtraAllDataNow(void *data, uint64_t data_len)
+bool TcpCli::isExtraAllDataNow(void *data, uint64_t data_len)
 {
     return true;
 }
 
 int main(int argc, char const *argv[])
 {
-    NetworkConnCtx *ctx = NetFrameworkImplWithEvent::connectWithUdp(new UdpCli(NetAddr("127.0.0.1:8080")));
+    struct event_base *base = event_base_new();
+    NetFrameworkImplWithEvent::init(base);
+
+    NetworkConnCtx *ctx = NetFrameworkImplWithEvent::connectWithTcp(new TcpCli(NetAddr("127.0.0.1:8080")));
     if (ctx != nullptr)
     {
         std::string msg = "hello world";
@@ -49,6 +53,7 @@ int main(int argc, char const *argv[])
     }
 
     NetFrameworkImplWithEvent::run();
+    NetFrameworkImplWithEvent::free();
 
     return 0;
 }

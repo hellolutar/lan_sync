@@ -6,26 +6,25 @@
 
 int count = 0;
 
-class TcpCli : public NetAbilityImplWithEvent
+class UdpCli : public NetAbilityImplWithEvent
 {
 private:
 public:
-    TcpCli(struct sockaddr_in addr) : NetAbilityImplWithEvent(addr){};
-    ~TcpCli();
+    UdpCli(NetAddr addr) : NetAbilityImplWithEvent(addr){};
+    ~UdpCli();
 
     void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
     bool isExtraAllDataNow(void *data, uint64_t data_len);
 };
 
-TcpCli::~TcpCli()
+UdpCli::~UdpCli()
 {
 }
 
-void TcpCli::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
+void UdpCli::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
     if (count >= 5)
     {
-        printf("Done\n");
         NetFrameworkImplWithEvent::shutdown();
         return;
     }
@@ -35,19 +34,17 @@ void TcpCli::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
     ctx->write(data, data_len);
     count++;
 }
-bool TcpCli::isExtraAllDataNow(void *data, uint64_t data_len)
+bool UdpCli::isExtraAllDataNow(void *data, uint64_t data_len)
 {
     return true;
 }
 
 int main(int argc, char const *argv[])
 {
-    struct sockaddr_in peer ;
-    peer.sin_family = AF_INET;
-    peer.sin_port = htons(8080);
-    inet_aton("127.0.0.1", &(peer.sin_addr));
+    struct event_base *base = event_base_new();
+    NetFrameworkImplWithEvent::init(base);
 
-    NetworkConnCtx *ctx = NetFrameworkImplWithEvent::connectWithTcp(new TcpCli(peer));
+    NetworkConnCtx *ctx = NetFrameworkImplWithEvent::connectWithUdp(new UdpCli(NetAddr("127.0.0.1:8080")));
     if (ctx != nullptr)
     {
         std::string msg = "hello world";

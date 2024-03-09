@@ -14,12 +14,19 @@ NetAddr::NetAddr()
 NetAddr::NetAddr(string ipport)
 {
     size_t pos = ipport.find(':');
-    string ip = ipport.substr(0, pos);
-    string port = ipport.substr(pos + 1, ipport.size());
+    if (pos == 0)
+    {
+        le_addr.sin_addr.s_addr = INADDR_ANY;
+    }
+    else
+    {
+        string ip = ipport.substr(0, pos);
+        inet_aton(ip.data(), &(le_addr.sin_addr));
+        le_addr.sin_addr.s_addr = ntohl(le_addr.sin_addr.s_addr);
+    }
 
+    string port = ipport.substr(pos + 1, ipport.size());
     le_addr.sin_family = AF_INET;
-    inet_aton(ip.data(), &(le_addr.sin_addr));
-    le_addr.sin_addr.s_addr = ntohl(le_addr.sin_addr.s_addr);
     le_addr.sin_port = atoi(port.data());
 }
 
