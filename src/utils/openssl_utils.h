@@ -21,13 +21,13 @@ using namespace std;
 class OpensslUtil
 {
 private:
-    OSSL_LIB_CTX *lib_ctx;
+    static OSSL_LIB_CTX *lib_ctx;
+    OpensslUtil(/* args */){};
+    ~OpensslUtil(){};
 
 public:
-    OpensslUtil(/* args */);
-    ~OpensslUtil();
 
-    string mdEncodeWithSHA3_512(string f);
+    static string mdEncodeWithSHA3_512(string f);
 };
 
 #endif

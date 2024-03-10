@@ -5,11 +5,14 @@ struct event_base *TimerWithEvent::base;
 
 TimerWithEvent::~TimerWithEvent()
 {
-    for (auto iter = triggers.begin(); iter != triggers.end();)
+    for (auto iter = triggers.begin(); ;)
     {
         auto entry = (*iter).first;
         iter = triggers.erase(iter);
         delete entry;
+        if(triggers.size() == 0){
+            break;
+        }
     }
 }
 

@@ -3,4 +3,7 @@ discover_server
 resource_manager_test
 static
 sync_cli 
-sync_server 
+sync_server
+cli.properties
+server.properties
+srv.properties

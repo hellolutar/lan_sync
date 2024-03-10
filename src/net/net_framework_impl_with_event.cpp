@@ -163,7 +163,8 @@ void NetFrameworkImplWithEvent::addUdpServer(NetAbilityImplWithEvent *ne)
 
     auto be_addr = ne->getAddr().getBeAddr();
 
-    if (bind(udp_sock, (struct sockaddr *)&be_addr, sizeof(struct sockaddr_in) != 0))
+    int udpret = bind(udp_sock, (struct sockaddr *)&be_addr, sizeof(struct sockaddr_in));
+    if (udpret != 0)
     {
         LOG_ERROR("NetFrameworkImplWithEvent::addUdpServer : {}", strerror(errno));
         shutdown();
@@ -308,7 +309,7 @@ NetworkConnCtxWithEventForUDP::~NetworkConnCtxWithEventForUDP()
 
 uint64_t NetworkConnCtxWithEventForUDP::write(void *data, uint64_t data_len)
 {
-    LOG_INFO("[UDP] sendto [{}], len:{}", this->peer.str().data(), data_len);
+    LOG_DEBUG("[UDP] sendto [{}], len:{}", this->peer.str().data(), data_len);
     sockaddr_in be_addr = peer.getBeAddr();
     return sendto(peer_sock, data, data_len, 0, (struct sockaddr *)&be_addr, sizeof(struct sockaddr_in));
 }

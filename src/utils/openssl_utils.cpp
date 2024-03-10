@@ -1,16 +1,6 @@
 #include "openssl_utils.h"
 
-OpensslUtil::OpensslUtil(/* args */)
-{
-    lib_ctx = OSSL_LIB_CTX_new();
-    assert(lib_ctx);
-}
-
-OpensslUtil::~OpensslUtil()
-{
-    if (lib_ctx)
-        OSSL_LIB_CTX_free(lib_ctx);
-}
+OSSL_LIB_CTX *OpensslUtil::lib_ctx = OSSL_LIB_CTX_new();
 
 // https://blog.csdn.net/QCZL_CC/article/details/119957918
 string OpensslUtil::mdEncodeWithSHA3_512(string f)

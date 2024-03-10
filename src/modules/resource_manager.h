@@ -24,8 +24,6 @@ private:
 
     std::map<std::string, WantToSyncVO> syncTable;   // TODO need to care about <connection, rs>
 
-    OpensslUtil opensslUtil;
-
     filesystem::file_time_type last_update_time;
 
 public:
@@ -56,7 +54,6 @@ public:
 
     static ResourceManager& getRsm();
     static void init(string home);
-
 };
 
 #endif

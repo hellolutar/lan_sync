@@ -6,7 +6,6 @@ void evbuffer_cb_for_free(struct evbuffer *buffer, const struct evbuffer_cb_info
     {
         if (arg)
         {
-            printf("[DEBUG] free header! \n");
             evbuffer_remove_cb(buffer, evbuffer_cb_for_free, arg);
             free(arg);
             arg = nullptr;

@@ -1,35 +1,21 @@
 #include "sync_cli_logic.h"
 
-bool SyncCliLogicTcp::isExtraAllDataNow(void *data, uint64_t data_len)
-{
-    return recv_logic.isExtraAllDataNow(data, data_len);
-}
-void SyncCliLogicTcp::recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
-{
-    recv_logic.recv_tcp(data, data_len, ctx);
-}
-
-void SyncCliLogicUdp::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
-{
-    recv_logic.recv_udp(data, data_len, ctx);
-}
-
-bool SyncCliLogicUdp::isExtraAllDataNow(void *data, uint64_t data_len)
-{
-    return recv_logic.isExtraAllDataNow(data, data_len);
-}
-
 SyncCliLogic::SyncCliLogic()
 {
 }
 
 void SyncCliLogic::setDiscoveryTrigger(NetTrigger *tr)
 {
-    discovery = tr;
+    discovery_tr = tr;
 }
-void SyncCliLogic::setReqTableIndexTrigger(NetTrigger *tr)
+void SyncCliLogic::setReqTbIdxTrigger(NetTrigger *tr)
 {
-    req_table_index = tr;
+    req_table_index_tr = tr;
+}
+
+void SyncCliLogic::setReqRsLogicTrigger(NetTrigger *tr)
+{
+    req_rs_tr = tr;
 }
 
 SyncCliDiscoverLogic &SyncCliLogic::getDiscoverLogic()
@@ -37,19 +23,29 @@ SyncCliDiscoverLogic &SyncCliLogic::getDiscoverLogic()
     return discover_logic;
 }
 
-SyncCliReqTbIdxLogic &SyncCliLogic::getSyncCliReqTbIdxLogic()
+SyncCliReqTbIdxLogic &SyncCliLogic::getReqTbIdxLogic()
 {
     return req_tb_idx_logic;
 }
 
+SyncCliReqRsLogic &SyncCliLogic::getReqRsLogic()
+{
+    return req_rs;
+}
+
 NetTrigger &SyncCliLogic::getDiscoveryTrigger()
 {
-    return *discovery;
+    return *discovery_tr;
 }
 
 NetTrigger &SyncCliLogic::getReqTableIndexTrigger()
 {
-    return *req_table_index;
+    return *req_table_index_tr;
+}
+
+NetTrigger &SyncCliLogic::getSyncCliReqRsLogicTrigger()
+{
+    return *req_rs_tr;
 }
 
 bool SyncCliLogic::isExtraAllDataNow(void *data, uint64_t data_len)
@@ -79,7 +75,7 @@ void SyncCliLogic::handleHelloAck(LanSyncPkt &pkt, NetworkConnCtx &ctx)
 
     NetAddr peer_tcp_addr = ctx.getPeer();
     peer_tcp_addr.setPort(peer_tcp_port);
-    this->req_table_index->addNetAddr(peer_tcp_addr);
+    this->req_table_index_tr->addConn(peer_tcp_addr);
 }
 
 void SyncCliLogic::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)

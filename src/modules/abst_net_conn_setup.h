@@ -1,7 +1,7 @@
 #ifndef __ABST_NET_CONN_SETUP_H_
 #define __ABST_NET_CONN_SETUP_H_
 
-#include "modules/net_cli_logic_container.h"
+#include "net/net_logic_container.h"
 
 
 class AbstNetConnSetup

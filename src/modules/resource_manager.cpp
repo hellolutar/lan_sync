@@ -8,6 +8,13 @@ static ResourceManager rsm("");
 
 void ResourceManager::init(string home)
 {
+    if (home.size() == 0)
+    {
+        LOG_ERROR("ResourceManager::init() : strlen(home) is 0!");
+        return;
+    }
+
+    LOG_INFO("ResourceManager::init() : resource.home is : {}", home);
     rsm = ResourceManager(home);
 }
 ResourceManager &ResourceManager::getRsm()
@@ -36,10 +43,14 @@ void ResourceManager::freeTable()
     if (table.size() == 0)
         return;
 
-    for (auto it : table)
+    for (auto iter = table.begin();;)
     {
-        table.erase(it.first);
-        free(it.second);
+        free(iter->second);
+        iter = table.erase(iter);
+        if (table.size() == 0)
+        {
+            break;
+        }
     }
 }
 
@@ -86,7 +97,7 @@ void ResourceManager::setRsHomePath(string path)
 vector<struct Resource *> ResourceManager::genResources(string pathStr)
 {
     filesystem::path p(pathStr);
-    return recurPath(filesystem::absolute(p));
+    return recurPath(p);
 }
 
 vector<struct Resource *> ResourceManager::recurPath(filesystem::path p)
@@ -107,7 +118,7 @@ vector<struct Resource *> ResourceManager::recurPath(filesystem::path p)
         if (tmprs != nullptr && fileLastWriteTime < last_update_time)
             return {};
 
-        string hashRet = opensslUtil.mdEncodeWithSHA3_512(pstr);
+        string hashRet = OpensslUtil::mdEncodeWithSHA3_512(pstr);
         if (hashRet.size() == 0)
             return {};
 
@@ -158,11 +169,11 @@ bool ResourceManager::validRes(string uri, string hash)
     return false;
 }
 
-std::vector<struct Resource> ResourceManager::queryNeedToSync(struct Resource *table, uint64_t rs_size)
+std::vector<struct Resource> ResourceManager::queryNeedToSync(struct Resource *table, uint64_t table_entry_num)
 {
     vector<struct Resource> peer_table;
 
-    for (size_t i = 0; i < rs_size; i++)
+    for (size_t i = 0; i < table_entry_num; i++)
         peer_table.push_back(table[i]);
 
     return queryNeedToSync(peer_table);
@@ -209,26 +220,30 @@ std::vector<struct Resource> ResourceManager::queryNeedToSync(std::vector<struct
     return want_to_sync;
 }
 
-void ResourceManager::analysisThenUpdateSyncTable(struct Resource *table, uint64_t rs_size)
+void ResourceManager::analysisThenUpdateSyncTable(struct Resource *table, uint64_t table_entry_num)
 {
-    std::vector<struct Resource> needsyncs = queryNeedToSync(table, rs_size);
+    std::vector<struct Resource> needsyncs = queryNeedToSync(table, table_entry_num);
     for (size_t i = 0; i < needsyncs.size(); i++)
     {
         Resource need_sync_rs = needsyncs[i];
         WantToSyncVO syncing_rs = syncTable[need_sync_rs.uri];
+        if (syncing_rs.getUri().size() == 0)
+        {
+            syncTable[need_sync_rs.uri] = WantToSyncVO(need_sync_rs.uri, PENDING, Range(0, need_sync_rs.size));
+            continue;
+        }
+
         // compare size
         if (syncing_rs.getRange().getSize() > 0)
         {
+            // TODO:  this server the resouce is bigger, now need to get resource from this server, and discard the old server
             if (need_sync_rs.size > syncing_rs.getRange().getSize())
             {
+                LOG_WARN("TODO: ResourceManager::analysisThenUpdateSyncTable() this server the resouce is bigger, now need to get resource from this server, and discard the old server");
+
                 LOG_INFO("[SYNC CLI] SYNC RESET: URI:{}", syncing_rs.getUri().data());
                 syncing_rs.setStatus(RESET);
             }
-        }
-        else
-        {
-            LOG_INFO("[SYNC CLI] SYNC PENDING: URI:{}", syncing_rs.getUri().data());
-            syncTable[need_sync_rs.uri] = WantToSyncVO(need_sync_rs.uri, PENDING, Range(0, rs_size));
         }
     }
 }

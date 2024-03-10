@@ -3,10 +3,12 @@
 
 #include <cstdlib>
 
-#include "logics/sync_cli_logic.h"
-#include "logics/sync_cli_discover_logic.h"
+#include "constants.h"
+#include "logics/cli/sync_cli_logic.h"
+#include "logics/cli/sync_cli_discover_logic.h"
 #include "modules/concrete_net_setup.h"
 #include "modules/concrete_net_trigger.h"
-
+#include "modules/config_manager.h"
+#include "cxxopts/cxxopts.hpp"
 
 #endif

@@ -31,6 +31,7 @@ PropertiesParse::PropertiesParse(string filepath)
         memset(buf, 0, LINE_LENGTH);
     }
     ifs.close();
+    this->filepath = filepath;
 }
 
 PropertiesParse::~PropertiesParse()

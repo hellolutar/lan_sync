@@ -3,7 +3,7 @@
 
 #include "net/net_framework_impl_with_event.h"
 #include "net/net_addr.h"
-#include "modules/abst_net_logic.h"
+#include "net/abst_net_logic.h"
 
 class NetCliLogicContainer : public NetAbilityImplWithEvent
 {
@@ -20,6 +20,19 @@ public:
     virtual void setCtx(NetworkConnCtx *ctx);
 
     NetworkConnCtx &getConnCtx();
+};
+
+class NetSrvLogicContainer : public NetAbilityImplWithEvent
+{
+private:
+    AbstNetLogic &recv_logic;
+
+public:
+    NetSrvLogicContainer(NetAddr addr, AbstNetLogic &recv_logic) : NetAbilityImplWithEvent(addr), recv_logic(recv_logic){};
+    ~NetSrvLogicContainer(){};
+
+    virtual void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
+    virtual bool isExtraAllDataNow(void *data, uint64_t data_len) override;
 };
 
 #endif

@@ -1,16 +1,19 @@
 .PHONY: clean cleanall all utils
 
-WORKSPACE:=/home/lutar/code/c/lan_sync/src
+WORKSPACE:=/home/lutar/code/c/lan_sync
+SRC_PATH:=/home/lutar/code/c/lan_sync/src
 SRC_C := $(wildcard *.cpp)
-SRC_UTILS := $(wildcard ${WORKSPACE}/utils/*.cpp)
-SRC_PROTOS := $(wildcard ${WORKSPACE}/proto/*.cpp)
-SRC_COMPONENTS := $(wildcard ${WORKSPACE}/components/*.cpp)
-SRC_NETS := $(wildcard ${WORKSPACE}/net/*.cpp)
-SRC_TIMER:= $(wildcard ${WORKSPACE}/timer/*.cpp)
-SRC_MODULES:= $(wildcard ${WORKSPACE}/modules/*.cpp)
-SRC_LOGICS:= $(wildcard ${WORKSPACE}/logics/*.cpp)
-SRC_VOS:= $(wildcard ${WORKSPACE}/vo/*.cpp)
-SRC_DTOS:= $(wildcard ${WORKSPACE}/vo/dto/*.cpp)
+SRC_UTILS := $(wildcard ${SRC_PATH}/utils/*.cpp)
+SRC_PROTOS := $(wildcard ${SRC_PATH}/proto/*.cpp)
+SRC_COMPONENTS := $(wildcard ${SRC_PATH}/components/*.cpp)
+SRC_NETS := $(wildcard ${SRC_PATH}/net/*.cpp)
+SRC_TIMER:= $(wildcard ${SRC_PATH}/timer/*.cpp)
+SRC_MODULES:= $(wildcard ${SRC_PATH}/modules/*.cpp)
+SRC_LOGICS:= $(wildcard ${SRC_PATH}/logics/*.cpp)
+SRC_LOGICS += $(wildcard ${SRC_PATH}/logics/cli/*.cpp)
+SRC_LOGICS += $(wildcard ${SRC_PATH}/logics/srv/*.cpp)
+SRC_VOS:= $(wildcard ${SRC_PATH}/vo/*.cpp)
+SRC_DTOS:= $(wildcard ${SRC_PATH}/vo/dto/*.cpp)
 COMMON_OBJS := ${SRC_UTILS:.cpp=.o}
 COMMON_OBJS += ${SRC_PROTOS:.cpp=.o}
 COMMON_OBJS += ${SRC_COMPONENTS:.cpp=.o}
@@ -30,19 +33,20 @@ CC=g++
 CXXFLAGS=-g -Wno-format-contains-nul -Wno-write-strings
 LDFLAGS:=
 LIBS:=-levent -lcrypto -lssl -lgtest -lfmt -lspdlog
-CPLUS_INCLUDE_PATH +=${WORKSPACE}
+CPLUS_INCLUDE_PATH +=${SRC_PATH}
+CPLUS_INCLUDE_PATH +=-I${WORKSPACE}/libs/include
 COMPILE_OPT:=DEV#RELEASE or DEV
 RELEASE:=RELEASE
 
 all: ${OBJS} ${BIN_TARGETS}
 
-%.bin: %.o ${COMMON_OBJS} 
+%.bin: %.o ${COMMON_OBJS}
 	@echo $@
-	@$(CC) -I${CPLUS_INCLUDE_PATH}  $(CXXFLAGS)  $(LDFLAGS) $^ $(LIBS) -o $@
+	@$(CC) -I${CPLUS_INCLUDE_PATH} $(CXXFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 %.o: %.cpp
 	@echo $@
-	@$(CC) -I${CPLUS_INCLUDE_PATH} -c $(CXXFLAGS) $(LDFLAGS) -D${COMPILE_OPT}  $< $(LIBS) -o $@
+	@$(CC) -I${CPLUS_INCLUDE_PATH} -c $(CXXFLAGS)  -D${COMPILE_OPT}  $<  -o $@
 
 sync_cli: sync_cli.o ${COMMON_OBJS} 
 ifneq (${COMPILE_OPT} , ${RELEASE})

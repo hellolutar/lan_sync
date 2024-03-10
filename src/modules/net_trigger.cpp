@@ -12,32 +12,35 @@ NetTrigger::~NetTrigger()
 
 void NetTrigger::trigger()
 {
+    if (conns.size() == 0)
+        LOG_WARN("NetTrigger::trigger() : can not trigger, beacuse the conns is empty!");
+    
     for (auto iter = conns.begin(); iter != conns.end(); iter++)
     {
         trigger_behavior->exec((*iter).second->getConnCtx());
     }
 }
 
-bool NetTrigger::addNetAddr(NetAddr addr)
+bool NetTrigger::addConn(NetAddr addr)
 {
-    NetCliLogicContainer *netcli = conns[addr];
+    NetCliLogicContainer *netcli = conns[addr.str()];
     if (netcli != nullptr)
         return false;
 
     netcli = trigger_behavior->setupConn(addr, recv_logic);
 
-    conns[addr] = netcli;
+    conns[addr.str()] = netcli;
 
     return true;
 }
 
 bool NetTrigger::delNetAddr(NetAddr addr)
 {
-    NetCliLogicContainer *udpcli = conns[addr];
+    NetCliLogicContainer *udpcli = conns[addr.str()];
     if (udpcli == nullptr)
         return false;
     else
-        conns.erase(addr);
+        conns.erase(addr.str());
 
     return true;
 }

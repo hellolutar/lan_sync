@@ -80,6 +80,9 @@
         "netfwd": "cpp",
         "timer": "cpp",
         "future": "cpp",
-        "main": "cpp"
+        "main": "cpp",
+        "bitset": "cpp",
+        "unordered_set": "cpp",
+        "regex": "cpp"
     }
 }

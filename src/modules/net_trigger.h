@@ -9,7 +9,7 @@
 class NetTrigger : public TriggerWithEvent
 {
 protected:
-    std::map<NetAddr, NetCliLogicContainer *> conns;
+    std::map<std::string, NetCliLogicContainer *> conns;
     AbstNetLogic &recv_logic;
     NetCliConnSetupTriggerBehavior *trigger_behavior;
 
@@ -18,7 +18,7 @@ public:
     ~NetTrigger();
 
     void trigger() override;
-    bool addNetAddr(NetAddr addr);
+    bool addConn(NetAddr addr);
     bool delNetAddr(NetAddr addr);
     // virtual NetTrigger &operator=(const NetTrigger &);
 };
