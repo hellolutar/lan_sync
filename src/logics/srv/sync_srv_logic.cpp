@@ -5,17 +5,20 @@ SyncSrvLogic::SyncSrvLogic()
     st = STATE_DISCOVERING;
 }
 
-bool SyncSrvLogic::isExtraAllDataNow(void *data, uint64_t data_len)
+void SyncSrvLogic::isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len)
 {
     if (data_len < LEN_LAN_SYNC_HEADER_T)
-        return false;
+        want_to_extra_len = 0;
 
     lan_sync_header_t *header = (lan_sync_header_t *)data;
 
-    if (data_len < ntohl(header->total_len))
-        return false;
-
-    return true;
+    uint64_t hd_total_len = ntohl(header->total_len);
+    if (data_len < hd_total_len)
+        want_to_extra_len = 0;
+    else if (data_len > hd_total_len)
+        want_to_extra_len = hd_total_len;
+    else
+        want_to_extra_len = data_len;
 }
 
 void SyncSrvLogic::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
@@ -68,7 +71,7 @@ void SyncSrvLogic::recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
         replyResource(header, ctx);
     }
     else
-        LOG_INFO("[SYNC SER] TCP: receive pkt: the type is unsupport! : {}",header->type);
+        LOG_INFO("[SYNC SER] TCP: receive pkt: the type is unsupport! : {}", header->type);
 }
 
 void SyncSrvLogic::replyTableIndex(NetworkConnCtx *ctx)
@@ -112,7 +115,7 @@ void SyncSrvLogic::replyResource(lan_sync_header_t *header, NetworkConnCtx *ctx)
     if (rs == nullptr)
         return;
 
-    IoReadMonitor *monitor = new SyncIOReadMonitor2(ctx, rs); // reply msg in there
+    IoReadMonitor *monitor = new SyncIOReadMonitor(ctx, rs); // reply msg in there
 
     IoUtil io;
     io.addReadMonitor(monitor);

@@ -14,7 +14,7 @@ void NetTrigger::trigger()
 {
     if (conns.size() == 0)
         LOG_WARN("NetTrigger::trigger() : can not trigger, beacuse the conns is empty!");
-    
+
     for (auto iter = conns.begin(); iter != conns.end(); iter++)
     {
         trigger_behavior->exec((*iter).second->getConnCtx());
@@ -26,6 +26,8 @@ bool NetTrigger::addConn(NetAddr addr)
     NetCliLogicContainer *netcli = conns[addr.str()];
     if (netcli != nullptr)
         return false;
+
+    LOG_INFO("NetTrigger::addConn : {}", addr.str());
 
     netcli = trigger_behavior->setupConn(addr, recv_logic);
 

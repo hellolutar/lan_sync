@@ -4,9 +4,9 @@ void NetCliLogicContainer::recv(void *data, uint64_t data_len, NetworkConnCtx *c
 {
     recv_logic.recv(data, data_len, ctx);
 }
-bool NetCliLogicContainer::isExtraAllDataNow(void *data, uint64_t data_len)
+void NetCliLogicContainer::isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len)
 {
-    return recv_logic.isExtraAllDataNow(data, data_len);
+    recv_logic.isExtraAllDataNow(data, data_len, want_to_extra_len);
 }
 
 void NetCliLogicContainer::setCtx(NetworkConnCtx *ctx)
@@ -23,7 +23,7 @@ void NetSrvLogicContainer::recv(void *data, uint64_t data_len, NetworkConnCtx *c
 {
     recv_logic.recv(data, data_len, ctx);
 };
-bool NetSrvLogicContainer::isExtraAllDataNow(void *data, uint64_t data_len)
+void NetSrvLogicContainer::isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len)
 {
-    return recv_logic.isExtraAllDataNow(data, data_len);
+    recv_logic.isExtraAllDataNow(data, data_len, want_to_extra_len);
 };

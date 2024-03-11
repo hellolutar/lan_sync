@@ -6,22 +6,16 @@
 #include "utils/logger.h"
 #include "proto/lan_share_protocol.h"
 
-class SyncCliReqTbIdxLogic : public AbstNetConnTriggerBehavior
+class SyncCliSyncLogic : public AbstNetConnTriggerBehavior
 {
 public:
-    SyncCliReqTbIdxLogic(/* args */){};
-    ~SyncCliReqTbIdxLogic(){};
-    virtual void exec(NetworkConnCtx &ctx) override;
-};
-
-class SyncCliReqRsLogic : public AbstNetConnTriggerBehavior
-{
-public:
-    SyncCliReqRsLogic(/* args */){};
-    ~SyncCliReqRsLogic(){};
+    SyncCliSyncLogic(/* args */){};
+    ~SyncCliSyncLogic(){};
     virtual void exec(NetworkConnCtx &ctx) override;
     void hdl_pending(NetworkConnCtx &ctx, WantToSyncVO vo);
     void hdl_syncing(WantToSyncVO vo);
+    void reqTbIdx(NetworkConnCtx &ctx);
+    void reqRs(NetworkConnCtx &ctx);
 };
 
 #endif

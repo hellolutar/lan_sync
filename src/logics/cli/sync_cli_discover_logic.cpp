@@ -1,7 +1,6 @@
 #include "sync_cli_discover_logic.h"
 
 SyncCliDiscoverLogic::SyncCliDiscoverLogic(/* args */){
-    printf("SyncCliDiscoverLogic:SyncCliDiscoverLogic() nihao \n");
 };
 
 void SyncCliDiscoverLogic::exec(NetworkConnCtx &ctx)

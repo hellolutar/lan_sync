@@ -24,7 +24,8 @@ WantToSyncVO::WantToSyncVO(std::string uri, enum WantSyncResourceStatusEnum stat
     this->uri = uri;
     this->status = status;
     this->range = range;
-    this->max_delay = range.getSize() / SIZE_50_KB;
+    int delay = range.getSize() / SIZE_50_KB;
+    this->max_delay = max(delay, 60);
     time(&(this->last_update_time));
 }
 
@@ -35,7 +36,7 @@ void WantToSyncVO::setStatus(WantSyncResourceStatusEnum status)
 
 void WantToSyncVO::setLastUpdateTime(time_t t)
 {
-    this->last_update_time = status;
+    this->last_update_time = t;
 }
 
 string WantToSyncVO::getUri()

@@ -282,7 +282,7 @@ void ResourceManager::updateSyncEntryStatus(std::string uri, WantSyncResourceSta
     if (syncTable[uri].getUri().size() > 0)
         syncTable[uri].setStatus(status);
 
-    LOG_INFO("[SYNC CLI] SYNC {}: URI:{}", WantSyncResourceStatusEnumToString(status), uri);
+    LOG_INFO("ResourceManager::updateSyncEntryStatus [{}]: URI:{}", WantSyncResourceStatusEnumToString(status), uri);
     switch (status)
     {
     case SUCCESS:

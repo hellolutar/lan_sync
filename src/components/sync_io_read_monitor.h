@@ -11,27 +11,16 @@
 #include "net/net_framework_impl_with_event.h"
 #include "vo/dto/resource.h"
 
+
 class SyncIOReadMonitor : public IoReadMonitor
-{
-private:
-    struct bufferevent *bev;
-    const struct Resource *rs;
-
-public:
-    SyncIOReadMonitor(struct bufferevent *bev, const struct Resource *rs);
-    ~SyncIOReadMonitor();
-    void monitor(uint64_t from_pos, void *data, uint64_t data_len) override;
-};
-
-class SyncIOReadMonitor2 : public IoReadMonitor
 {
 private:
     NetworkConnCtx *ctx;
     const struct Resource *rs;
 
 public:
-    SyncIOReadMonitor2(NetworkConnCtx *ctx, const struct Resource *rs) : ctx(ctx), rs(rs){};
-    ~SyncIOReadMonitor2();
+    SyncIOReadMonitor(NetworkConnCtx *ctx, const struct Resource *rs) : ctx(ctx), rs(rs){};
+    ~SyncIOReadMonitor(){};
     void monitor(uint64_t from_pos, void *data, uint64_t data_len) override;
 };
 

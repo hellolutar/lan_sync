@@ -13,7 +13,7 @@ public:
     ~UdpServer();
 
     void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
-    bool isExtraAllDataNow(void *data, uint64_t data_len);
+    void isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len);
 };
 
 UdpServer::~UdpServer()
@@ -33,9 +33,9 @@ void UdpServer::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 
     ctx->write(data, data_len);
 }
-bool UdpServer::isExtraAllDataNow(void *data, uint64_t data_len)
+void UdpServer::isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len)
 {
-    return true;
+    want_to_extra_len = data_len;
 }
 
 int main(int argc, char const *argv[])

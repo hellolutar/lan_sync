@@ -16,7 +16,7 @@ public:
     virtual ~NetCliLogicContainer(){};
 
     virtual void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
-    virtual bool isExtraAllDataNow(void *data, uint64_t data_len);
+    virtual void isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len);
     virtual void setCtx(NetworkConnCtx *ctx);
 
     NetworkConnCtx &getConnCtx();
@@ -32,7 +32,7 @@ public:
     ~NetSrvLogicContainer(){};
 
     virtual void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
-    virtual bool isExtraAllDataNow(void *data, uint64_t data_len) override;
+    virtual void isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len) override;
 };
 
 #endif

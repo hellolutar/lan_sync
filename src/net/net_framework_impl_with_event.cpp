@@ -44,12 +44,15 @@ void NetFrameworkImplWithEvent::read_cb(struct bufferevent *bev, void *arg)
 
     NetworkConnCtxWithEvent *ctx = (NetworkConnCtxWithEvent *)arg;
     NetAbility *ne = ctx->getNetworkEndpoint();
-    if (ne->isExtraAllDataNow((void *)data, data_len))
-    {
-        memset(data, 0, data_len);
-        data_len = evbuffer_remove(in, data, data_len);
 
-        ne->recv((void *)data, data_len, ctx);
+    uint64_t ne_wanto_extra_len = 0;
+    ne->isExtraAllDataNow((void *)data, data_len, ne_wanto_extra_len);
+    if (ne_wanto_extra_len > 0)
+    {
+        memset(data, 0, ne_wanto_extra_len);
+        ne_wanto_extra_len = evbuffer_remove(in, data, ne_wanto_extra_len);
+
+        ne->recv((void *)data, ne_wanto_extra_len, ctx);
     }
     delete[] data;
 }
@@ -289,6 +292,7 @@ void NetFrameworkImplWithEvent::free()
 uint64_t NetworkConnCtxWithEvent::write(void *data, uint64_t data_len)
 {
     int ret = evbuffer_add(bufferevent_get_output(bev), data, data_len);
+    LOG_DEBUG("NetworkConnCtxWithEvent::write: {}, sent [{}]", this->peer.str().data(), data_len);
     return ret;
 }
 

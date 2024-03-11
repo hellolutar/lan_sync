@@ -14,11 +14,9 @@ private:
     void handleHelloAck(LanSyncPkt &pkt, NetworkConnCtx &ctx);
 
     NetTrigger *discovery_tr;
-    NetTrigger *req_table_index_tr;
-    NetTrigger *req_rs_tr;
+    NetTrigger *sync_tr;
     SyncCliDiscoverLogic discover_logic;
-    SyncCliReqTbIdxLogic req_tb_idx_logic;
-    SyncCliReqRsLogic req_rs;
+    SyncCliSyncLogic sync_logic;
 
     void handleLanSyncReplyTableIndex(void *data, uint64_t data_len, NetworkConnCtx *ctx, lan_sync_header_t *header);
     void handleLanSyncReplyResource(void *data, uint64_t data_len, NetworkConnCtx *ctx, lan_sync_header_t *header);
@@ -29,20 +27,17 @@ public:
     ~SyncCliLogic(){};
     void recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
     void recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
-    bool isExtraAllDataNow(void *data, uint64_t data_len) override;
+    void isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len) override;
 
     void setDiscoveryTrigger(NetTrigger *tr);
     NetTrigger &getDiscoveryTrigger();
 
-    void setReqTbIdxTrigger(NetTrigger *tr);
-    NetTrigger &getReqTableIndexTrigger();
+    void setSyncTrigger(NetTrigger *tr);
+    NetTrigger &getsSyncTrigger();
 
-    void setReqRsLogicTrigger(NetTrigger *tr);
-    NetTrigger &getSyncCliReqRsLogicTrigger();
 
     SyncCliDiscoverLogic &getDiscoverLogic();
-    SyncCliReqTbIdxLogic &getReqTbIdxLogic();
-    SyncCliReqRsLogic &getReqRsLogic();
+    SyncCliSyncLogic &getSyncLogic();
 };
 
 #endif

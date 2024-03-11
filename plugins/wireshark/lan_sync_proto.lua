@@ -203,9 +203,9 @@ function handleXheader(xheader_len, offset, tvbuf, tree, total_len)
         for i = 0, xheader_len, 1 do
             local ch = string.byte(xheader_str, i)
             if ch == 0 then
-                dprint("i:" ..
-                    i .. "sub_start:" .. sub_start .. " xheader_len:" .. xheader_len .. " total_len:" .. total_len)
-                local xheader_entry = tvbuf:range(sub_start, string.len(xheader_str)):raw()
+                local sub_len = start + xheader_len - sub_start;
+                print("(" .. sub_start .. "," .. sub_len .. ") xheader_len:" .. xheader_len .. " total_len:" .. total_len)
+                local xheader_entry = tvbuf:range(sub_start, sub_len):raw()
                 tree:add(xheader_entry)
                 sub_start = start + i
             end
@@ -235,7 +235,7 @@ function handlePktInfoColsInfo(pktinfo, msgtype_tvbr, xheader_len, total_len, he
     local data_len = total_len - header_len
     pktinfo.cols.protocol:set("LSP")
     if string.find(tostring(pktinfo.cols.info), "^LSP") == nil then
-        local info_cell = "LSP [" .. types[msgtype_tvbr:uint()] .. "]"
+        local info_cell = "[" .. types[msgtype_tvbr:uint()] .. "]"
         if xheader_len > 0 then
             info_cell = info_cell .. " xhdlen=" .. xheader_len
         end
@@ -276,12 +276,6 @@ checkLspLength = function(tvbuf, offset)
     local length_tvbr = tvbuf:range(offset + 4, 4)
     local total_len = length_tvbr:uint() or 0;
 
-    -- if length_val > default_settings.max_msg_len then
-    --     -- too many bytes, invalid message
-    --     dprint("LSP message length is too long: ", length_val)
-    --     return 0
-    -- end
-
     dprint2("offset:" .. offset .. "\tmsg_len:" .. msglen .. '\ttotal_len:' .. total_len)
 
     if msglen < total_len then
@@ -302,15 +296,15 @@ local function enableDissector()
     -- using DissectorTable:set() removes existing dissector(s), whereas the
     -- DissectorTable:add() one adds ours before any existing ones, but
     -- leaves the other ones alone, which is better
-    DissectorTable.get("tcp.port"):add(default_settings.port, lansync_proto)
+    DissectorTable.get("tcp.port"):add(58081, lansync_proto)
     DissectorTable.get("udp.port"):add(58080, lansync_proto)
 end
 -- call it now, because we're enabled by default
 enableDissector()
 
 local function disableDissector()
-    DissectorTable.get("tcp.port"):remove(default_settings.port, lansync_proto)
-    DissectorTable.get("udp.port"):add(58080, lansync_proto)
+    DissectorTable.get("tcp.port"):remove(58081, lansync_proto)
+    DissectorTable.get("udp.port"):remove(58080, lansync_proto)
 end
 
 

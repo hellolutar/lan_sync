@@ -1,24 +1,9 @@
 #include "sync_cli_sync_logic.h"
 
-void SyncCliReqTbIdxLogic::exec(NetworkConnCtx &ctx)
-{
-    LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_TABLE_INDEX);
-
-    struct evbuffer *buf = evbuffer_new();
-    pkt.write(buf);
-
-    uint64_t reply_data_len = evbuffer_get_length(buf);
-    uint8_t *reply_data = (uint8_t *)malloc(reply_data_len);
-    evbuffer_remove(buf, reply_data, reply_data_len);
-    evbuffer_free(buf);
-    ctx.write(reply_data, reply_data_len);
-    free(reply_data);
-}
-
-void SyncCliReqRsLogic::hdl_pending(NetworkConnCtx &ctx, WantToSyncVO vo)
+void SyncCliSyncLogic::hdl_pending(NetworkConnCtx &ctx, WantToSyncVO vo)
 {
     // TODO check tcp session exist
-    ResourceManager::getRsm().updateSyncEntryStatus(vo.getUri(), PENDING);
+    ResourceManager::getRsm().updateSyncEntryStatus(vo.getUri(), SYNCING);
 
     LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_RESOURCE);
 
@@ -39,7 +24,7 @@ void SyncCliReqRsLogic::hdl_pending(NetworkConnCtx &ctx, WantToSyncVO vo)
     LOG_INFO("[SYNC CLI] req resource uri[{}] range[{}]!", vo.getUri().data(), range_hdr.data());
 }
 
-void SyncCliReqRsLogic::hdl_syncing(WantToSyncVO vo)
+void SyncCliSyncLogic::hdl_syncing(WantToSyncVO vo)
 {
     ResourceManager &rsm = ResourceManager::getRsm();
 
@@ -55,14 +40,25 @@ void SyncCliReqRsLogic::hdl_syncing(WantToSyncVO vo)
     }
 }
 
-void SyncCliReqRsLogic::exec(NetworkConnCtx &ctx)
+void SyncCliSyncLogic::reqTbIdx(NetworkConnCtx &ctx)
 {
-    LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_RESOURCE);
-    struct evbuffer *buf = evbuffer_new();
+    LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_TABLE_INDEX);
 
+    struct evbuffer *buf = evbuffer_new();
+    pkt.write(buf);
+
+    uint64_t reply_data_len = evbuffer_get_length(buf);
+    uint8_t *reply_data = (uint8_t *)malloc(reply_data_len);
+    evbuffer_remove(buf, reply_data, reply_data_len);
+    evbuffer_free(buf);
+    ctx.write(reply_data, reply_data_len);
+    free(reply_data);
+}
+
+void SyncCliSyncLogic::reqRs(NetworkConnCtx &ctx)
+{
     ResourceManager &rsm = ResourceManager::getRsm();
     map<string, WantToSyncVO> &syncTb = rsm.getSyncTable();
-
     uint8_t max_concur = 10;
     int count = 0;
     for (auto iter = syncTb.begin(); iter != syncTb.end(); iter++)
@@ -96,4 +92,10 @@ void SyncCliReqRsLogic::exec(NetworkConnCtx &ctx)
             break;
         }
     }
+}
+
+void SyncCliSyncLogic::exec(NetworkConnCtx &ctx)
+{
+    reqRs(ctx);
+    reqTbIdx(ctx);
 }

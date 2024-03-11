@@ -8,14 +8,9 @@ void SyncCliLogic::setDiscoveryTrigger(NetTrigger *tr)
 {
     discovery_tr = tr;
 }
-void SyncCliLogic::setReqTbIdxTrigger(NetTrigger *tr)
+void SyncCliLogic::setSyncTrigger(NetTrigger *tr)
 {
-    req_table_index_tr = tr;
-}
-
-void SyncCliLogic::setReqRsLogicTrigger(NetTrigger *tr)
-{
-    req_rs_tr = tr;
+    sync_tr = tr;
 }
 
 SyncCliDiscoverLogic &SyncCliLogic::getDiscoverLogic()
@@ -23,14 +18,9 @@ SyncCliDiscoverLogic &SyncCliLogic::getDiscoverLogic()
     return discover_logic;
 }
 
-SyncCliReqTbIdxLogic &SyncCliLogic::getReqTbIdxLogic()
+SyncCliSyncLogic &SyncCliLogic::getSyncLogic()
 {
-    return req_tb_idx_logic;
-}
-
-SyncCliReqRsLogic &SyncCliLogic::getReqRsLogic()
-{
-    return req_rs;
+    return sync_logic;
 }
 
 NetTrigger &SyncCliLogic::getDiscoveryTrigger()
@@ -38,27 +28,32 @@ NetTrigger &SyncCliLogic::getDiscoveryTrigger()
     return *discovery_tr;
 }
 
-NetTrigger &SyncCliLogic::getReqTableIndexTrigger()
+NetTrigger &SyncCliLogic::getsSyncTrigger()
 {
-    return *req_table_index_tr;
+    return *sync_tr;
 }
 
-NetTrigger &SyncCliLogic::getSyncCliReqRsLogicTrigger()
-{
-    return *req_rs_tr;
-}
-
-bool SyncCliLogic::isExtraAllDataNow(void *data, uint64_t data_len)
+void SyncCliLogic::isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len)
 {
     if (data_len < LEN_LAN_SYNC_HEADER_T)
-        return false;
+        want_to_extra_len = 0;
 
     lan_sync_header_t *header = (lan_sync_header_t *)data;
 
-    if (data_len < ntohl(header->total_len))
-        return false;
+    if (header->version != LAN_SYNC_VER_0_1)
+    {
+        LOG_WARN("SyncCliLogic::isExtraAllDataNow() : the protocol is unsupport! : {}", header->version);
+        want_to_extra_len = 0;
+    }
 
-    return true;
+    uint64_t hd_total_len = ntohl(header->total_len);
+    if (data_len < hd_total_len)
+        want_to_extra_len = 0;
+    else if (data_len > hd_total_len)
+        want_to_extra_len = hd_total_len;
+    else
+        want_to_extra_len = data_len;
+
 }
 
 void SyncCliLogic::handleHelloAck(LanSyncPkt &pkt, NetworkConnCtx &ctx)
@@ -75,7 +70,7 @@ void SyncCliLogic::handleHelloAck(LanSyncPkt &pkt, NetworkConnCtx &ctx)
 
     NetAddr peer_tcp_addr = ctx.getPeer();
     peer_tcp_addr.setPort(peer_tcp_port);
-    this->req_table_index_tr->addConn(peer_tcp_addr);
+    this->sync_tr->addConn(peer_tcp_addr);
 }
 
 void SyncCliLogic::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
@@ -126,6 +121,7 @@ void SyncCliLogic::handleLanSyncReplyResource(void *data, uint64_t data_len, Net
 
     string content_range_str = pkt.queryXheader(XHEADER_CONTENT_RANGE);
     ContentRange cr(content_range_str);
+    LOG_INFO("[SYNC CLI] SyncCliLogic::handleLanSyncReplyResource() : uri:{}; cr:{}", uri.data(), cr.to_string());
 
     uint8_t *data_pos = (uint8_t *)data + pkt.getHeaderLen();
     bool write_ret = rsm.saveLocal(uri, data_pos, cr.getStartPos(), cr.getSize());

@@ -53,13 +53,9 @@ int main(int argc, char const *argv[])
         main_logic.getDiscoveryTrigger().addConn(addr);
     }
 
-    NetTrigger *reqidx_tr = new TcpTrigger(Trigger::second(5), true, tcplogic, main_logic.getReqTbIdxLogic());
-    main_logic.setReqTbIdxTrigger(reqidx_tr);
-    TimerWithEvent::addTr(reqidx_tr);
-
-    NetTrigger *re_rs_tr = new TcpTrigger(Trigger::second(5), true, tcplogic, main_logic.getReqRsLogic());
-    main_logic.setReqRsLogicTrigger(re_rs_tr);
-    TimerWithEvent::addTr(re_rs_tr);
+    NetTrigger *sync_req_tr = new TcpTrigger(Trigger::second(5), true, tcplogic, main_logic.getSyncLogic());
+    main_logic.setSyncTrigger(sync_req_tr);
+    TimerWithEvent::addTr(sync_req_tr);
 
     TimerWithEvent::run();
 
