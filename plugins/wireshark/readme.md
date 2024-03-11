@@ -14,7 +14,8 @@
 
 ## Linux
 ``` shell
-cp lan_sync_proto.lua lan_sync_proto.lua /usr/lib/x86_64-linux-gnu/wireshark/plugins
+sudo ln -s  $(pwd)/lan_sync_proto.lua /usr/lib/x86_64-linux-gnu/wireshark/plugins/lan_sync_proto.lua
+sudo cp lan_sync_proto.lua /usr/lib/x86_64-linux-gnu/wireshark/plugins/lan_sync_proto.lua
 ```
 
 <br/>

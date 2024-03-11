@@ -4,6 +4,7 @@ learn
 **/*.all
 **/*.so
 **/*.log
+**/*.bin
 **/logs
 **/log
 src/sync

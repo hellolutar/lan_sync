@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.h": "cpp",
         "string": "cpp",
         "cstring": "cpp",
         "cstdio": "cpp",
@@ -67,6 +68,21 @@
         "set": "cpp",
         "variant": "cpp",
         "span": "cpp",
-        "cerrno": "cpp"
+        "cerrno": "cpp",
+        "event.h": "c",
+        "internet": "cpp",
+        "buffer": "cpp",
+        "socket": "cpp",
+        "forward_list": "cpp",
+        "list": "cpp",
+        "executor": "cpp",
+        "io_context": "cpp",
+        "netfwd": "cpp",
+        "timer": "cpp",
+        "future": "cpp",
+        "main": "cpp",
+        "bitset": "cpp",
+        "unordered_set": "cpp",
+        "regex": "cpp"
     }
 }
