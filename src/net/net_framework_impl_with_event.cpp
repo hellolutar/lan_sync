@@ -23,7 +23,42 @@ void NetFrameworkImplWithEvent::init_check()
 
 void NetFrameworkImplWithEvent::event_cb(struct bufferevent *bev, short events, void *data)
 {
-    LOG_WARN("TODO NetFrameworkImplWithEvent::event_cb");
+    switch (events)
+    {
+    case BEV_EVENT_EOF:
+        LOG_ERROR("NetFrameworkImplWithEvent::event_cb : BEV_EVENT_EOF : {}", strerror(errno));
+        break;
+    case BEV_EVENT_ERROR:
+        LOG_ERROR("NetFrameworkImplWithEvent::event_cb : BEV_EVENT_ERROR : {}", strerror(errno));
+        break;
+    case BEV_EVENT_TIMEOUT:
+        LOG_ERROR("NetFrameworkImplWithEvent::event_cb : BEV_EVENT_TIMEOUT : {}", strerror(errno));
+        break;
+    case BEV_EVENT_CONNECTED:
+        LOG_ERROR("NetFrameworkImplWithEvent::event_cb : BEV_EVENT_CONNECTED : {}", strerror(errno));
+        break;
+    case BEV_EVENT_READING:
+        LOG_ERROR("NetFrameworkImplWithEvent::event_cb : BEV_EVENT_READING : {}", strerror(errno));
+        break;
+    case BEV_EVENT_WRITING:
+        LOG_ERROR("NetFrameworkImplWithEvent::event_cb : BEV_EVENT_WRITING : {}", strerror(errno));
+        break;
+    default:
+        LOG_ERROR("NetFrameworkImplWithEvent::event_cb : OTHER : {}", strerror(errno));
+        break;
+    }
+
+    NetworkConnCtx *nctx = (NetworkConnCtx *)data;
+    nctx->setActive(false);
+    for (auto iter = tcp_ctx.begin(); iter != tcp_ctx.end(); iter++)
+    {
+        if ((*iter) == nctx)
+        {
+            LOG_INFO("NetFrameworkImplWithEvent::event_cb : remvoe tcp_ctx : {}", nctx->getPeer().str());
+            tcp_ctx.erase(iter);
+            break;
+        }
+    }
 }
 
 void NetFrameworkImplWithEvent::write_cb(struct bufferevent *bev, void *data)
@@ -78,7 +113,7 @@ void NetFrameworkImplWithEvent::tcp_accept(evutil_socket_t listener, short event
 
     NetworkConnCtxWithEvent *nctx = new NetworkConnCtxWithEvent(&tcp_ctx, ne, bev, peer_sock, NetAddr::fromBe(peer));
     tcp_ctx.push_back(nctx);
-    bufferevent_setcb(bev, read_cb, write_cb, nullptr, nctx);
+    bufferevent_setcb(bev, read_cb, write_cb, event_cb, nctx);
     bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
 
@@ -212,7 +247,7 @@ NetworkConnCtx *NetFrameworkImplWithEvent::connectWithTcp(NetAbilityImplWithEven
 
     NetworkConnCtxWithEvent *nctx = new NetworkConnCtxWithEvent(&tcp_ctx, peer_ne, bev, peer_sock, peer_ne->getAddr());
     tcp_ctx.push_back(nctx);
-    bufferevent_setcb(bev, read_cb, write_cb, nullptr, nctx);
+    bufferevent_setcb(bev, read_cb, write_cb, event_cb, nctx);
     bufferevent_enable(bev, EV_READ | EV_WRITE);
 
     return nctx; // todo determine delete
@@ -291,6 +326,12 @@ void NetFrameworkImplWithEvent::free()
 
 uint64_t NetworkConnCtxWithEvent::write(void *data, uint64_t data_len)
 {
+    if (!active)
+    {
+        delete this;
+        throw NetworkConnCtxException();
+    }
+
     int ret = evbuffer_add(bufferevent_get_output(bev), data, data_len);
     LOG_DEBUG("NetworkConnCtxWithEvent::write: {}, sent [{}]", this->peer.str().data(), data_len);
     return ret;

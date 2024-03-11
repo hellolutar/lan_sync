@@ -15,9 +15,20 @@ void NetTrigger::trigger()
     if (conns.size() == 0)
         LOG_WARN("NetTrigger::trigger() : can not trigger, beacuse the conns is empty!");
 
-    for (auto iter = conns.begin(); iter != conns.end(); iter++)
+    for (auto iter = conns.begin(); iter != conns.end();)
     {
-        trigger_behavior->exec((*iter).second->getConnCtx());
+        try
+        {
+            NetworkConnCtx& ctx =  (*iter).second->getConnCtx();
+            trigger_behavior->exec(ctx);
+        }
+        catch (const std::exception &e)
+        {
+            LOG_ERROR("NetTrigger::trigger() : {}", e.what());
+            iter = conns.erase(iter);
+            continue;
+        }
+        iter++;
     }
 }
 
