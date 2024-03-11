@@ -13,7 +13,7 @@ IoUtil::~IoUtil()
         auto rdm = readMonitors[i];
         delete rdm;
     }
-    printf("[DEBUG] IoUtil RELEASE\n");
+    // printf("[DEBUG] IoUtil RELEASE\n");
 }
 
 void IoUtil::addReadMonitor(IoReadMonitor *monitor)
