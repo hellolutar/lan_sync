@@ -1,4 +1,4 @@
-#ifndef __CONCRETE_NET_TRIGGER_H_Discover
+#ifndef __CONCRETE_NET_TRIGGER_H_
 #define __CONCRETE_NET_TRIGGER_H_
 
 #include "modules/net_trigger.h"

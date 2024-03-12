@@ -7,9 +7,9 @@ std::vector<event *> NetFrameworkImplWithEvent::events; // only persist event ne
 std::vector<NetworkConnCtx *> NetFrameworkImplWithEvent::tcp_ctx;
 std::vector<NetworkConnCtx *> NetFrameworkImplWithEvent::udp_ctx;
 
-void NetFrameworkImplWithEvent::init(struct event_base *eb)
+void NetFrameworkImplWithEvent::init(struct event_base &eb)
 {
-    base = eb;
+    base = &eb;
 }
 
 void NetFrameworkImplWithEvent::init_check()
@@ -304,24 +304,27 @@ void NetFrameworkImplWithEvent::cleanup()
         event_free(e);
         events.pop_back();
     }
+    LOG_INFO("NetFrameworkImplWithEvent::cleanup(): free events: done!");
 
     for (int i = tcp_ctx.size() - 1; i >= 0; i--)
     {
         delete tcp_ctx[i];
         tcp_ctx.pop_back();
     }
+    LOG_INFO("NetFrameworkImplWithEvent::cleanup(): free tcp_ctx: done!");
 
     for (int i = udp_ctx.size() - 1; i >= 0; i--)
     {
         delete udp_ctx[i];
         udp_ctx.pop_back();
     }
+    LOG_INFO("NetFrameworkImplWithEvent::cleanup(): free udp_ctx: done!");
 }
 
 void NetFrameworkImplWithEvent::free()
 {
+    LOG_INFO("NetFrameworkImplWithEvent::free(): free");
     cleanup();
-    event_base_free(base);
 }
 
 uint64_t NetworkConnCtxWithEvent::write(void *data, uint64_t data_len)

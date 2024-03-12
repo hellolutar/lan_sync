@@ -22,8 +22,6 @@
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
 
-using namespace std;
-
 #define DEFAULT_DISCOVER_SERVER_UDP_PORT 58080
 #define DEFAULT_DISCOVER_SERVER_TCP_PORT 58081
 
@@ -62,7 +60,7 @@ using namespace std;
 class LocalPort
 {
 private:
-    string name;
+    std::string name;
     struct sockaddr_in addr;
     struct sockaddr_in broad_addr;
     struct sockaddr_in subnet_mask;
@@ -71,8 +69,8 @@ public:
     LocalPort(/* args */);
     ~LocalPort();
 
-    static vector<LocalPort> query();
-    static bool existIp(vector<LocalPort> ports, struct in_addr addr);
+    static std::vector<LocalPort> query();
+    static bool existIp(std::vector<LocalPort> ports, struct in_addr addr);
     struct sockaddr_in getAddr();
     struct sockaddr_in getBroadAddr();
     struct sockaddr_in getSubnetMask();
@@ -128,7 +126,7 @@ void writecb(evutil_socket_t fd, short events, void *ctx);
 class LanSyncPkt
 {
 private:
-    map<string, string> xheader;
+    std::map<std::string, std::string> xheader;
     void *data; //  ~LanSyncPkt()
     uint16_t header_len;
     uint32_t total_len;
@@ -144,9 +142,9 @@ public:
     void write(struct bufferevent *bev);
     void write(struct evbuffer *out);
 
-    void addXheader(const string key, const string value);
+    void addXheader(const std::string key, const std::string value);
 
-    string queryXheader(string key);
+    std::string queryXheader(std::string key);
 
     void *getData();
 
@@ -157,7 +155,7 @@ public:
     uint32_t getDataLen();
     enum lan_sync_version getVersion();
     enum lan_sync_type_enum getType();
-    const map<string, string> getXheaders();
+    const std::map<std::string, std::string> getXheaders();
 };
 
 bool compareChar(char *l, char *r, uint32_t cnt);
@@ -172,7 +170,7 @@ private:
 
 public:
     // str like : 0-500/500/last
-    ContentRange(string str);
+    ContentRange(std::string str);
     ContentRange(uint64_t start_pos, uint64_t size, uint64_t total_size, bool is_last)
         : start_pos(start_pos), size(size), total_size(total_size), is_last(is_last){};
     ~ContentRange();
@@ -181,7 +179,7 @@ public:
     uint64_t getSize();
     uint64_t getTotalSize();
     bool isLast();
-    string to_string();
+    std::string to_string();
 };
 
 class Range
@@ -191,14 +189,14 @@ private:
     uint64_t size;
 
 public:
-    Range(string str);
+    Range(std::string str);
     Range(uint64_t start_pos, uint64_t size) : start_pos(start_pos), size(size){};
     ~Range();
     uint64_t getStartPos();
     uint64_t getSize();
-    string to_string();
+    std::string to_string();
 
-    static string defaultStr;
+    static std::string defaultStr;
 };
 
 #endif

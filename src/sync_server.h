@@ -6,4 +6,7 @@
 #include "cxxopts/cxxopts.hpp"
 #include "net/net_logic_container.h"
 
+#include "components/common.h"
+#include "components/constants.h"
+
 #endif

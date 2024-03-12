@@ -1,5 +1,7 @@
 #include "lan_share_protocol.h"
 
+using namespace std;
+
 void evbuffer_cb_for_free(struct evbuffer *buffer, const struct evbuffer_cb_info *info, void *arg)
 {
     if (evbuffer_get_length(buffer) == 0)

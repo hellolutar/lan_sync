@@ -20,7 +20,7 @@
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
 
-#include "constants.h"
+#include "components/constants.h"
 #include "utils/logger.h"
 #include "utils/io_utils.h"
 #include "modules/resource_manager.h"

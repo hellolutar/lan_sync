@@ -1,37 +1,12 @@
 #include "sync_cli.h"
 
-void configure(int argc, char const *argv[])
-{
-    stringstream ss;
-    ss << filesystem::current_path().string() << "/"
-       << CONFIG_DEFAULT_NAME;
-    string default_config_file;
-    ss >> default_config_file;
-
-    cxxopts::Options options("sync", "A sync program that sync file.");
-
-    options.add_options()("c,config", "config path", cxxopts::value<string>()->default_value(default_config_file));
-
-    auto result = options.parse(argc, argv);
-    if (result.count("help"))
-    {
-        std::cout << options.help() << std::endl;
-        exit(0);
-    }
-
-    string config_at = result["config"].as<std::string>();
-    ConfigManager::reload(config_at);
-
-    ResourceManager::init(ConfigManager::query(CONFIG_KEY_RESOURCE_HOME));
-}
-
 int main(int argc, char const *argv[])
 {
     configure(argc, argv);
 
     struct event_base *base = event_base_new();
     TimerWithEvent::init(base);
-    NetFrameworkImplWithEvent::init(base);
+    NetFrameworkImplWithEvent::init(*base);
 
     SyncCliLogic main_logic;
     LogicUdp &udplogic = main_logic;
@@ -57,7 +32,8 @@ int main(int argc, char const *argv[])
     main_logic.setSyncTrigger(sync_req_tr);
     TimerWithEvent::addTr(sync_req_tr);
 
-    TimerWithEvent::run();
+    event_base_dispatch(base);
+    event_base_free(base);
 
     return 0;
 }

@@ -30,7 +30,7 @@ private:
     static void init_check();
 
 public:
-    static void init(struct event_base *base);
+    static void init(struct event_base &base);
     static void event_cb(struct bufferevent *bev, short events, void *data);
     static void write_cb(struct bufferevent *bev, void *data);
     static void read_cb(struct bufferevent *bev, void *data);

@@ -27,7 +27,7 @@ private:
 
 public:
 
-    static string mdEncodeWithSHA3_512(string f);
+    static std::string mdEncodeWithSHA3_512(std::string f);
 };
 
 #endif

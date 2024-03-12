@@ -1,5 +1,7 @@
 #include "openssl_utils.h"
 
+using namespace std;
+
 OSSL_LIB_CTX *OpensslUtil::lib_ctx = OSSL_LIB_CTX_new();
 
 // https://blog.csdn.net/QCZL_CC/article/details/119957918
