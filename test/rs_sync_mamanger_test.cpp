@@ -7,9 +7,18 @@
 
 using namespace std;
 
+
+string big_file_uri = "/big.txt";
+string small_file_uri = "/small.txt";
+
+
 filesystem::path test_peer_dir("test_peer_dir");
 filesystem::path test_peer_small_file("test_peer_dir/small.txt");
 filesystem::path test_peer_big_file("test_peer_dir/big.txt");
+
+filesystem::path test_peer2_dir("test_peer2_dir");
+filesystem::path test_peer_bigger_file("test_peer2_dir/big.txt");
+uint64_t test_peer_bigger_file_size = SIZE_1MByte * 4;
 
 uint64_t test_peer_small_file_size = SIZE_1KByte;
 uint64_t test_peer_big_file_size = SIZE_1MByte * 3;
@@ -34,7 +43,7 @@ protected:
         int len = 0;
         while (true)
         {
-            size_t retlen = size - len;
+            uint64_t retlen = size - len;
             int cur_write_len = min(dic.size(), retlen);
             ss << dic.substr(0, cur_write_len);
             len += cur_write_len;
@@ -56,6 +65,7 @@ protected:
         ResourceManager::init(test_dir.string());
 
         filesystem::create_directories(test_peer_dir);
+        filesystem::create_directories(test_peer2_dir);
         filesystem::create_directories(test_dir);
 
         genFile(test_big_file.string(), test_big_file_size);
@@ -63,41 +73,151 @@ protected:
 
         genFile(test_peer_small_file.string(), test_peer_small_file_size);
         genFile(test_peer_big_file.string(), test_peer_big_file_size);
+
+        genFile(test_peer_bigger_file.string(), test_peer_bigger_file_size);
     }
 
     void TearDown() override
     {
         filesystem::remove_all(test_peer_dir);
+        filesystem::remove_all(test_peer2_dir);
         filesystem::remove_all(test_dir);
     }
 
-    void TestUpdSyncingRsByTbIdx()
+    Resource *findFromTbWithUri(vector<struct Resource *> table, string uri)
+    {
+        for (auto rs : table)
+        {
+            if (rs->uri == uri)
+            {
+                return rs;
+            }
+        }
+        return nullptr;
+    }
+
+    void TestCaseNormal()
     {
         NetAddr peer("127.0.0.1:38080");
-        Resource peerrs[2];
         RsLocalManager peer_rm(test_peer_dir.string());
         vector<struct Resource *> peer_rs_table = peer_rm.getTable();
 
         RsSyncManager rsync;
-        rsync.refreshSyncingRsByTbIdx(peer, Resource::vecToArr(peer_rs_table), peer_rs_table.size());
-        Block req_small_block = rsync.regReqSyncRsAuto(peer, "/small.txt");
-
-        ASSERT_TRUE(Block(0, test_peer_small_file_size + 1) == req_small_block);
 
         uint64_t total_len = 0;
-        Block req_big_block = rsync.regReqSyncRsAuto(peer, "/big.txt");
-        total_len += req_big_block.end - req_big_block.start;
-        printf("%ld\n", req_big_block.end - req_big_block.start);
+        rsync.refreshSyncingRsByTbIdx(peer, Resource::vecToArr(peer_rs_table), peer_rs_table.size());
+        while (rsync.getAllUriRs()[small_file_uri].block.size() > 0)
+        {
+            Block b = rsync.regReqSyncRsAuto(peer, small_file_uri);
+            total_len += b.end - b.start;
+        }
+        ASSERT_EQ(total_len - 1, test_peer_small_file_size);
 
-        req_big_block = rsync.regReqSyncRsAuto(peer, "/big.txt");
-        total_len += req_big_block.end - req_big_block.start;
-        printf("%ld\n", req_big_block.end - req_big_block.start);
+        // register rs of peer1, then syncing
+        total_len = 0;
+        int total_block_num = rsync.getAllUriRs()[big_file_uri].block.size();
+        Block b = rsync.regReqSyncRsAuto(peer, big_file_uri);
+        total_len = b.end - b.start;
 
-        req_big_block = rsync.regReqSyncRsAuto(peer, "/big.txt");
-        total_len += req_big_block.end - req_big_block.start;
-        printf("%ld\n", req_big_block.end - req_big_block.start);
+        // register rs of peer2 while syncing peer1 rs
+        NetAddr peer2("127.0.0.1:38080");
+        rsync.refreshSyncingRsByTbIdx(peer2, Resource::vecToArr(peer_rs_table), peer_rs_table.size());
+        SyncRs rs = rsync.getAllUriRs()[big_file_uri];
+        ASSERT_EQ(rs.syncing.size(), 1);
+        ASSERT_EQ(rs.owner.size(), 2);
+        ASSERT_STREQ(rs.owner[0].str().data(), peer.str().data());
+        ASSERT_STREQ(rs.owner[0].str().data(), peer2.str().data());
 
-        ASSERT_EQ(total_len - 1, test_peer_big_file_size);  // [0,total_len), so total_len need to - 1
+        Resource *bigrs = findFromTbWithUri(peer_rs_table, big_file_uri);
+        ASSERT_EQ(rs.hash, bigrs->hash);
+        ASSERT_EQ(rs.size, bigrs->size);
+
+        while (rsync.getAllUriRs()[big_file_uri].block.size() > 0)
+        {
+            b = rsync.regReqSyncRsAuto(peer2, big_file_uri);
+            total_len += b.end - b.start;
+            ASSERT_EQ(total_block_num, rsync.getAllUriRs()[big_file_uri].block.size() + rsync.getAllUriRs()[big_file_uri].syncing.size());
+        }
+
+        ASSERT_EQ(total_len - 1, test_peer_big_file_size); // [0,total_len), so total_len need to - 1
+    }
+
+    void TestCaseFoundBetterRsWhileSyncing()
+    {
+        RsSyncManager rsync;
+        uint64_t total_len = 0;
+
+        NetAddr peer("127.0.0.1:38080");
+        RsLocalManager peer_rm(test_peer_dir.string());
+        vector<struct Resource *> peer_rs_table = peer_rm.getTable();
+        rsync.refreshSyncingRsByTbIdx(peer, Resource::vecToArr(peer_rs_table), peer_rs_table.size());
+
+        // register rs of peer1, then syncing
+        Block b = rsync.regReqSyncRsAuto(peer, big_file_uri);
+        total_len += b.end - b.start;
+        ASSERT_GT(total_len, 0);
+
+        // register rs of peer2, then syncing while sycing peer 1.
+        NetAddr peer2("127.0.0.2:38080");
+        RsLocalManager peer2_rm(test_peer2_dir.string());
+        vector<struct Resource *> peer2_rs_table = peer2_rm.getTable();
+        rsync.refreshSyncingRsByTbIdx(peer2, Resource::vecToArr(peer2_rs_table), peer2_rs_table.size());
+        SyncRs mustBebiggerRs = rsync.getAllUriRs()[big_file_uri];
+        ASSERT_EQ(mustBebiggerRs.syncing.size(), 0);
+        ASSERT_EQ(mustBebiggerRs.owner.size(), 1);
+        ASSERT_STREQ(mustBebiggerRs.owner[0].str().data(), peer2.str().data());
+        ASSERT_EQ(mustBebiggerRs.hash, peer2_rs_table[0]->hash);
+        ASSERT_EQ(mustBebiggerRs.size, peer2_rs_table[0]->size);
+
+        int total_block_num = rsync.getAllUriRs()[big_file_uri].block.size();
+        total_len = 0;
+        while (rsync.getAllUriRs()[big_file_uri].block.size() > 0)
+        {
+            Block b = rsync.regReqSyncRsAuto(peer, big_file_uri);
+            total_len += b.end - b.start;
+            ASSERT_EQ(total_block_num, rsync.getAllUriRs()[big_file_uri].block.size() + rsync.getAllUriRs()[big_file_uri].syncing.size());
+        }
+        ASSERT_EQ(total_len - 1, test_peer_bigger_file_size); // [0,total_len), so total_len need to - 1
+    }
+
+    void TestCaseOneConnErrWhileSyncing()
+    {
+        NetAddr peer("127.0.0.1:38080");
+        NetAddr peer2("127.0.0.2:48080");
+        RsLocalManager peer_rm(test_peer_dir.string());
+        vector<struct Resource *> peer_rs_table = peer_rm.getTable();
+
+        RsSyncManager rsync;
+
+        uint64_t total_len = 0;
+        // register rs of peer1, then syncing
+        rsync.refreshSyncingRsByTbIdx(peer, Resource::vecToArr(peer_rs_table), peer_rs_table.size());
+        int total_block_num = rsync.getAllUriRs()[big_file_uri].block.size();
+        Block peer1_b = rsync.regReqSyncRsAuto(peer, big_file_uri);
+        total_len = peer1_b.end - peer1_b.start;
+
+        // register rs of peer1, then syncing
+        rsync.refreshSyncingRsByTbIdx(peer2, Resource::vecToArr(peer_rs_table), peer_rs_table.size());
+        Block b = rsync.regReqSyncRsAuto(peer2, big_file_uri);
+        total_len += b.end - b.start;
+
+        // peer1 occur connection error
+        rsync.unregReqSyncRs(peer, big_file_uri);
+        total_len -= peer1_b.end - peer1_b.start;  // substract the failed part
+        ASSERT_EQ(total_block_num, rsync.getAllUriRs()[big_file_uri].block.size() + rsync.getAllUriRs()[big_file_uri].syncing.size());
+        ASSERT_EQ(rsync.getAllUriRs()[big_file_uri].owner.size(), 1);
+        ASSERT_STREQ(rsync.getAllUriRs()[big_file_uri].owner[0].str().data(), peer2.str().data());
+        while (rsync.getAllUriRs()[big_file_uri].block.size() > 0)
+        {
+            Block b = rsync.regReqSyncRsAuto(peer2, big_file_uri);
+            total_len += b.end - b.start;
+            ASSERT_EQ(total_block_num, rsync.getAllUriRs()[big_file_uri].block.size() + rsync.getAllUriRs()[big_file_uri].syncing.size());
+        }
+        ASSERT_EQ(total_len - 1, test_peer_big_file_size); // [0,total_len), so total_len need to - 1
+    }
+
+    void TestCaseAllConnErrWhileSyncing()
+    {
     }
 
 public:
@@ -105,7 +225,9 @@ public:
 
 TEST_F(DemoTest, Add)
 {
-    TestUpdSyncingRsByTbIdx();
+    TestCaseNormal();
+    TestCaseFoundBetterRsWhileSyncing();
+    TestCaseOneConnErrWhileSyncing();
 }
 
 int main(int argc, char **argv)

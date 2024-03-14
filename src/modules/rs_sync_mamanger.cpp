@@ -64,6 +64,11 @@ RsSyncManager::~RsSyncManager()
 {
 }
 
+std::map<std::string, SyncRs> &RsSyncManager::getAllUriRs()
+{
+    return uriRs;
+}
+
 void RsSyncManager::refreshSyncingRsByTbIdx(NetAddr peer, struct Resource *table, uint64_t rs_size)
 {
     RsLocalManager &rm = ResourceManager::getRsLocalManager();
@@ -91,40 +96,34 @@ bool RsSyncManager::regSyncRs(NetAddr peer, std::string uri, std::string hash, u
 
 bool RsSyncManager::updateSyncRs(NetAddr peer, std::string uri, std::string hash, uint64_t size)
 {
-    // if (uriRs.find(uri) == uriRs.end())
-    // {
-    //     SyncRs rs(uri, size, hash, peer);
-    //     uriRs[uri] = rs;
-    //     return true;
-    // }
-    // else
-    // {
-
-    //     if (uriRs[uri].size < size)
-    //     {
-    //         for (auto iter = uriRange.end() - 1; iter >= uriRange.begin(); iter--)
-    //         {
-    //             SyncingRange r = (*iter);
-    //             if (r.peer == peer)
-    //                 uriRange.erase(iter);
-    //         }
-    //         uriRs[uri] = SyncRs(uri, size, hash, peer);
-    //     }
-    //     else if (uriRs[uri].size > size)
-    //     {
-    //         return false;
-    //     }
-    //     else
-    //     {
-    //         if (uriRs[uri].hash != hash)
-    //             return false;
-    //         else
-    //         {
-    //             uriRs[uri].owner.push_back(peer);
-    //             return true;
-    //         }
-    //     }
-    // }
+    if (uriRs.find(uri) == uriRs.end())
+    {
+        SyncRs rs(uri, size, hash, peer);
+        uriRs[uri] = rs;
+        return true;
+    }
+    else
+    {
+        if (uriRs[uri].size < size)
+        {
+            uriRs[uri] = SyncRs(uri, size, hash, peer);
+            return true;
+        }
+        else if (uriRs[uri].size > size)
+        {
+            return false;
+        }
+        else
+        {
+            if (uriRs[uri].hash != hash)
+                return false;
+            else
+            {
+                uriRs[uri].owner.push_back(peer);
+                return true;
+            }
+        }
+    }
     return true;
 }
 
@@ -143,6 +142,27 @@ Block RsSyncManager::regReqSyncRsAuto(NetAddr peer, string uri)
         return {block};
     }
     return {};
+}
+
+void RsSyncManager::unregReqSyncRs(NetAddr peer, std::string uri)
+{
+    for (auto iter = uriRs[uri].syncing.end() - 1; iter >= uriRs[uri].syncing.begin(); iter--)
+    {
+        SyncingRange rng = *iter;
+        if (rng.peer == peer)
+        {
+            uriRs[uri].block.push_back(rng.block);
+            uriRs[uri].syncing.erase(iter);
+        }
+    }
+
+    for (auto iter = uriRs[uri].owner.end() - 1; iter >= uriRs[uri].owner.begin(); iter--)
+    {
+        if ((*iter) == peer)
+        {
+            uriRs[uri].owner.erase(iter);
+        }
+    }
 }
 
 void RsSyncManager::syncingRangeDone(NetAddr peer, string uri, Block block)
