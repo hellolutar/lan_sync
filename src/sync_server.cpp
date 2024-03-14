@@ -14,7 +14,6 @@ int main(int argc, char const *argv[])
     NetFrameworkImplWithEvent::addUdpServer(new NetSrvLogicContainer(NetAddr(":58080"), udplogic));
     NetFrameworkImplWithEvent::addTcpServer(new NetSrvLogicContainer(NetAddr(":58081"), tcplogic));
 
-    
     event_base_dispatch(base);
     event_base_free(base);
 

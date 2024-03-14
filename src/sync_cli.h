@@ -10,6 +10,6 @@
 #include "modules/config_manager.h"
 #include "cxxopts/cxxopts.hpp"
 #include "components/common.h"
-#include "components/constants.h"
+#include "constants/constants.h"
 
 #endif

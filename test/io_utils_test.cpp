@@ -4,13 +4,14 @@
 #include <sstream>
 #include <fstream>
 
+#include "constants/constants.h"
 #include "utils/io_utils.h"
 
 using namespace std;
 
 string dic = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 std::default_random_engine e;
-std::uniform_int_distribution<int> u(1, dic.size() * SIZE_1KB); // 左闭右闭区间
+std::uniform_int_distribution<int> u(1, dic.size() * SIZE_1KByte); // 左闭右闭区间
 
 TEST(HelloTest, BasicAssertions)
 {
@@ -156,10 +157,10 @@ TEST(IOUtilsTest, writeFile)
 
         string datastr = generateData();
         IoUtil io;
-        io.writeFile(fname, randV, datastr.data(), SIZE_1KB);
+        io.writeFile(fname, randV, datastr.data(), SIZE_1KByte);
 
         uint64_t readLen = 0;
-        uint8_t *data = (uint8_t *)io.readSize(fname, randV, SIZE_1KB, readLen);
+        uint8_t *data = (uint8_t *)io.readSize(fname, randV, SIZE_1KByte, readLen);
 
         for (size_t i = 0; i < readLen; i++)
         {

@@ -55,7 +55,7 @@
 #define FLAG_XHEADER_CONTENT_BETWEEN "-"
 #define FLAG_XHEADER_CONTENT_BETWEEN_CHAR '-'
 
-#define SIZE_1KB 8196
+#define SIZE_1Kbit 8196
 
 class LocalPort
 {

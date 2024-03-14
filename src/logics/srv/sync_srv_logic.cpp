@@ -76,27 +76,28 @@ void SyncSrvLogic::recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 
 void SyncSrvLogic::replyTableIndex(NetworkConnCtx *ctx)
 {
-    ResourceManager &rsm = ResourceManager::getRsm();
-    vector<struct Resource *> table = rsm.getTable();
-    uint32_t table_len = sizeof(struct Resource) * table.size();
+    // TODO
+    // RsLocalManager &rsm = ResourceManager::getRsLocalManager();
+    // vector<struct Resource *> table = rsm.getTable();
+    // uint32_t table_len = sizeof(struct Resource) * table.size();
 
-    struct Resource *reply_table = Resource::vecToArr(table);
+    // struct Resource *reply_table = Resource::vecToArr(table);
 
-    struct evbuffer *buf = evbuffer_new();
+    // struct evbuffer *buf = evbuffer_new();
 
-    LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_REPLY_TABLE_INDEX);
-    pkt.setData(reply_table, table_len);
-    pkt.write(buf);
-    free(reply_table);
+    // LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_REPLY_TABLE_INDEX);
+    // pkt.setData(reply_table, table_len);
+    // pkt.write(buf);
+    // free(reply_table);
 
-    uint64_t reply_data_len = evbuffer_get_length(buf);
-    uint8_t *reply_data = (uint8_t *)malloc(reply_data_len);
-    evbuffer_remove(buf, reply_data, reply_data_len);
-    evbuffer_free(buf);
-    ctx->write(reply_data, reply_data_len);
-    free(reply_data);
+    // uint64_t reply_data_len = evbuffer_get_length(buf);
+    // uint8_t *reply_data = (uint8_t *)malloc(reply_data_len);
+    // evbuffer_remove(buf, reply_data, reply_data_len);
+    // evbuffer_free(buf);
+    // ctx->write(reply_data, reply_data_len);
+    // free(reply_data);
 
-    LOG_INFO("[SYNC SER] [{}] : entry num: {} ", SERVICE_NAME_REPLY_TABLE_INDEX, table.size());
+    // LOG_INFO("[SYNC SER] [{}] : entry num: {} ", SERVICE_NAME_REPLY_TABLE_INDEX, table.size());
 }
 
 void SyncSrvLogic::replyResource(lan_sync_header_t *header, NetworkConnCtx *ctx)
@@ -110,19 +111,20 @@ void SyncSrvLogic::replyResource(lan_sync_header_t *header, NetworkConnCtx *ctx)
     char *uri = xhd_uri.data();
     LOG_INFO("[SYNC SER] [{}] : uri[{}] ", SERVICE_NAME_REQ_RESOURCE, uri);
 
-    ResourceManager &rsm = ResourceManager::getRsm();
-    const struct Resource *rs = rsm.queryByUri(uri);
-    if (rs == nullptr)
-        return;
+// TODO
+    // RsLocalManager &rsm = ResourceManager::getRsLocalManager();
+    // const struct Resource *rs = rsm.queryByUri(uri);
+    // if (rs == nullptr)
+    //     return;
 
-    IoReadMonitor *monitor = new SyncIOReadMonitor(ctx, rs); // reply msg in there
+    // IoReadMonitor *monitor = new SyncIOReadMonitor(ctx, rs); // reply msg in there
 
-    IoUtil io;
-    io.addReadMonitor(monitor);
+    // IoUtil io;
+    // io.addReadMonitor(monitor);
 
-    uint64_t ret_len = 0;
-    void *data = io.readAll(rs->path, ret_len);
-    free(data);
+    // uint64_t ret_len = 0;
+    // void *data = io.readAll(rs->path, ret_len);
+    // free(data);
 
-    LOG_DEBUG("[SYNC SER] [{}] : uri[{}] file size:{} ", SERVICE_NAME_REPLY_REQ_RESOURCE, uri, ret_len);
+    // LOG_DEBUG("[SYNC SER] [{}] : uri[{}] file size:{} ", SERVICE_NAME_REPLY_REQ_RESOURCE, uri, ret_len);
 }

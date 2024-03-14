@@ -20,10 +20,10 @@
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
 
-#include "components/constants.h"
+#include "constants/constants.h"
 #include "utils/logger.h"
 #include "utils/io_utils.h"
-#include "modules/resource_manager.h"
+#include "modules/rs_local_manager.h"
 #include "net/abst_net_logic.h"
 #include "proto/lan_share_protocol.h"
 #include "components/sync_io_read_monitor.h"

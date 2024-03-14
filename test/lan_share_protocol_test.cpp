@@ -2,6 +2,8 @@
 
 #include "proto/lan_share_protocol.h"
 
+using namespace std;
+
 TEST(HelloTest, BasicAssertions)
 {
     EXPECT_STRNE("hello", "world");

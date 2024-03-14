@@ -4,6 +4,7 @@
 #include <string>
 #include "proto/lan_share_protocol.h"
 #include "vo/dto/resource.h"
+#include "net/net_addr.h"
 
 #define SIZE_50_KB 51200
 
@@ -18,7 +19,7 @@ enum WantSyncResourceStatusEnum
 
 std::string WantSyncResourceStatusEnumToString(WantSyncResourceStatusEnum status);
 
-class WantToSyncVO
+class SyncRsVO
 {
 private:
     std::string uri = "";
@@ -28,9 +29,9 @@ private:
     uint32_t max_delay = 250;
 
 public:
-    WantToSyncVO() {}
-    WantToSyncVO(std::string uri, enum WantSyncResourceStatusEnum status, Range range);
-    ~WantToSyncVO(){};
+    SyncRsVO() {}
+    SyncRsVO(std::string uri, enum WantSyncResourceStatusEnum status, Range range);
+    ~SyncRsVO(){};
 
     void setStatus(WantSyncResourceStatusEnum status);
     void setLastUpdateTime(time_t t);
@@ -38,7 +39,18 @@ public:
     enum WantSyncResourceStatusEnum getStatus();
     Range getRange();
     time_t getLast_update_time();
-    uint32_t getMaxDelay(); 
+    uint32_t getMaxDelay();
+};
+
+class SyncPeer
+{
+private:
+    NetAddr peer;
+    SyncRsVO *syncvo;
+
+public:
+    SyncPeer(NetAddr peer, SyncRsVO *syncvo) : peer(peer), syncvo(syncvo){};
+    ~SyncPeer();
 };
 
 #endif

@@ -1,44 +1,21 @@
-#include "resource_manager.h"
+#include "rs_local_manager.h"
 
 #include <cstdlib>
 
 using namespace std;
 
-static ResourceManager rsm("");
-
-void ResourceManager::init(string home)
-{
-    if (home.size() == 0)
-    {
-        LOG_ERROR("ResourceManager::init() : strlen(home) is 0!");
-        return;
-    }
-
-    LOG_INFO("ResourceManager::init() : resource.home is : {}", home);
-    rsm = ResourceManager(home);
-}
-ResourceManager &ResourceManager::getRsm()
-{
-    if (rsm.getRsHome() == "")
-    {
-        LOG_ERROR("PLEASE run ResourceManager::init firstly!");
-        exit(-1);
-    }
-    return rsm;
-}
-
-ResourceManager::ResourceManager(string path)
+RsLocalManager::RsLocalManager(string path)
 {
     rsHome = path;
     last_update_time = filesystem::file_time_type::clock::time_point(std::chrono::seconds(0));
 };
 
-ResourceManager::~ResourceManager()
+RsLocalManager::~RsLocalManager()
 {
     freeTable();
 }
 
-void ResourceManager::freeTable()
+void RsLocalManager::freeTable()
 {
     if (table.size() == 0)
         return;
@@ -54,7 +31,7 @@ void ResourceManager::freeTable()
     }
 }
 
-vector<struct Resource *> ResourceManager::getTable()
+vector<struct Resource *> RsLocalManager::getTable()
 {
     refreshTable();
 
@@ -67,12 +44,12 @@ vector<struct Resource *> ResourceManager::getTable()
     return rss;
 }
 
-const struct Resource *ResourceManager::queryByUri(string uri)
+const struct Resource *RsLocalManager::queryByUri(string uri)
 {
     return table[uri];
 }
 
-void ResourceManager::refreshTable()
+void RsLocalManager::refreshTable()
 {
     vector<struct Resource *> newer = genResources(rsHome);
     for (auto i = 0; i < newer.size(); i++)
@@ -89,18 +66,18 @@ void ResourceManager::refreshTable()
     }
 }
 
-void ResourceManager::setRsHomePath(string path)
+void RsLocalManager::setRsHomePath(string path)
 {
     rsHome = path;
 }
 
-vector<struct Resource *> ResourceManager::genResources(string pathStr)
+vector<struct Resource *> RsLocalManager::genResources(string pathStr)
 {
     filesystem::path p(pathStr);
     return recurPath(p);
 }
 
-vector<struct Resource *> ResourceManager::recurPath(filesystem::path p)
+vector<struct Resource *> RsLocalManager::recurPath(filesystem::path p)
 {
 
     if (filesystem::is_regular_file(p))
@@ -146,12 +123,12 @@ vector<struct Resource *> ResourceManager::recurPath(filesystem::path p)
     return {};
 }
 
-string ResourceManager::getRsHome()
+string RsLocalManager::getRsHome()
 {
     return rsHome;
 }
 
-bool ResourceManager::validRes(string uri, string hash)
+bool RsLocalManager::validRes(string uri, string hash)
 {
     refreshTable();
 
@@ -161,24 +138,22 @@ bool ResourceManager::validRes(string uri, string hash)
 
     if (hash.compare(rs->hash) == 0)
     {
-        updateSyncEntryStatus(uri, SUCCESS);
         return true;
     }
     else
-        updateSyncEntryStatus(uri, FAIL);
-    return false;
+        return false;
 }
 
-std::vector<struct Resource> ResourceManager::queryNeedToSync(struct Resource *table, uint64_t table_entry_num)
+std::vector<struct Resource> RsLocalManager::cmpThenRetNeedToSyncTable(struct Resource *table, uint64_t table_entry_num)
 {
     vector<struct Resource> peer_table;
 
     for (size_t i = 0; i < table_entry_num; i++)
         peer_table.push_back(table[i]);
 
-    return queryNeedToSync(peer_table);
+    return cmpThenRetNeedToSyncTable(peer_table);
 }
-std::vector<struct Resource> ResourceManager::queryNeedToSync(std::vector<struct Resource> peer_table)
+std::vector<struct Resource> RsLocalManager::cmpThenRetNeedToSyncTable(std::vector<struct Resource> peer_table)
 {
     map<string, Resource> filtered;
 
@@ -220,45 +195,12 @@ std::vector<struct Resource> ResourceManager::queryNeedToSync(std::vector<struct
     return want_to_sync;
 }
 
-void ResourceManager::analysisThenUpdateSyncTable(struct Resource *table, uint64_t table_entry_num)
-{
-    std::vector<struct Resource> needsyncs = queryNeedToSync(table, table_entry_num);
-    for (size_t i = 0; i < needsyncs.size(); i++)
-    {
-        Resource need_sync_rs = needsyncs[i];
-        WantToSyncVO syncing_rs = syncTable[need_sync_rs.uri];
-        if (syncing_rs.getUri().size() == 0)
-        {
-            syncTable[need_sync_rs.uri] = WantToSyncVO(need_sync_rs.uri, PENDING, Range(0, need_sync_rs.size));
-            continue;
-        }
-
-        // compare size
-        if (syncing_rs.getRange().getSize() > 0)
-        {
-            // TODO:  this server the resouce is bigger, now need to get resource from this server, and discard the old server
-            if (need_sync_rs.size > syncing_rs.getRange().getSize())
-            {
-                LOG_WARN("TODO: ResourceManager::analysisThenUpdateSyncTable() this server the resouce is bigger, now need to get resource from this server, and discard the old server");
-
-                LOG_INFO("[SYNC CLI] SYNC RESET: URI:{}", syncing_rs.getUri().data());
-                syncing_rs.setStatus(RESET);
-            }
-        }
-    }
-}
-
-map<string, WantToSyncVO> &ResourceManager::getSyncTable()
-{
-    return syncTable;
-}
-
-string ResourceManager::resourcePosition(string uri)
+string RsLocalManager::resourcePosition(string uri)
 {
     return getRsHome() + uri;
 }
 
-bool ResourceManager::saveLocal(string uri, void *data, uint64_t offset, uint64_t data_len)
+bool RsLocalManager::saveLocal(string uri, void *data, uint64_t offset, uint64_t data_len)
 {
     LOG_INFO("[SYNC CLI] SYNC save to local: offset:{} data_len:{} URI:{}", offset, data_len, uri);
     string pathstr = resourcePosition(uri);
@@ -275,34 +217,4 @@ bool ResourceManager::saveLocal(string uri, void *data, uint64_t offset, uint64_
         return false;
 
     return true;
-}
-
-void ResourceManager::updateSyncEntryStatus(std::string uri, WantSyncResourceStatusEnum status)
-{
-    if (syncTable[uri].getUri().size() > 0)
-        syncTable[uri].setStatus(status);
-
-    LOG_INFO("ResourceManager::updateSyncEntryStatus [{}]: URI:{}", WantSyncResourceStatusEnumToString(status), uri);
-    switch (status)
-    {
-    case SUCCESS:
-        delSyncEntry(uri);
-        break;
-    case FAIL:
-        std::filesystem::path p(resourcePosition(uri).data());
-        if (filesystem::is_regular_file(p))
-            filesystem::remove(p);
-        break;
-    }
-}
-
-void ResourceManager::updateSyncEntryLastUpteTime(std::string uri, time_t t)
-{
-    if (syncTable[uri].getUri().size() > 0)
-        syncTable[uri].setLastUpdateTime(t);
-}
-
-void ResourceManager::delSyncEntry(std::string uri)
-{
-    syncTable.erase(uri);
 }

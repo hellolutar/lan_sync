@@ -1,9 +1,9 @@
 #include "sync_cli_sync_logic.h"
 
-void SyncCliSyncLogic::hdl_pending(NetworkConnCtx &ctx, WantToSyncVO vo)
+void SyncCliSyncLogic::hdl_pending(NetworkConnCtx &ctx, SyncRsVO vo)
 {
-    // TODO check tcp session exist
-    ResourceManager::getRsm().updateSyncEntryStatus(vo.getUri(), SYNCING);
+    // TODO
+    // ResourceManager::getRsLocalManager().updateSyncEntryStatus(vo.getUri(), SYNCING);
 
     LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_RESOURCE);
 
@@ -24,20 +24,21 @@ void SyncCliSyncLogic::hdl_pending(NetworkConnCtx &ctx, WantToSyncVO vo)
     LOG_INFO("[SYNC CLI] req resource uri[{}] range[{}]!", vo.getUri().data(), range_hdr.data());
 }
 
-void SyncCliSyncLogic::hdl_syncing(WantToSyncVO vo)
+void SyncCliSyncLogic::hdl_syncing(SyncRsVO vo)
 {
-    ResourceManager &rsm = ResourceManager::getRsm();
+    // todo
+    // RsLocalManager &rsm = ResourceManager::getRsLocalManager();
 
-    time_t now;
-    time(&now);
-    int diff = difftime(now, vo.getLast_update_time());
-    if (diff > vo.getMaxDelay())
-    {
-        LOG_WARN("[SYNC CLI] : uri[{}] cost a lot of time! now reset status", vo.getUri().data());
+    // time_t now;
+    // time(&now);
+    // int diff = difftime(now, vo.getLast_update_time());
+    // if (diff > vo.getMaxDelay())
+    // {
+    //     LOG_WARN("[SYNC CLI] : uri[{}] cost a lot of time! now reset status", vo.getUri().data());
 
-        rsm.updateSyncEntryStatus(vo.getUri(), PENDING);
-        rsm.updateSyncEntryLastUpteTime(vo.getUri(), now);
-    }
+    //     rsm.updateSyncEntryStatus(vo.getUri(), PENDING);
+    //     rsm.updateSyncEntryLastUpteTime(vo.getUri(), now);
+    // }
 }
 
 void SyncCliSyncLogic::reqTbIdx(NetworkConnCtx &ctx)
@@ -57,41 +58,42 @@ void SyncCliSyncLogic::reqTbIdx(NetworkConnCtx &ctx)
 
 void SyncCliSyncLogic::reqRs(NetworkConnCtx &ctx)
 {
-    ResourceManager &rsm = ResourceManager::getRsm();
-    map<string, WantToSyncVO> &syncTb = rsm.getSyncTable();
-    uint8_t max_concur = 10;
-    int count = 0;
-    for (auto iter = syncTb.begin(); iter != syncTb.end(); iter++)
-    {
-        if (count >= max_concur)
-            break;
+    // TODO
+    // RsLocalManager &rsm = ResourceManager::getRsLocalManager();
+    // map<string, SyncRsVO> &syncTb = rsm.getSyncTable();
+    // uint8_t max_concur = 10;
+    // int count = 0;
+    // for (auto iter = syncTb.begin(); iter != syncTb.end(); iter++)
+    // {
+    //     if (count >= max_concur)
+    //         break;
 
-        WantToSyncVO vo = iter->second;
-        time_t now;
-        time(&now);
+    //     SyncRsVO vo = iter->second;
+    //     time_t now;
+    //     time(&now);
 
-        switch (vo.getStatus())
-        {
-        case PENDING:
-            count++;
-            hdl_pending(ctx, vo);
-            break;
-        case SYNCING:
-            hdl_syncing(vo);
-            break;
-        case SUCCESS:
-            LOG_INFO("[SYNC CLI] : uri[{}] sync success! ", vo.getUri().data());
-            break;
-        case FAIL:
-            rsm.updateSyncEntryStatus(vo.getUri(), PENDING);
-            rsm.updateSyncEntryLastUpteTime(vo.getUri(), now);
-            LOG_INFO("[SYNC CLI] : uri[{}] sync fail!  now reset status", vo.getUri().data());
-            break;
-        default:
-            LOG_WARN(" [SYNC CLI] : uri[{}] sync status is unsupport", vo.getUri().data());
-            break;
-        }
-    }
+    //     switch (vo.getStatus())
+    //     {
+    //     case PENDING:
+    //         count++;
+    //         hdl_pending(ctx, vo);
+    //         break;
+    //     case SYNCING:
+    //         hdl_syncing(vo);
+    //         break;
+    //     case SUCCESS:
+    //         LOG_INFO("[SYNC CLI] : uri[{}] sync success! ", vo.getUri().data());
+    //         break;
+    //     case FAIL:
+            // rsm.updateSyncEntryStatus(vo.getUri(), PENDING);
+            // rsm.updateSyncEntryLastUpteTime(vo.getUri(), now);
+    //         LOG_INFO("[SYNC CLI] : uri[{}] sync fail!  now reset status", vo.getUri().data());
+    //         break;
+    //     default:
+    //         LOG_WARN(" [SYNC CLI] : uri[{}] sync status is unsupport", vo.getUri().data());
+    //         break;
+    //     }
+    // }
 }
 
 void SyncCliSyncLogic::exec(NetworkConnCtx &ctx)

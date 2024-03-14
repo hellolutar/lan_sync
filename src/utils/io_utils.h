@@ -13,9 +13,9 @@
 #include <vector>
 #include <filesystem>
 
-#define SIZE_1KB 8196
+#include "constants/constants.h"
 
-const uint64_t once_read_max_num = SIZE_1KB * 512;
+const uint64_t once_read_max_num = SIZE_1KByte * 512;
 
 class IoReadMonitor
 {

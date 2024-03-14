@@ -81,7 +81,7 @@ uint64_t IoUtil::writeFile(string path, uint64_t offset, void *data, uint64_t si
     off_t curpos = lseek(fd, offset, SEEK_SET);
 
     uint64_t end = offset + size;
-    uint64_t once_write_max_num = SIZE_1KB * 1024;
+    uint64_t once_write_max_num = SIZE_1MByte;
 
     uint64_t expected_write = min(once_write_max_num, size);
     uint64_t actual_write = write(fd, data, expected_write);
