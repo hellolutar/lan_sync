@@ -22,6 +22,8 @@
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
 
+#include "components/abs_buf.h"
+
 #define DEFAULT_DISCOVER_SERVER_UDP_PORT 58080
 #define DEFAULT_DISCOVER_SERVER_TCP_PORT 58081
 
@@ -139,8 +141,7 @@ public:
     LanSyncPkt(lan_sync_header_t *header);
     ~LanSyncPkt();
 
-    void write(struct bufferevent *bev);
-    void write(struct evbuffer *out);
+    void write(AbsBuf& buf);
 
     void addXheader(const std::string key, const std::string value);
 

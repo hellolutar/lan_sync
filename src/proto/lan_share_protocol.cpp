@@ -200,7 +200,7 @@ LanSyncPkt::LanSyncPkt(lan_sync_header_t *header)
     memcpy(data, datap, data_len);
 }
 
-void LanSyncPkt::write(struct evbuffer *out)
+void LanSyncPkt::write(AbsBuf &buf)
 {
 
     lan_sync_header_t *hd = (lan_sync_header_t *)malloc(total_len); // free in evbuffer_cb_for_free
@@ -229,15 +229,7 @@ void LanSyncPkt::write(struct evbuffer *out)
     char *datap = (char *)(xhdp + xhd_len);
     memcpy(datap, data, total_len - header_len);
 
-    evbuffer_add(out, hd, total_len);
-    evbuffer_add_cb(out, evbuffer_cb_for_free, hd);
-}
-
-void LanSyncPkt::write(struct bufferevent *bev)
-{
-    struct evbuffer *in = bufferevent_get_input(bev);
-    struct evbuffer *out = bufferevent_get_output(bev);
-    write(out);
+    buf.add((uint8_t *)hd, total_len);
 }
 
 void LanSyncPkt::addXheader(const string key, const string value)
@@ -296,7 +288,8 @@ uint32_t LanSyncPkt::getTotalLen()
 {
     return total_len;
 }
-uint32_t LanSyncPkt::getDataLen(){
+uint32_t LanSyncPkt::getDataLen()
+{
     return total_len - header_len;
 }
 
@@ -369,7 +362,7 @@ string ContentRange::to_string()
     return ss.str();
 }
 
- string Range::defaultStr = "0-0/0/last";
+string Range::defaultStr = "0-0/0/last";
 
 // str like : 0-500
 // str like : 0-
@@ -399,7 +392,6 @@ uint64_t Range::getSize()
 {
     return size;
 }
-
 
 // str like : 0-500
 // str like : 0-

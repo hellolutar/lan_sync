@@ -1,7 +1,7 @@
 #include "rs_manager.h"
 
-static RsLocalManager rsm("");
-
+static RsLocalManager rlm("");
+static RsSyncManager *rsm;
 void ResourceManager::init(string home)
 {
     if (home.size() == 0)
@@ -11,14 +11,30 @@ void ResourceManager::init(string home)
     }
 
     LOG_INFO("ResourceManager::init() : resource.home is : {}", home);
-    rsm = RsLocalManager(home);
+    rlm = RsLocalManager(home);
+    rsm = new RsSyncManager(rlm);
+}
+void ResourceManager::cleanup()
+{
+    rlm.setRsHomePath("");
+    delete rsm;
 }
 RsLocalManager &ResourceManager::getRsLocalManager()
 {
-    if (rsm.getRsHome() == "")
+    if (rlm.getRsHome() == "")
     {
         LOG_ERROR("PLEASE run ResourceManager::init firstly!");
         exit(-1);
     }
-    return rsm;
+    return rlm;
+}
+
+RsSyncManager &ResourceManager::getRsSyncManager()
+{
+    if (rsm == nullptr)
+    {
+        LOG_ERROR("PLEASE run ResourceManager::init firstly!");
+        exit(-1);
+    }
+    return *rsm;
 }

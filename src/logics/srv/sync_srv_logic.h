@@ -23,10 +23,10 @@
 #include "constants/constants.h"
 #include "utils/logger.h"
 #include "utils/io_utils.h"
-#include "modules/rs_local_manager.h"
 #include "net/abst_net_logic.h"
 #include "proto/lan_share_protocol.h"
 #include "components/sync_io_read_monitor.h"
+#include "modules/rs_manager.h"
 
 class SyncSrvLogic : public LogicTcp, public LogicUdp
 {

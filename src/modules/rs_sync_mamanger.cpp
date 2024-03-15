@@ -25,7 +25,7 @@ SyncRs::SyncRs(std::string uri, std::uint64_t size, std::string hash, NetAddr ow
 
     if (size <= SIZE_1MByte)
     {
-        this->block.push_back(Block(0, size + 1));
+        this->block.push_back(Block(0, size));
     }
     else
     {
@@ -33,10 +33,10 @@ SyncRs::SyncRs(std::string uri, std::uint64_t size, std::string hash, NetAddr ow
         uint64_t offset = 0;
         for (uint i = 0; i < num; i++)
         {
-            uint64_t end = min(size + 1, offset + SIZE_1MByte + 1);
+            uint64_t end = min(size, offset + SIZE_1MByte);
             block.push_back(Block(offset, end));
             offset = end;
-            if (offset > size)
+            if (offset >= size)
             {
                 break;
             }
@@ -56,14 +56,6 @@ SyncingRange::SyncingRange(NetAddr peer, Block block)
     this->timeOut = now + size / SIZE_50_KByte;
 }
 
-RsSyncManager::RsSyncManager(/* args */)
-{
-}
-
-RsSyncManager::~RsSyncManager()
-{
-}
-
 std::map<std::string, SyncRs> &RsSyncManager::getAllUriRs()
 {
     return uriRs;
@@ -71,9 +63,7 @@ std::map<std::string, SyncRs> &RsSyncManager::getAllUriRs()
 
 void RsSyncManager::refreshSyncingRsByTbIdx(NetAddr peer, struct Resource *table, uint64_t rs_size)
 {
-    RsLocalManager &rm = ResourceManager::getRsLocalManager();
-
-    std::vector<struct Resource> need_to_sync_table = rm.cmpThenRetNeedToSyncTable(table, rs_size);
+    std::vector<struct Resource> need_to_sync_table = rlm.cmpThenRetNeedToSyncTable(table, rs_size);
     for (auto i = 0; i < need_to_sync_table.size(); i++)
     {
         Resource rs = need_to_sync_table[i];
@@ -129,22 +119,41 @@ bool RsSyncManager::updateSyncRs(NetAddr peer, std::string uri, std::string hash
 
 Block RsSyncManager::regReqSyncRsAuto(NetAddr peer, string uri)
 {
-
     if (uriRs[uri].block.size() > 0)
     {
-        uint blocksize = uriRs[uri].block.size();
-        Block block = uriRs[uri].block[blocksize - 1];
+        for (uint64_t i = 0; i < uriRs[uri].owner.size(); i++)
+        {
+            if (uriRs[uri].owner[i] == peer)
+            {
+                uint blocksize = uriRs[uri].block.size();
+                Block block = uriRs[uri].block[blocksize - 1];
 
-        uriRs[uri].block.pop_back();
+                uriRs[uri].block.pop_back();
 
-        SyncingRange req(peer, block);
-        uriRs[uri].syncing.push_back(req);
-        return {block};
+                SyncingRange req(peer, block);
+                uriRs[uri].syncing.push_back(req);
+                return block;
+            }
+        }
     }
-    return {};
+    return Block(0, 0);
 }
 
-void RsSyncManager::unregReqSyncRs(NetAddr peer, std::string uri)
+void RsSyncManager::unregReqSyncRsByBlock(NetAddr peer, Block b, std::string uri)
+{
+    for (auto iter = uriRs[uri].syncing.end() - 1; iter >= uriRs[uri].syncing.begin(); iter--)
+    {
+        SyncingRange rng = *iter;
+        if (rng.peer == peer && rng.block == b)
+        {
+            uriRs[uri].block.push_back(rng.block);
+            uriRs[uri].syncing.erase(iter);
+            break;
+        }
+    }
+}
+
+void RsSyncManager::unregAllReqSyncRsByPeer(NetAddr peer, std::string uri)
 {
     for (auto iter = uriRs[uri].syncing.end() - 1; iter >= uriRs[uri].syncing.begin(); iter--)
     {
@@ -167,7 +176,7 @@ void RsSyncManager::unregReqSyncRs(NetAddr peer, std::string uri)
 
 void RsSyncManager::syncingRangeDone(NetAddr peer, string uri, Block block)
 {
-    for (auto iter = uriRs[uri].syncing.end(); iter < uriRs[uri].syncing.begin(); iter--)
+    for (auto iter = uriRs[uri].syncing.end() - 1; iter >= uriRs[uri].syncing.begin(); iter--)
     {
         SyncingRange syncing = (*iter);
         if (syncing.peer == peer)
@@ -175,6 +184,11 @@ void RsSyncManager::syncingRangeDone(NetAddr peer, string uri, Block block)
             if (syncing.block == block)
             {
                 uriRs[uri].syncing.erase(iter);
+                if (uriRs[uri].block.size() == 0 && uriRs[uri].syncing.size() == 0)
+                {
+                    uriRs[uri].success = true;
+                    // TODO(LUTAR, 20230315) check hash, then rm rs from uriRs.
+                }
                 break;
             }
         }

@@ -53,7 +53,6 @@ void SyncCliLogic::isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &wa
         want_to_extra_len = hd_total_len;
     else
         want_to_extra_len = data_len;
-
 }
 
 void SyncCliLogic::handleHelloAck(LanSyncPkt &pkt, NetworkConnCtx &ctx)
@@ -103,39 +102,38 @@ void SyncCliLogic::handleLanSyncReplyTableIndex(void *data, uint64_t data_len, N
     uint64_t res_size = pkt.getDataLen() / sizeof(struct Resource);
 
     struct Resource *table = (struct Resource *)pkt.getData();
-    // ResourceManager::getRsLocalManager().analysisThenUpdateSyncTable(ctx->peer, table, res_size);
-    // TODO
+    RsSyncManager &rsm = ResourceManager::getRsSyncManager();
+    rsm.refreshSyncingRsByTbIdx(ctx->getPeer(), table, res_size);
 }
 
 void SyncCliLogic::handleLanSyncReplyResource(void *data, uint64_t data_len, NetworkConnCtx *ctx, lan_sync_header_t *header)
 {
-    // TODO
-    // RsLocalManager &rsm = ResourceManager::getRsLocalManager();
+    LanSyncPkt pkt(header);
 
-    // LanSyncPkt pkt(header);
+    string uri = pkt.queryXheader(XHEADER_URI);
+    if (uri == "")
+    {
+        LOG_ERROR("[SYNC CLI] handleLanSyncReplyResource() query header is failed! ");
+        return;
+    }
 
-    // string uri = pkt.queryXheader(XHEADER_URI);
-    // if (uri == "")
-    // {
-    //     LOG_ERROR("[SYNC CLI] handleLanSyncReplyResource() query header is failed! ");
-    //     return;
-    // }
+    string content_range_str = pkt.queryXheader(XHEADER_CONTENT_RANGE);
+    ContentRange cr(content_range_str);
+    LOG_INFO("[SYNC CLI] SyncCliLogic::handleLanSyncReplyResource() : uri:{}; cr:{}", uri.data(), cr.to_string());
 
-    // string content_range_str = pkt.queryXheader(XHEADER_CONTENT_RANGE);
-    // ContentRange cr(content_range_str);
-    // LOG_INFO("[SYNC CLI] SyncCliLogic::handleLanSyncReplyResource() : uri:{}; cr:{}", uri.data(), cr.to_string());
+    uint8_t *data_pos = (uint8_t *)data + pkt.getHeaderLen();
+    RsSyncManager &rsm = ResourceManager::getRsSyncManager();
+    RsLocalManager &rlm = ResourceManager::getRsLocalManager();
 
-    // uint8_t *data_pos = (uint8_t *)data + pkt.getHeaderLen();
-    // bool write_ret = rsm.saveLocal(uri, data_pos, cr.getStartPos(), cr.getSize());
-    // if (!write_ret)
-    // {
-    //     rsm.updateSyncEntryStatus(uri, FAIL);
-    //     return;
-    // }
+    bool write_ret = rlm.saveLocal(uri, data_pos, cr.getStartPos(), cr.getSize());
 
-    // if (cr.isLast())
-    // {
-    //     string hash = pkt.queryXheader(XHEADER_HASH);
-    //     rsm.validRes(uri, hash);
-    // }
+    Block b(cr.getStartPos(), cr.getStartPos() + cr.getSize());
+    if (!write_ret)
+    {
+        rsm.unregReqSyncRsByBlock(ctx->getPeer(), b, uri);
+        return;
+        // TODO(LUTAR, 20230315) send req immediately
+    }
+    rsm.syncingRangeDone(ctx->getPeer(), uri, b);
+    // TODO(LUTAR, 20230315) send req immediately
 }

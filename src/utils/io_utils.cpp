@@ -43,7 +43,8 @@ void *IoUtil::readSize(string path, uint64_t offset, uint64_t size, uint64_t &re
         return nullptr;
     }
 
-    uint64_t end = offset + size;
+    filesystem::path filep(path);
+    uint64_t end = min(offset + size, filesystem::file_size(filep));
 
     uint8_t *data = (uint8_t *)malloc(size); // free by outter
     uint8_t *data_pos = data;

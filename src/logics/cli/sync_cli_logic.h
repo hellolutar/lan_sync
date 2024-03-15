@@ -2,11 +2,11 @@
 #define __SYNC_CLI_LOGIC_H_
 
 #include "vo/want_to_sync_vo.h"
-#include "modules/rs_local_manager.h"
 #include "sync_cli_sync_logic.h"
 #include "sync_cli_discover_logic.h"
 #include "modules/net_trigger.h"
 #include "proto/lan_share_protocol.h"
+#include "modules/rs_manager.h"
 
 class SyncCliLogic : public LogicTcp, public LogicUdp
 {

@@ -4,14 +4,15 @@
 #include <string>
 
 #include "rs_local_manager.h"
+#include "rs_sync_mamanger.h"
 
 class ResourceManager
 {
-private:
-    /* data */
 public:
     static RsLocalManager &getRsLocalManager();
+    static RsSyncManager &getRsSyncManager();
     static void init(std::string home);
+    static void cleanup();
 };
 
 

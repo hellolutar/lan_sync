@@ -16,7 +16,7 @@
 class RsLocalManager
 {
 private:
-     IoUtil io;
+    IoUtil io;
     map<std::string, struct Resource *> table;
     std::string rsHome;
     filesystem::file_time_type last_update_time;

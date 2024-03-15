@@ -9,8 +9,9 @@
 #include <filesystem>
 
 #include "net/net_addr.h"
-#include "modules/rs_manager.h"
 #include "constants/constants.h"
+#include "modules/rs_local_manager.h"
+
 class Block
 {
 public:
@@ -44,6 +45,7 @@ public:
     std::vector<Block> block;
     std::vector<NetAddr> owner;
     std::vector<SyncingRange> syncing;
+    bool success = false;
 
     SyncRs();
     SyncRs(std::string uri, std::uint64_t size, std::string hash, NetAddr owner);
@@ -54,10 +56,11 @@ class RsSyncManager
 {
 private:
     std::map<std::string, SyncRs> uriRs;
+    RsLocalManager &rlm;
 
 public:
-    RsSyncManager();
-    ~RsSyncManager();
+    RsSyncManager(RsLocalManager &rm) : rlm(rm){};
+    ~RsSyncManager(){};
 
     std::map<std::string, SyncRs> &getAllUriRs();
 
@@ -65,7 +68,8 @@ public:
     bool regSyncRs(NetAddr peer, std::string uri, std::string hash, uint64_t size);
     bool updateSyncRs(NetAddr peer, std::string uri, std::string hash, uint64_t size);
     Block regReqSyncRsAuto(NetAddr peer, std::string uri);
-    void unregReqSyncRs(NetAddr peer, std::string uri);
+    void unregReqSyncRsByBlock(NetAddr peer, Block b, std::string uri);
+    void unregAllReqSyncRsByPeer(NetAddr peer, std::string uri);
     // vector<uint64_t, uint64_t> regReqSyncRsCplt(NetAddr peer, std::string uri) { return {}; };
     // vector<uint64_t, uint64_t> regReqSyncRsRang(NetAddr peer, std::string uri, uint64_t offset, uint64_t size) { return {}; };
     void syncingRangeDone(NetAddr peer, string uri, Block block);

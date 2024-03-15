@@ -10,6 +10,7 @@
 #include "proto/lan_share_protocol.h"
 #include "net/net_framework_impl_with_event.h"
 #include "vo/dto/resource.h"
+#include "components/buf_base_on_event.h"
 
 
 class SyncIOReadMonitor : public IoReadMonitor

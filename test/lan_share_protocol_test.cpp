@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "proto/lan_share_protocol.h"
+#include "components/buf_base_on_event.h"
 
 using namespace std;
 
@@ -23,11 +24,11 @@ void compareLanSyncPkt(LanSyncPkt &pkt, LanSyncPkt &pkt2)
 
 void checkLanSyncPktSerialize(LanSyncPkt &pkt)
 {
-    struct evbuffer *buf = evbuffer_new();
+
+    BufBaseonEvent buf;
+
     pkt.write(buf);
-    char tmp[2048];
-    evbuffer_remove(buf, tmp, evbuffer_get_length(buf));
-    lan_sync_header_t *hd = (lan_sync_header_t *)tmp;
+    lan_sync_header_t *hd = (lan_sync_header_t *)buf.data();
     LanSyncPkt pkt2(hd);
 
     const map<string, string> xheaders = pkt.getXheaders();

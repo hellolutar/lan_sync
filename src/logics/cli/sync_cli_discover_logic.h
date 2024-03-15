@@ -3,6 +3,7 @@
 
 #include "modules/net_trigger.h"
 #include "proto/lan_share_protocol.h"
+#include "components/buf_base_on_event.h"
 
 class SyncCliDiscoverLogic : public AbstNetConnTriggerBehavior
 {
