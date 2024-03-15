@@ -183,8 +183,6 @@ std::vector<struct Resource> RsLocalManager::cmpThenRetNeedToSyncTable(std::vect
         {
             if (compareChar(rs.hash, local_rs->hash, strlen(rs.hash)))
                 filtered.erase(local_rs->name);
-            else
-                LOG_WARN("[SYNC CLI] [{}] size is euqal, but hash is not equal\npeer:{}\nmine:{}", local_rs->uri, rs.hash, local_rs->hash);
         }
     }
 

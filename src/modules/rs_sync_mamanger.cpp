@@ -23,17 +23,17 @@ SyncRs::SyncRs(std::string uri, std::uint64_t size, std::string hash, NetAddr ow
     this->hash = hash;
     this->owner.push_back(owner);
 
-    if (size <= SIZE_1MByte)
+    if (size <= BLOCK_SIZE)
     {
         this->block.push_back(Block(0, size));
     }
     else
     {
-        uint num = size / SIZE_1MByte + 1; // 向上取整
+        uint num = size / BLOCK_SIZE + 1; // 向上取整
         uint64_t offset = 0;
         for (uint i = 0; i < num; i++)
         {
-            uint64_t end = min(size, offset + SIZE_1MByte);
+            uint64_t end = min(size, offset + BLOCK_SIZE);
             block.push_back(Block(offset, end));
             offset = end;
             if (offset >= size)
@@ -109,6 +109,11 @@ bool RsSyncManager::updateSyncRs(NetAddr peer, std::string uri, std::string hash
                 return false;
             else
             {
+                for (auto o : uriRs[uri].owner)
+                {
+                    if (o == peer)
+                        return true;
+                }
                 uriRs[uri].owner.push_back(peer);
                 return true;
             }
@@ -203,6 +208,11 @@ void RsSyncManager::syncingRangeDoneAndValid(NetAddr peer, string uri, Block blo
                     uriRs.erase(uri);
                 }
                 break;
+            }
+            else
+            {
+                LOG_INFO("RsSyncManager::syncingRangeDoneAndValid() : block is not eq!");
+                // 需要一个buffer。
             }
         }
     }

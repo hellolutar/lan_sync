@@ -49,6 +49,7 @@ void *IoUtil::readSize(string path, uint64_t offset, uint64_t size, uint64_t &re
     uint8_t *data = (uint8_t *)malloc(size); // free by outter
     uint8_t *data_pos = data;
     memset(data, 0, size);
+    uint64_t once_write_max_num = ONCE_MAX_READ_SIZE;
 
     while (curpos < end)
     {
@@ -56,7 +57,7 @@ void *IoUtil::readSize(string path, uint64_t offset, uint64_t size, uint64_t &re
         uint64_t remained = end - curpos;
 
         // 读取文件内容
-        uint64_t expected_read = min(once_read_max_num, remained);
+        uint64_t expected_read = min(once_write_max_num, remained);
         uint64_t actual_read = read(fd, data_pos, expected_read);
         for (size_t i = 0; i < readMonitors.size(); i++)
         {
@@ -82,7 +83,7 @@ uint64_t IoUtil::writeFile(string path, uint64_t offset, void *data, uint64_t si
     off_t curpos = lseek(fd, offset, SEEK_SET);
 
     uint64_t end = offset + size;
-    uint64_t once_write_max_num = SIZE_1MByte;
+    uint64_t once_write_max_num = ONCE_MAX_READ_SIZE;
 
     uint64_t expected_write = min(once_write_max_num, size);
     uint64_t actual_write = write(fd, data, expected_write);

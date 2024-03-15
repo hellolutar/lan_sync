@@ -21,4 +21,7 @@
 #define SIZE_50_KByte 50 * SIZE_1KByte
 #define SIZE_1MByte 1024 * SIZE_1KByte
 
+#define ONCE_MAX_READ_SIZE SIZE_1MByte * 2
+#define BLOCK_SIZE SIZE_1MByte  // TODO(LUTAR, 123): support server reply block < sync_table block
+
 #endif

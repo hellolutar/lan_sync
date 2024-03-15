@@ -15,8 +15,6 @@
 
 #include "constants/constants.h"
 
-const uint64_t once_read_max_num = SIZE_1KByte * 512;
-
 class IoReadMonitor
 {
 private:
