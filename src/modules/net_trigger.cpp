@@ -19,13 +19,17 @@ void NetTrigger::trigger()
     {
         try
         {
-            NetworkConnCtx& ctx =  (*iter).second->getConnCtx();
+            NetworkConnCtx &ctx = (*iter).second->getConnCtx();
             trigger_behavior->exec(ctx);
         }
         catch (const std::exception &e)
         {
             LOG_ERROR("NetTrigger::trigger() : {}", e.what());
+            NetCliLogicContainer *con = (*iter).second;
             iter = conns.erase(iter);
+            LOG_ERROR("NetTrigger::trigger() : delete connection: {} <--> {}",
+                      con->getAddr().str().data(), con->getConnCtx().getPeer().str().data());
+            delete con;
             continue;
         }
         iter++;

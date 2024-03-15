@@ -13,7 +13,7 @@ private:
 
 public:
     NetCliLogicContainer(NetAddr addr, AbstNetLogic &recv_logic) : NetAbilityImplWithEvent(addr), recv_logic(recv_logic){};
-    virtual ~NetCliLogicContainer(){};
+    virtual ~NetCliLogicContainer();
 
     virtual void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
     virtual void isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len);

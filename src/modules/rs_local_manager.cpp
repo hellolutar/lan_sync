@@ -202,7 +202,7 @@ string RsLocalManager::resourcePosition(string uri)
 
 bool RsLocalManager::saveLocal(string uri, void *data, uint64_t offset, uint64_t data_len)
 {
-    LOG_INFO("[SYNC CLI] SYNC save to local: offset:{} data_len:{} URI:{}", offset, data_len, uri);
+    LOG_INFO("[SYNC CLI] RsLocalManager::saveLocal() : offset:{} data_len:{} URI:{}", offset, data_len, uri);
     string pathstr = resourcePosition(uri);
 
     auto path = filesystem::path(pathstr);

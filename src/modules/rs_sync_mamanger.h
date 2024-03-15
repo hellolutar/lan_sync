@@ -73,6 +73,7 @@ public:
     // vector<uint64_t, uint64_t> regReqSyncRsCplt(NetAddr peer, std::string uri) { return {}; };
     // vector<uint64_t, uint64_t> regReqSyncRsRang(NetAddr peer, std::string uri, uint64_t offset, uint64_t size) { return {}; };
     void syncingRangeDone(NetAddr peer, string uri, Block block);
+    void syncingRangeDoneAndValid(NetAddr peer, string uri, Block block,bool valid);
 };
 
 #endif

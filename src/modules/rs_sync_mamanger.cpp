@@ -160,6 +160,7 @@ void RsSyncManager::unregAllReqSyncRsByPeer(NetAddr peer, std::string uri)
         SyncingRange rng = *iter;
         if (rng.peer == peer)
         {
+            LOG_INFO("RsSyncManager::unregAllReqSyncRsByPeer() : [{}] CONNECTION ERROR, Remove related resources!");
             uriRs[uri].block.push_back(rng.block);
             uriRs[uri].syncing.erase(iter);
         }
@@ -169,12 +170,13 @@ void RsSyncManager::unregAllReqSyncRsByPeer(NetAddr peer, std::string uri)
     {
         if ((*iter) == peer)
         {
+            LOG_INFO("RsSyncManager::unregAllReqSyncRsByPeer() : [{}] CONNECTION ERROR, Disconnect ip from related resources!");
             uriRs[uri].owner.erase(iter);
         }
     }
 }
 
-void RsSyncManager::syncingRangeDone(NetAddr peer, string uri, Block block)
+void RsSyncManager::syncingRangeDoneAndValid(NetAddr peer, string uri, Block block, bool valid)
 {
     for (auto iter = uriRs[uri].syncing.end() - 1; iter >= uriRs[uri].syncing.begin(); iter--)
     {
@@ -184,13 +186,28 @@ void RsSyncManager::syncingRangeDone(NetAddr peer, string uri, Block block)
             if (syncing.block == block)
             {
                 uriRs[uri].syncing.erase(iter);
+
+                // sync complete
                 if (uriRs[uri].block.size() == 0 && uriRs[uri].syncing.size() == 0)
                 {
+                    LOG_INFO("RsSyncManager::syncingRangeDoneAndValid() : [{}] SYNC COMPLETE!", uri);
                     uriRs[uri].success = true;
-                    // TODO(LUTAR, 20230315) check hash, then rm rs from uriRs.
+                    if (valid)
+                    {
+                        bool ret = rlm.validRes(uri, uriRs[uri].hash);
+                        if (ret)
+                            LOG_INFO("RsSyncManager::syncingRangeDoneAndValid() : [{}] SYNC SUCCESS! HASH IS VALID!", uri);
+                        else
+                            LOG_WARN("RsSyncManager::syncingRangeDoneAndValid() : [{}] SYNC FAIL! HASH IS INVALID!", uri);
+                    }
+                    uriRs.erase(uri);
                 }
                 break;
             }
         }
     }
+}
+void RsSyncManager::syncingRangeDone(NetAddr peer, string uri, Block block)
+{
+    syncingRangeDoneAndValid(peer, uri, block, false);
 }

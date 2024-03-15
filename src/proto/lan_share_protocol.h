@@ -68,8 +68,8 @@ private:
     struct sockaddr_in subnet_mask;
 
 public:
-    LocalPort(/* args */);
-    ~LocalPort();
+    LocalPort(/* args */){};
+    ~LocalPort(){};
 
     static std::vector<LocalPort> query();
     static bool existIp(std::vector<LocalPort> ports, struct in_addr addr);
@@ -112,19 +112,6 @@ typedef struct lan_sync_header
 
 #define LEN_LAN_SYNC_HEADER_T sizeof(lan_sync_header_t)
 
-struct cb_arg
-{
-    struct event_base *base;
-    struct sockaddr_in *target_addr;
-    struct evbuffer *buf;
-};
-
-struct cb_arg *cb_arg_new(struct event_base *base);
-
-void cb_arg_free(struct cb_arg *arg);
-
-void writecb(evutil_socket_t fd, short events, void *ctx);
-
 class LanSyncPkt
 {
 private:
@@ -141,7 +128,7 @@ public:
     LanSyncPkt(lan_sync_header_t *header);
     ~LanSyncPkt();
 
-    void write(AbsBuf& buf);
+    void write(AbsBuf &buf);
 
     void addXheader(const std::string key, const std::string value);
 

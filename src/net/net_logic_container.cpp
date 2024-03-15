@@ -1,5 +1,11 @@
 #include "net_logic_container.h"
 
+NetCliLogicContainer::~NetCliLogicContainer()
+{
+    if (net_ctx != nullptr)
+        delete net_ctx;
+}
+
 void NetCliLogicContainer::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 {
     recv_logic.recv(data, data_len, ctx);

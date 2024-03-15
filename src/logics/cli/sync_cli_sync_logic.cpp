@@ -37,9 +37,17 @@ void SyncCliSyncLogic::sendReqRs(NetworkConnCtx &ctx, string uri, Block b)
 
     BufBaseonEvent buf;
     pkt.write(buf);
-    ctx.write(buf.data(), buf.size());
-
-    LOG_INFO("[SYNC CLI] req resource uri[{}] range[{}]!", uri, range_hdr);
+    try
+    {
+        ctx.write(buf.data(), buf.size());
+        LOG_INFO("[SYNC CLI] req resource uri[{}] range[{}]!", uri, range_hdr);
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << e.what() << '\n';
+        ResourceManager::getRsSyncManager().unregAllReqSyncRsByPeer(ctx.getPeer(), uri);
+        throw e;
+    }
 }
 
 void SyncCliSyncLogic::exec(NetworkConnCtx &ctx)

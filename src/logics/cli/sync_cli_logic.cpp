@@ -80,7 +80,7 @@ void SyncCliLogic::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
     if (pkt.getType() == LAN_SYNC_TYPE_HELLO_ACK)
         handleHelloAck(pkt, *ctx);
     else
-        LOG_WARN("[SYNC CLI] recive [404]{} : {}", "unsupport type, do not reply ", header->type);
+        LOG_WARN(" SyncCliLogic::recv_udp() : {}", "unsupport type, do not reply ", header->type);
 }
 
 void SyncCliLogic::recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
@@ -92,7 +92,7 @@ void SyncCliLogic::recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
     else if (header->type == LAN_SYNC_TYPE_REPLY_RESOURCE)
         handleLanSyncReplyResource(data, data_len, ctx, header);
     else
-        LOG_WARN("[SYNC CLI] receive tcp pkt : the type is unsupport!");
+        LOG_WARN("SyncCliLogic::recv_tcp() : the type is unsupport!");
 }
 
 void SyncCliLogic::handleLanSyncReplyTableIndex(void *data, uint64_t data_len, NetworkConnCtx *ctx, lan_sync_header_t *header)
@@ -113,7 +113,7 @@ void SyncCliLogic::handleLanSyncReplyResource(void *data, uint64_t data_len, Net
     string uri = pkt.queryXheader(XHEADER_URI);
     if (uri == "")
     {
-        LOG_ERROR("[SYNC CLI] handleLanSyncReplyResource() query header is failed! ");
+        LOG_ERROR("[SYNC CLI] SyncCliLogic::handleLanSyncReplyResource() query header is failed! ");
         return;
     }
 
@@ -130,10 +130,12 @@ void SyncCliLogic::handleLanSyncReplyResource(void *data, uint64_t data_len, Net
     Block b(cr.getStartPos(), cr.getStartPos() + cr.getSize());
     if (!write_ret)
     {
+        LOG_INFO("[SYNC CLI] SyncCliLogic::handleLanSyncReplyResource() : {} : block save fail:[{},{})", uri, b.start, b.end);
         rsm.unregReqSyncRsByBlock(ctx->getPeer(), b, uri);
         return;
         // TODO(LUTAR, 20230315) send req immediately
     }
-    rsm.syncingRangeDone(ctx->getPeer(), uri, b);
+    LOG_INFO("[SYNC CLI] SyncCliLogic::handleLanSyncReplyResource() : {} : block save success:[{},{})", uri, b.start, b.end);
+    rsm.syncingRangeDoneAndValid(ctx->getPeer(), uri, b, true);
     // TODO(LUTAR, 20230315) send req immediately
 }
