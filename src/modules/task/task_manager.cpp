@@ -39,6 +39,7 @@ void TaskManager::start()
         lk.unlock();
 
         tsk->run();
+        delete tsk;
     }
     cout << "TaskManager exit while" << endl;
     delete this;

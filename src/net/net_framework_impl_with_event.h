@@ -45,6 +45,8 @@ public:
 
     static void cleanup();
     static void free();
+
+    static std::map<NetAddr,NetworkConnCtx*> getAllTcpSession();
 };
 
 class NetworkConnCtxWithEvent : public NetworkConnCtx

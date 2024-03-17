@@ -104,6 +104,23 @@ void SyncCliLogic::handleLanSyncReplyTableIndex(void *data, uint64_t data_len, N
     struct Resource *table = (struct Resource *)pkt.getData();
     RsSyncManager &rsm = ResourceManager::getRsSyncManager();
     rsm.refreshSyncingRsByTbIdx(ctx->getPeer(), table, res_size);
+
+    // req rs
+    add_req_task(ctx);
+}
+
+void SyncCliLogic::add_req_task(NetworkConnCtx *ctx)
+{
+    RsSyncManager &rsm = ResourceManager::getRsSyncManager();
+
+    for (auto uriRs : rsm.getAllUriRs())
+    {
+        string uri = uriRs.first;
+        Block b = rsm.regReqSyncRsAuto(ctx->getPeer(), uri);
+        if (b.end == 0)
+            continue;
+        TaskManager::getTaskManager()->addTask(new ReqRsTask(uri, uri));
+    }
 }
 
 void SyncCliLogic::handleLanSyncReplyResource(void *data, uint64_t data_len, NetworkConnCtx *ctx, lan_sync_header_t *header)

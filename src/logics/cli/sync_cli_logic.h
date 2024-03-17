@@ -7,6 +7,8 @@
 #include "modules/net_trigger.h"
 #include "proto/lan_share_protocol.h"
 #include "modules/rs_manager.h"
+#include "modules/task/req_rs_task.h"
+#include "modules/task/task_manager.h"
 
 class SyncCliLogic : public LogicTcp, public LogicUdp
 {
@@ -20,6 +22,7 @@ private:
 
     void handleLanSyncReplyTableIndex(void *data, uint64_t data_len, NetworkConnCtx *ctx, lan_sync_header_t *header);
     void handleLanSyncReplyResource(void *data, uint64_t data_len, NetworkConnCtx *ctx, lan_sync_header_t *header);
+    void add_req_task(NetworkConnCtx *ctx);
 
 public:
     enum state st;

@@ -14,8 +14,6 @@ public:
     ~SyncCliSyncLogic(){};
     virtual void exec(NetworkConnCtx &ctx) override;
     void reqTbIdx(NetworkConnCtx &ctx);
-    void reqRs(NetworkConnCtx &ctx);
-    void sendReqRs(NetworkConnCtx &ctx, string uri, Block b);
 };
 
 #endif

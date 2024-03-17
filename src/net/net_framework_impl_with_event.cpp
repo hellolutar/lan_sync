@@ -326,6 +326,17 @@ void NetFrameworkImplWithEvent::free()
     cleanup();
 }
 
+map<NetAddr, NetworkConnCtx *> NetFrameworkImplWithEvent::getAllTcpSession()
+{
+    map<NetAddr, NetworkConnCtx *> idx;
+    for (int i = 0; i < tcp_ctx.size(); i++)
+    {
+        auto tmp_ctx = tcp_ctx.at(i);
+        idx[tmp_ctx->getPeer()] = tmp_ctx;
+    }
+    return idx;
+}
+
 uint64_t NetworkConnCtxWithEvent::write(void *data, uint64_t data_len)
 {
     if (!active)
