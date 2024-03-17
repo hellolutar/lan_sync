@@ -62,7 +62,7 @@ void SyncCliLogic::handleHelloAck(LanSyncPkt &pkt, NetworkConnCtx *ctx)
 
     uint32_t data_len = pkt.getTotalLen() - pkt.getHeaderLen();
 
-    LOG_DEBUG("[SYNC CLI] recive [HELLO ACK], data_len:{} , peer tcp port: {}", data_len, peer_tcp_port);
+    LOG_DEBUG("SyncCliLogic::handleHelloAck() : recive [HELLO ACK], data_len:{} , peer tcp port: {}", data_len, peer_tcp_port);
 
     if (st == STATE_DISCOVERING)
         st = STATE_SYNC_READY;
@@ -116,10 +116,10 @@ void SyncCliLogic::add_req_task(NetworkConnCtx *ctx)
     for (auto uriRs : rsm.getAllUriRs())
     {
         string uri = uriRs.first;
-        Block b = rsm.regReqSyncRsAuto(ctx->getPeer(), uri);
-        if (b.end == 0)
-            continue;
-        TaskManager::getTaskManager()->addTask(new ReqRsTask(uri, uri));
+        if (rsm.getSyncingSize(uri) == 0)
+        {
+            TaskManager::getTaskManager()->addTask(new ReqRsTask(uri, uri));
+        }
     }
 }
 
@@ -130,13 +130,13 @@ void SyncCliLogic::handleLanSyncReplyResource(void *data, uint64_t data_len, Net
     string uri = pkt.queryXheader(XHEADER_URI);
     if (uri == "")
     {
-        LOG_ERROR("[SYNC CLI] SyncCliLogic::handleLanSyncReplyResource() query header is failed! ");
+        LOG_ERROR("SyncCliLogic::handleLanSyncReplyResource() : query header is failed! ");
         return;
     }
 
     string content_range_str = pkt.queryXheader(XHEADER_CONTENT_RANGE);
     ContentRange cr(content_range_str);
-    LOG_INFO("[SYNC CLI] SyncCliLogic::handleLanSyncReplyResource() : uri:{}; cr:{}", uri.data(), cr.to_string());
+    LOG_INFO("SyncCliLogic::handleLanSyncReplyResource() : uri:{}; cr:{}", uri.data(), cr.to_string());
 
     uint8_t *data_pos = (uint8_t *)data + pkt.getHeaderLen();
     RsSyncManager &rsm = ResourceManager::getRsSyncManager();
@@ -147,12 +147,12 @@ void SyncCliLogic::handleLanSyncReplyResource(void *data, uint64_t data_len, Net
     Block b(cr.getStartPos(), cr.getStartPos() + cr.getSize());
     if (!write_ret)
     {
-        LOG_INFO("[SYNC CLI] SyncCliLogic::handleLanSyncReplyResource() : {} : block save fail:[{},{})", uri, b.start, b.end);
+        LOG_INFO("SyncCliLogic::handleLanSyncReplyResource() : {} : block save fail:[{},{})", uri, b.start, b.end);
         rsm.unregReqSyncRsByBlock(ctx->getPeer(), b, uri);
         return;
         // TODO(LUTAR, 20230315) send req immediately
     }
-    LOG_INFO("[SYNC CLI] SyncCliLogic::handleLanSyncReplyResource() : {} : block save success:[{},{})", uri, b.start, b.end);
+    LOG_INFO("SyncCliLogic::handleLanSyncReplyResource() : {} : block save success:[{},{})", uri, b.start, b.end);
     rsm.syncingRangeDoneAndValid(ctx->getPeer(), uri, b, true);
     // TODO(LUTAR, 20230315) send req immediately
 }

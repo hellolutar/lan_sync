@@ -16,7 +16,7 @@ void ReqRsTask::sendRsReq(NetworkConnCtx *ctx, Block b)
     try
     {
         ctx->write(buf.data(), buf.size());
-        LOG_INFO("ReqRsTask::sendRsReq() : req resource uri[{}] range[{}]!", uri, range_hdr);
+        LOG_INFO("ReqRsTask::sendRsReq() : req resource uri[{}{}] range[{}]!", ctx->getPeer().str().data(), uri, range_hdr);
     }
     catch (const std::exception &e)
     {
@@ -35,30 +35,36 @@ void ReqRsTask::run()
 
     RsSyncManager &rsm = ResourceManager::getRsSyncManager();
 
-    for (auto uriRs : rsm.getAllUriRs())
+    SyncRs rs = rsm.getAllUriRs()[uri];
+
+    uint owner_size = rsm.getOwnerSize(uri);
+    if (owner_size == 0 || rsm.getBlockSize(uri) == 0 || rsm.getSyncingSize(uri) > 10)
+        return;
+
+    int num_block_per_owner = rsm.getBlockSize(uri) / owner_size + 1;
+    LOG_INFO("ReqRsTask::run() : uri[{}]\towner_size[{}]\tnum_block_per_owner[{}]", uri, owner_size, num_block_per_owner);
+
+    for (int i = 0; i < owner_size; i++)
     {
-        string uri = uriRs.first;
-        SyncRs rs = uriRs.second;
-
-        int num_block_per_owner = rs.owner.size() / rs.block.size() + 1;
-        LOG_INFO("ReqRsTask::run() : uri[{}]  owern[{}] num_block_per_owner[{}]", uri, rs.owner.size(), num_block_per_owner);
-
-        for (int i = 0; i < rs.owner.size(); i++)
+        NetAddr peer = rs.owner[i];
+        for (int i = 0; i < num_block_per_owner; i++)
         {
-            NetAddr peer = rs.owner[i];
-            for (int i = 0; i < num_block_per_owner; i++)
-            {
-                Block b = rsm.regReqSyncRsAuto(peer, uri);
-                if (b.end == 0)
-                    goto quickbreak;
+            Block b = rsm.regReqSyncRsAuto(peer, uri);
+            if (b.end == 0)
+                goto quickbreak;
 
-                auto ctx = idx[peer];
+            auto ctx = idx[peer];
 
-                sendRsReq(ctx, b);
-            }
+            sendRsReq(ctx, b);
+
+            if (rsm.getSyncingSize(uri) > 10)
+                goto quickbreak;
         }
-    quickbreak:
-        LOG_INFO("ReqRsTask::run() : quickbreak!");
     }
+quickbreak:
     LOG_INFO("ReqRsTask::run() : done!");
+    if (rsm.getBlockSize(uri) > 0)
+    {
+        TaskManager::getTaskManager()->addTask(new ReqRsTask(uri, uri));
+    }
 }

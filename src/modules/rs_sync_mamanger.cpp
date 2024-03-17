@@ -207,7 +207,7 @@ void RsSyncManager::syncingRangeDoneAndValid(NetAddr peer, string uri, Block blo
             }
             else
             {
-                LOG_INFO("RsSyncManager::syncingRangeDoneAndValid() : block is not eq!");
+                // LOG_INFO("RsSyncManager::syncingRangeDoneAndValid() : block is not eq!");
                 // 需要一个buffer。
             }
         }
@@ -216,4 +216,22 @@ void RsSyncManager::syncingRangeDoneAndValid(NetAddr peer, string uri, Block blo
 void RsSyncManager::syncingRangeDone(NetAddr peer, string uri, Block block)
 {
     syncingRangeDoneAndValid(peer, uri, block, false);
+}
+
+uint RsSyncManager::getOwnerSize(string uri)
+{
+    scoped_lock<std::mutex> lk(mut);
+    return uriRs[uri].owner.size();
+}
+
+uint RsSyncManager::getBlockSize(string uri)
+{
+    scoped_lock<std::mutex> lk(mut);
+    return uriRs[uri].block.size();
+}
+
+uint RsSyncManager::getSyncingSize(string uri)
+{
+    scoped_lock<std::mutex> lk(mut);
+    return uriRs[uri].syncing.size();
 }

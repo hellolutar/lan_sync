@@ -24,7 +24,7 @@ COMMON_OBJS += ${SRC_MODULES:.cpp=.o}
 COMMON_OBJS += ${SRC_LOGICS:.cpp=.o}
 COMMON_OBJS += ${SRC_VOS:.cpp=.o}
 COMMON_OBJS += ${SRC_DTOS:.cpp=.o}
-TARGET_OBJS += ${SRC_TASKS:.cpp=.o} 
+COMMON_OBJS += ${SRC_TASKS:.cpp=.o} 
 TARGET_OBJS += ${SRC_C:.cpp=.o} 
 OBJS+=${COMMON_OBJS}
 OBJS+=${TARGET_OBJS}

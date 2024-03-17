@@ -7,6 +7,7 @@
 #include "modules/rs_manager.h"
 #include "proto/lan_share_protocol.h"
 #include "components/buf_base_on_event.h"
+#include "modules/task/task_manager.h"
 
 class ReqRsTask : public AbsTask
 {

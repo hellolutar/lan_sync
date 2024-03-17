@@ -65,6 +65,9 @@ public:
     // vector<uint64_t, uint64_t> regReqSyncRsRang(NetAddr peer, std::string uri, uint64_t offset, uint64_t size) { return {}; };
     void syncingRangeDone(NetAddr peer, string uri, Block block);
     void syncingRangeDoneAndValid(NetAddr peer, string uri, Block block,bool valid);
+    uint getOwnerSize(string uri);
+    uint getBlockSize(string uri);
+    uint getSyncingSize(string uri);
 };
 
 #endif

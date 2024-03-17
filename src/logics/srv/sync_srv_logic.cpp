@@ -97,7 +97,7 @@ void SyncSrvLogic::replyResource(lan_sync_header_t *header, NetworkConnCtx *ctx)
     Range range(range_str);
 
     char *uri = xhd_uri.data();
-    LOG_INFO("[SYNC SER] [{}] : uri[{}] ", SERVICE_NAME_REQ_RESOURCE, uri);
+    LOG_INFO("SyncSrvLogic::replyResource() : uri[{}] range:{} ", SERVICE_NAME_REQ_RESOURCE, uri, range.to_string());
 
     // TODO
     RsLocalManager &rlm = ResourceManager::getRsLocalManager();
