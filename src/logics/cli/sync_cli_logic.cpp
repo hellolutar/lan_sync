@@ -55,7 +55,7 @@ void SyncCliLogic::isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &wa
         want_to_extra_len = data_len;
 }
 
-void SyncCliLogic::handleHelloAck(LanSyncPkt &pkt, NetworkConnCtx &ctx)
+void SyncCliLogic::handleHelloAck(LanSyncPkt &pkt, NetworkConnCtx *ctx)
 {
     string peer_tcp_port_str = pkt.queryXheader(XHEADER_TCPPORT);
     uint16_t peer_tcp_port = atoi(peer_tcp_port_str.data());
@@ -67,7 +67,7 @@ void SyncCliLogic::handleHelloAck(LanSyncPkt &pkt, NetworkConnCtx &ctx)
     if (st == STATE_DISCOVERING)
         st = STATE_SYNC_READY;
 
-    NetAddr peer_tcp_addr = ctx.getPeer();
+    NetAddr peer_tcp_addr = ctx->getPeer();
     peer_tcp_addr.setPort(peer_tcp_port);
     this->sync_tr->addConn(peer_tcp_addr);
 }
@@ -78,7 +78,7 @@ void SyncCliLogic::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
     LanSyncPkt pkt(header);
 
     if (pkt.getType() == LAN_SYNC_TYPE_HELLO_ACK)
-        handleHelloAck(pkt, *ctx);
+        handleHelloAck(pkt, ctx);
     else
         LOG_WARN(" SyncCliLogic::recv_udp() : {}", "unsupport type, do not reply ", header->type);
 }

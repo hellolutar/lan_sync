@@ -13,8 +13,8 @@ public:
     TcpCli(NetAddr addr) : NetAbilityImplWithEvent(addr){};
     ~TcpCli();
 
-    void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
-    void isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len);
+    void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
+    void isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len) override;
 };
 
 TcpCli::~TcpCli()
@@ -43,7 +43,7 @@ void TcpCli::isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_
 int main(int argc, char const *argv[])
 {
     struct event_base *base = event_base_new();
-    NetFrameworkImplWithEvent::init(base);
+    NetFrameworkImplWithEvent::init(*base);
 
     NetworkConnCtx *ctx = NetFrameworkImplWithEvent::connectWithTcp(new TcpCli(NetAddr("127.0.0.1:8080")));
     if (ctx != nullptr)
@@ -54,6 +54,7 @@ int main(int argc, char const *argv[])
 
     NetFrameworkImplWithEvent::run();
     NetFrameworkImplWithEvent::free();
+    event_base_free(base);
 
     return 0;
 }

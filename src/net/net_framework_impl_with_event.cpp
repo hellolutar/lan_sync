@@ -3,9 +3,9 @@
 using namespace std;
 
 struct event_base *NetFrameworkImplWithEvent::base;
-std::vector<event *> NetFrameworkImplWithEvent::events; // only persist event need to add
-std::vector<NetworkConnCtx *> NetFrameworkImplWithEvent::tcp_ctx;
-std::vector<NetworkConnCtx *> NetFrameworkImplWithEvent::udp_ctx;
+std::vector<event *> NetFrameworkImplWithEvent::events;           // only persist event need to add
+std::vector<NetworkConnCtx *> NetFrameworkImplWithEvent::tcp_ctx; // release by user
+std::vector<NetworkConnCtx *> NetFrameworkImplWithEvent::udp_ctx; // release by user
 
 void NetFrameworkImplWithEvent::init(struct event_base &eb)
 {
@@ -52,7 +52,7 @@ void NetFrameworkImplWithEvent::event_cb(struct bufferevent *bev, short events, 
     nctx->setActive(false);
     for (auto iter = tcp_ctx.begin(); iter != tcp_ctx.end(); iter++)
     {
-        if ((*iter) == nctx)
+        if (*iter == nctx)
         {
             LOG_INFO("NetFrameworkImplWithEvent::event_cb : remvoe tcp_ctx : {}", nctx->getPeer().str());
             tcp_ctx.erase(iter);
@@ -178,6 +178,7 @@ void NetFrameworkImplWithEvent::udp_read_cb(evutil_socket_t fd, short events, vo
     nctx->setNetAddr(NetAddr::fromBe(target_addr));
 
     NetAbility *ne = nctx->getNetworkEndpoint();
+
     ne->recv((void *)data, receive, nctx);
 }
 
@@ -308,14 +309,12 @@ void NetFrameworkImplWithEvent::cleanup()
 
     for (int i = tcp_ctx.size() - 1; i >= 0; i--)
     {
-        delete tcp_ctx[i];
         tcp_ctx.pop_back();
     }
     LOG_INFO("NetFrameworkImplWithEvent::cleanup(): free tcp_ctx: done!");
 
     for (int i = udp_ctx.size() - 1; i >= 0; i--)
     {
-        delete udp_ctx[i];
         udp_ctx.pop_back();
     }
     LOG_INFO("NetFrameworkImplWithEvent::cleanup(): free udp_ctx: done!");

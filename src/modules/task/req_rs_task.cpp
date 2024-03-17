@@ -25,7 +25,6 @@ void ReqRsTask::run()
         {
             std::cerr << e.what() << '\n';
             ResourceManager::getRsSyncManager().unregAllReqSyncRsByPeer(peer, uri);
-            delete nctx;
             break;
         }
     }

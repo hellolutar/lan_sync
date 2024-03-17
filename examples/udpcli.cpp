@@ -13,8 +13,8 @@ public:
     UdpCli(NetAddr addr) : NetAbilityImplWithEvent(addr){};
     ~UdpCli();
 
-    void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
-    void isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len);
+    void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
+    void isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len) override;
 };
 
 UdpCli::~UdpCli()
@@ -42,7 +42,7 @@ void UdpCli::isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_
 int main(int argc, char const *argv[])
 {
     struct event_base *base = event_base_new();
-    NetFrameworkImplWithEvent::init(base);
+    NetFrameworkImplWithEvent::init(*base);
 
     NetworkConnCtx *ctx = NetFrameworkImplWithEvent::connectWithUdp(new UdpCli(NetAddr("127.0.0.1:8080")));
     if (ctx != nullptr)

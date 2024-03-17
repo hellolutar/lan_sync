@@ -16,11 +16,11 @@
 class SyncIOReadMonitor : public IoReadMonitor
 {
 private:
-    NetworkConnCtx *ctx;
+    NetworkConnCtx &ctx;
     const struct Resource *rs;
 
 public:
-    SyncIOReadMonitor(NetworkConnCtx *ctx, const struct Resource *rs) : ctx(ctx), rs(rs){};
+    SyncIOReadMonitor(NetworkConnCtx &ctx, const struct Resource *rs) : ctx(ctx), rs(rs){};
     ~SyncIOReadMonitor(){};
     void monitor(uint64_t from_pos, void *data, uint64_t data_len) override;
 };

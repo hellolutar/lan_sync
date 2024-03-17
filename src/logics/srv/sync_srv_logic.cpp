@@ -105,7 +105,7 @@ void SyncSrvLogic::replyResource(lan_sync_header_t *header, NetworkConnCtx *ctx)
     if (rs == nullptr)
         return;
 
-    IoReadMonitor *monitor = new SyncIOReadMonitor(ctx, rs); // reply msg in there
+    IoReadMonitor *monitor = new SyncIOReadMonitor(*ctx, rs); // reply msg in there
 
     IoUtil io;
     io.addReadMonitor(monitor);

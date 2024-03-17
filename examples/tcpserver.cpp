@@ -13,8 +13,8 @@ public:
     TcpServer(NetAddr addr) : NetAbilityImplWithEvent(addr){};
     ~TcpServer();
 
-    void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
-    void isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len);
+    void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
+    void isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len) override;
 };
 
 TcpServer::~TcpServer()
@@ -42,7 +42,7 @@ void TcpServer::isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_
 int main(int argc, char const *argv[])
 {
     struct event_base *base = event_base_new();
-    NetFrameworkImplWithEvent::init(base);
+    NetFrameworkImplWithEvent::init(*base);
 
     NetFrameworkImplWithEvent::addTcpServer(new TcpServer(NetAddr(":8080")));
     NetFrameworkImplWithEvent::run();

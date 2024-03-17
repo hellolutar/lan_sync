@@ -27,5 +27,5 @@ void SyncIOReadMonitor::monitor(uint64_t from_pos, void *data, uint64_t data_len
     BufBaseonEvent buf;
     reply_pkt.write(buf);
 
-    ctx->write(buf.data(), buf.size());
+    ctx.write(buf.data(), buf.size());
 }

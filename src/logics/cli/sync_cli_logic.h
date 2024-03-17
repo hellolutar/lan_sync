@@ -11,7 +11,7 @@
 class SyncCliLogic : public LogicTcp, public LogicUdp
 {
 private:
-    void handleHelloAck(LanSyncPkt &pkt, NetworkConnCtx &ctx);
+    void handleHelloAck(LanSyncPkt &pkt, NetworkConnCtx *ctx);
 
     NetTrigger *discovery_tr;
     NetTrigger *sync_tr;
