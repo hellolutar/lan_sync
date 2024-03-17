@@ -2,16 +2,6 @@
 
 using namespace std;
 
-bool operator==(const Block &l, const Block &r)
-{
-    return l.start == r.start && l.end == r.end;
-}
-
-bool Block::operator==(const Block &other)
-{
-    return start == other.start && end == other.end;
-}
-
 SyncRs::SyncRs()
 {
 }
@@ -58,6 +48,7 @@ SyncingRange::SyncingRange(NetAddr peer, Block block)
 
 std::map<std::string, SyncRs> &RsSyncManager::getAllUriRs()
 {
+    // TODO(lutar, 20240317) there is a bug for multi thread case
     return uriRs;
 }
 
@@ -86,6 +77,7 @@ bool RsSyncManager::regSyncRs(NetAddr peer, std::string uri, std::string hash, u
 
 bool RsSyncManager::updateSyncRs(NetAddr peer, std::string uri, std::string hash, uint64_t size)
 {
+    scoped_lock<std::mutex> lk(mut);
     if (uriRs.find(uri) == uriRs.end())
     {
         SyncRs rs(uri, size, hash, peer);
@@ -124,6 +116,7 @@ bool RsSyncManager::updateSyncRs(NetAddr peer, std::string uri, std::string hash
 
 Block RsSyncManager::regReqSyncRsAuto(NetAddr peer, string uri)
 {
+    scoped_lock<std::mutex> lk(mut);
     if (uriRs[uri].block.size() > 0)
     {
         for (uint64_t i = 0; i < uriRs[uri].owner.size(); i++)
@@ -146,6 +139,7 @@ Block RsSyncManager::regReqSyncRsAuto(NetAddr peer, string uri)
 
 void RsSyncManager::unregReqSyncRsByBlock(NetAddr peer, Block b, std::string uri)
 {
+    scoped_lock<std::mutex> lk(mut);
     for (auto iter = uriRs[uri].syncing.end() - 1; iter >= uriRs[uri].syncing.begin(); iter--)
     {
         SyncingRange rng = *iter;
@@ -160,6 +154,7 @@ void RsSyncManager::unregReqSyncRsByBlock(NetAddr peer, Block b, std::string uri
 
 void RsSyncManager::unregAllReqSyncRsByPeer(NetAddr peer, std::string uri)
 {
+    scoped_lock<std::mutex> lk(mut);
     for (auto iter = uriRs[uri].syncing.end() - 1; iter >= uriRs[uri].syncing.begin(); iter--)
     {
         SyncingRange rng = *iter;
@@ -183,6 +178,7 @@ void RsSyncManager::unregAllReqSyncRsByPeer(NetAddr peer, std::string uri)
 
 void RsSyncManager::syncingRangeDoneAndValid(NetAddr peer, string uri, Block block, bool valid)
 {
+    scoped_lock<std::mutex> lk(mut);
     for (auto iter = uriRs[uri].syncing.end() - 1; iter >= uriRs[uri].syncing.begin(); iter--)
     {
         SyncingRange syncing = (*iter);

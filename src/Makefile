@@ -14,6 +14,7 @@ SRC_LOGICS += $(wildcard ${SRC_PATH}/logics/cli/*.cpp)
 SRC_LOGICS += $(wildcard ${SRC_PATH}/logics/srv/*.cpp)
 SRC_VOS:= $(wildcard ${SRC_PATH}/vo/*.cpp)
 SRC_DTOS:= $(wildcard ${SRC_PATH}/vo/dto/*.cpp)
+SRC_TASKS:=$(wildcard ${SRC_PATH}/modules/task/*.cpp)
 COMMON_OBJS := ${SRC_UTILS:.cpp=.o}
 COMMON_OBJS += ${SRC_PROTOS:.cpp=.o}
 COMMON_OBJS += ${SRC_COMPONENTS:.cpp=.o}
@@ -23,6 +24,7 @@ COMMON_OBJS += ${SRC_MODULES:.cpp=.o}
 COMMON_OBJS += ${SRC_LOGICS:.cpp=.o}
 COMMON_OBJS += ${SRC_VOS:.cpp=.o}
 COMMON_OBJS += ${SRC_DTOS:.cpp=.o}
+TARGET_OBJS += ${SRC_TASKS:.cpp=.o} 
 TARGET_OBJS += ${SRC_C:.cpp=.o} 
 OBJS+=${COMMON_OBJS}
 OBJS+=${TARGET_OBJS}

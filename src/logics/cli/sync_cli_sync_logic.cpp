@@ -37,6 +37,7 @@ void SyncCliSyncLogic::sendReqRs(NetworkConnCtx &ctx, string uri, Block b)
 
     BufBaseonEvent buf;
     pkt.write(buf);
+    NetAddr peer = ctx.getPeer();
     try
     {
         ctx.write(buf.data(), buf.size());
@@ -45,7 +46,7 @@ void SyncCliSyncLogic::sendReqRs(NetworkConnCtx &ctx, string uri, Block b)
     catch (const std::exception &e)
     {
         std::cerr << e.what() << '\n';
-        ResourceManager::getRsSyncManager().unregAllReqSyncRsByPeer(ctx.getPeer(), uri);
+        ResourceManager::getRsSyncManager().unregAllReqSyncRsByPeer(peer, uri);
         throw e;
     }
 }

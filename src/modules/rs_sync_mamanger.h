@@ -7,22 +7,12 @@
 #include <map>
 #include <algorithm>
 #include <filesystem>
+#include <mutex>
 
 #include "net/net_addr.h"
 #include "constants/constants.h"
 #include "modules/rs_local_manager.h"
-
-class Block
-{
-public:
-    uint64_t start;
-    uint64_t end;
-    Block(){};
-    Block(uint64_t start, uint64_t end) : start(start), end(end){};
-    ~Block(){};
-
-    bool operator==(const Block &other);
-};
+#include "modules/block.h"
 
 class SyncingRange
 {
@@ -55,6 +45,7 @@ public:
 class RsSyncManager
 {
 private:
+    std::mutex mut;
     std::map<std::string, SyncRs> uriRs;
     RsLocalManager &rlm;
 

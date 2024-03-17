@@ -17,6 +17,9 @@ void NetTrigger::trigger()
 
     for (auto iter = conns.begin(); iter != conns.end();)
     {
+        NetCliLogicContainer *con = (*iter).second;
+        auto meAddr = con->getAddr();
+        auto peerAddr = con->getConnCtx().getPeer();
         try
         {
             NetworkConnCtx &ctx = (*iter).second->getConnCtx();
@@ -25,11 +28,11 @@ void NetTrigger::trigger()
         catch (const std::exception &e)
         {
             LOG_ERROR("NetTrigger::trigger() : {}", e.what());
-            NetCliLogicContainer *con = (*iter).second;
+
             iter = conns.erase(iter);
             LOG_ERROR("NetTrigger::trigger() : delete connection: {} <--> {}",
-                      con->getAddr().str().data(), con->getConnCtx().getPeer().str().data());
-            delete con;
+                      meAddr.str().data(), peerAddr.str().data());
+            delete con; // TODO there has a bug!
             continue;
         }
         iter++;
