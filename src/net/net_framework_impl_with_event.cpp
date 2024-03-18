@@ -63,6 +63,7 @@ void NetFrameworkImplWithEvent::event_cb(struct bufferevent *bev, short events, 
 
 void NetFrameworkImplWithEvent::write_cb(struct bufferevent *bev, void *data)
 {
+    LOG_DEBUG("NetFrameworkImplWithEvent::write_cb: {}");
 }
 
 void NetFrameworkImplWithEvent::read_cb(struct bufferevent *bev, void *arg)
@@ -345,7 +346,8 @@ uint64_t NetworkConnCtxWithEvent::write(void *data, uint64_t data_len)
         throw NetworkConnCtxException();
     }
 
-    int ret = evbuffer_add(bufferevent_get_output(bev), data, data_len);
+    int ret = bufferevent_write(bev, data, data_len);
+
     LOG_DEBUG("NetworkConnCtxWithEvent::write: {}, sent [{}]", this->peer.str().data(), data_len);
     return ret;
 }

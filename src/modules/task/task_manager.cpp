@@ -72,23 +72,3 @@ void TaskManager::stop()
 {
     stopFlg = true;
 }
-
-
-
-// int main(int argc, char const *argv[])
-// {
-//     TaskManager *tm = new TaskManager();
-//     for (size_t i = 0; i < 15; i++)
-//     {
-//         tm->addTask(new ConcreteTask(to_string(i)));
-//     }
-//     thread t(&TaskManager::start, tm);
-//     t.detach();
-
-//     this_thread::sleep_for(chrono::seconds(2));
-//     tm->stop();
-//     this_thread::sleep_for(chrono::seconds(15));
-//     cout << "main exit" << endl;
-
-//     return 0;
-// }

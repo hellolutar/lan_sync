@@ -24,9 +24,6 @@
 
 #include "components/abs_buf.h"
 
-#define DEFAULT_DISCOVER_SERVER_UDP_PORT 58080
-#define DEFAULT_DISCOVER_SERVER_TCP_PORT 58081
-
 #define FLAG_KEY_VALUE_SPLIT 2 // 2 is: ':' and '\0'
 
 #define XHEADER_URI "uri"

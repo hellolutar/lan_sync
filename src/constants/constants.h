@@ -12,8 +12,9 @@
 
 #define EVENT_KEY_CONFIG_REQ_RESOURCE_PERIODICALLY "config_req_resource_periodically"
 
-#define CONFIG_KEY_DISCOVER_SERVER_UDP_PORT "udp.port"
-#define CONFIG_KEY_SYNC_SERVER_TCP_PORT "tcp.port"
+#define CONFIG_KEY_DISCOVER_IPS "ip.discovery"
+#define CONFIG_KEY_DISCOVER_SERVER_UDP_PORT "proto.udp.server.port"
+#define CONFIG_KEY_SYNC_SERVER_TCP_PORT "proto.tcp.server.port"
 #define CONFIG_KEY_RESOURCE_HOME "resource.home"
 #define CONFIG_DEFAULT_NAME "properties.properties"
 
@@ -22,6 +23,6 @@
 #define SIZE_1MByte 1024 * SIZE_1KByte
 
 #define ONCE_MAX_READ_SIZE SIZE_1MByte * 2
-#define BLOCK_SIZE SIZE_1MByte  // TODO(LUTAR, 123): support server reply block < sync_table block
+#define BLOCK_SIZE SIZE_1MByte // TODO(LUTAR, 123): support server reply block < sync_table block
 
 #endif

@@ -1,8 +1,8 @@
-#include "sync_cli.h"
+#include "main.h"
 
 int main(int argc, char const *argv[])
 {
-    configure(argc, argv);
+    load_config(argc, argv);
 
     struct event_base *base = event_base_new();
     TimerWithEvent::init(base);
@@ -19,7 +19,7 @@ int main(int argc, char const *argv[])
 
     vector<LocalPort> ports = LocalPort::query();
 
-    for (size_t i = 0; i < ports.size(); i++)
+    for (int i = 0; i < ports.size(); i++)
     {
         LocalPort port = ports[i];
         auto broadaddr = port.getBroadAddr();
@@ -28,7 +28,18 @@ int main(int argc, char const *argv[])
         main_logic.getDiscoveryTrigger().addConn(addr);
     }
 
-    NetTrigger *sync_req_tr = new TcpTrigger(Trigger::second(5), true, tcplogic, main_logic.getSyncLogic());
+    vector<string> ip = ConfigManager::queryList(CONFIG_KEY_DISCOVER_IPS);
+    for (int i = 0; i < ip.size(); i++)
+    {
+        NetAddr addr(ip[i]);
+        if (addr.getPort() == 0)
+        {
+            addr.setPort(atoi(ConfigManager::query(CONFIG_KEY_DISCOVER_SERVER_UDP_PORT).data()));
+        }
+        main_logic.getDiscoveryTrigger().addConn(addr);
+    }
+
+    NetTrigger *sync_req_tr = new TcpTrigger(Trigger::second(2), true, tcplogic, main_logic.getSyncLogic());
     main_logic.setSyncTrigger(sync_req_tr);
     TimerWithEvent::addTr(sync_req_tr);
 

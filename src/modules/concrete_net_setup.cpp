@@ -3,10 +3,10 @@
 NetCliLogicContainer *TcpCliConnSetUp::setupConn(NetAddr peer, AbstNetLogic &recv_logic)
 {
     // LOG_INFO("TcpCliConnSetUp setupConn: {}",)
-    NetCliLogicContainer *udpcli = new NetCliLogicContainer(peer, recv_logic); // ne 何时释放
-    NetworkConnCtx *nctx = NetFrameworkImplWithEvent::connectWithTcp(udpcli);                  // nctx 何时释放: 由NetworkLayerWithEvent负责释放
-    udpcli->setCtx(nctx);
-    return udpcli;
+    NetCliLogicContainer *tcpcli = new NetCliLogicContainer(peer, recv_logic); // ne 何时释放
+    NetworkConnCtx *nctx = NetFrameworkImplWithEvent::connectWithTcp(tcpcli);                  // nctx 何时释放: 由NetworkLayerWithEvent负责释放
+    tcpcli->setCtx(nctx);
+    return tcpcli;
 }
 
 void TcpCliConnSetUp::exec(NetworkConnCtx &ctx)

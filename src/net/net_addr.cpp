@@ -6,13 +6,12 @@ using namespace std;
 
 NetAddr::NetAddr()
 {
-    le_addr.sin_addr.s_addr = 0;
-    le_addr.sin_family = 0;
-    le_addr.sin_port = 0;
+    memset(&le_addr, 0, sizeof(sockaddr_in));
 }
 
 NetAddr::NetAddr(string ipport)
 {
+    memset(&le_addr, 0, sizeof(sockaddr_in));
     size_t pos = ipport.find(':');
     if (pos == 0)
     {
@@ -24,10 +23,12 @@ NetAddr::NetAddr(string ipport)
         inet_aton(ip.data(), &(le_addr.sin_addr));
         le_addr.sin_addr.s_addr = ntohl(le_addr.sin_addr.s_addr);
     }
-
-    string port = ipport.substr(pos + 1, ipport.size());
+    if (ipport.find(":")!=string::npos)
+    {
+        string port = ipport.substr(pos + 1, ipport.size());
+         le_addr.sin_port = atoi(port.data());
+    }
     le_addr.sin_family = AF_INET;
-    le_addr.sin_port = atoi(port.data());
 }
 
 // NetAddr::NetAddr(NetAddr &addr)
@@ -93,6 +94,11 @@ NetAddr NetAddr::fromBe(sockaddr_in be)
 void NetAddr::setPort(int le_port)
 {
     le_addr.sin_port = le_port;
+}
+
+uint16_t NetAddr::getPort()
+{
+    return le_addr.sin_port;
 }
 void NetAddr::setIp(string ip)
 {

@@ -61,6 +61,9 @@ void SyncCliLogic::handleHelloAck(LanSyncPkt &pkt, NetworkConnCtx *ctx)
     uint16_t peer_tcp_port = atoi(peer_tcp_port_str.data());
 
     uint32_t data_len = pkt.getTotalLen() - pkt.getHeaderLen();
+    if (data_len == 0)
+        return;
+    
 
     LOG_DEBUG("SyncCliLogic::handleHelloAck() : recive [HELLO ACK], data_len:{} , peer tcp port: {}", data_len, peer_tcp_port);
 
@@ -118,6 +121,7 @@ void SyncCliLogic::add_req_task(NetworkConnCtx *ctx)
         string uri = uriRs.first;
         if (rsm.getSyncingSize(uri) == 0)
         {
+            LOG_INFO("SyncCliLogic::add_req_task() : add ReqRsTask : {}", uri.data());
             TaskManager::getTaskManager()->addTask(new ReqRsTask(uri, uri));
         }
     }

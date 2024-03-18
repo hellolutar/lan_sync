@@ -9,7 +9,7 @@ void SyncIOReadMonitor::monitor(uint64_t from_pos, void *data, uint64_t data_len
     reply_pkt.addXheader(XHEADER_HASH, rs->hash);
     reply_pkt.addXheader(XHEADER_URI, rs->uri);
 
-    if (rs->size == from_pos + data_len)
+    if (range.getStartPos() + range.getSize() == from_pos + data_len)
     {
         ContentRange cr(from_pos, data_len, rs->size, true);
         reply_pkt.addXheader(XHEADER_CONTENT_RANGE, cr.to_string());

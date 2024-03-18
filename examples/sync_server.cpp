@@ -1,8 +1,9 @@
-#include "sync_server.h"
+#include "main.h"
 
 int main(int argc, char const *argv[])
 {
-    configure(argc, argv);
+    load_config(argc, argv);
+    configlog(spdlog::level::info);
 
     struct event_base *base = event_base_new();
     NetFrameworkImplWithEvent::init(*base);

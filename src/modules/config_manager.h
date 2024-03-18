@@ -16,6 +16,7 @@ private:
 
 public:
     static std::string query(std::string key);
+    static std::vector<std::string> queryList(std::string key);
     static void reload(std::string path);
 };
 

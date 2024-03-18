@@ -13,7 +13,7 @@ NetTrigger::~NetTrigger()
 void NetTrigger::trigger()
 {
     if (conns.size() == 0)
-        LOG_WARN("NetTrigger::trigger() : can not trigger, beacuse the conns is empty!");
+        LOG_DEBUG("NetTrigger::trigger() : can not trigger, beacuse the conns is empty!");
 
     for (auto iter = conns.begin(); iter != conns.end();)
     {
@@ -32,6 +32,7 @@ void NetTrigger::trigger()
             iter = conns.erase(iter);
             LOG_ERROR("NetTrigger::trigger() : delete connection: {} <--> {}",
                       meAddr.str().data(), peerAddr.str().data());
+            con->setCtx(nullptr);  // ctx release by itself, eg.~NetworkConnCtxWithEvent when ctx.write occur error
             delete con; // TODO there has a bug!
             continue;
         }

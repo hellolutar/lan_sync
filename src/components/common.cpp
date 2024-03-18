@@ -1,6 +1,6 @@
 #include "common.h"
 
-void configure(int argc, char const *argv[])
+void load_config(int argc, char const *argv[])
 {
     std::stringstream ss;
     ss << std::filesystem::current_path().string() << "/"

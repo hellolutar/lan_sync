@@ -27,6 +27,7 @@
 #include "proto/lan_share_protocol.h"
 #include "components/sync_io_read_monitor.h"
 #include "modules/rs_manager.h"
+#include "modules/config_manager.h"
 
 class SyncSrvLogic : public LogicTcp, public LogicUdp
 {

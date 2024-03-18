@@ -38,8 +38,10 @@ void ReqRsTask::run()
     SyncRs rs = rsm.getAllUriRs()[uri];
 
     uint owner_size = rsm.getOwnerSize(uri);
-    if (owner_size == 0 || rsm.getBlockSize(uri) == 0 || rsm.getSyncingSize(uri) > 10)
+    if (owner_size == 0 || rsm.getBlockSize(uri) == 0 || rsm.getSyncingSize(uri) > 10){
+        LOG_INFO("ReqRsTask::run() : syncing!");
         return;
+    }
 
     int num_block_per_owner = rsm.getBlockSize(uri) / owner_size + 1;
     LOG_INFO("ReqRsTask::run() : uri[{}]\towner_size[{}]\tnum_block_per_owner[{}]", uri, owner_size, num_block_per_owner);

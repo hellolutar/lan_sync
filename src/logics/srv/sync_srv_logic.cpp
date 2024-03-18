@@ -27,19 +27,16 @@ void SyncSrvLogic::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 
     if (header->type == LAN_SYNC_TYPE_HELLO)
     {
-
-#ifdef RELEASE
         auto ports = LocalPort::query();
-        if (LocalPort::existIp(ports, target_addr.sin_addr))
+        if (LocalPort::existIp(ports, ctx->getPeer().getBeAddr().sin_addr))
             return;
-#endif
 
         LOG_DEBUG("[SYNC SER] UDP receive pkt : {}", SERVICE_NAME_DISCOVER_HELLO);
         // 启动TCP Server
         st = STATE_SYNC_READY;
 
         LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_HELLO_ACK);
-        pkt.addXheader(XHEADER_TCPPORT, to_string(DEFAULT_DISCOVER_SERVER_TCP_PORT));
+        pkt.addXheader(XHEADER_TCPPORT, ConfigManager::query(CONFIG_KEY_SYNC_SERVER_TCP_PORT));
 
         BufBaseonEvent buf;
         pkt.write(buf);
@@ -56,16 +53,14 @@ void SyncSrvLogic::recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
     // should  use strategy pattern
     if (header->type == LAN_SYNC_TYPE_GET_TABLE_INDEX)
     {
-        LOG_INFO("[SYNC SER] TCP receive pkt: {}", SERVICE_NAME_REQ_TABLE_INDEX);
         replyTableIndex(ctx);
     }
     else if (header->type == LAN_SYNC_TYPE_GET_RESOURCE)
     {
-        LOG_INFO("[SYNC SER] TCP receive pkt: {}", SERVICE_NAME_REQ_RESOURCE);
         replyResource(header, ctx);
     }
     else
-        LOG_INFO("[SYNC SER] TCP: receive pkt: the type is unsupport! : {}", header->type);
+        LOG_INFO("SyncSrvLogic::recv_tcp() : the type is unsupport! : {}", header->type);
 }
 
 void SyncSrvLogic::replyTableIndex(NetworkConnCtx *ctx)
@@ -85,7 +80,7 @@ void SyncSrvLogic::replyTableIndex(NetworkConnCtx *ctx)
 
     ctx->write(buf.data(), buf.size());
 
-    LOG_INFO("[SYNC SER] [{}] : entry num: {} ", SERVICE_NAME_REPLY_TABLE_INDEX, table.size());
+    LOG_INFO("SyncSrvLogic::replyTableIndex() : entry num: {} ", table.size());
 }
 
 void SyncSrvLogic::replyResource(lan_sync_header_t *header, NetworkConnCtx *ctx)
@@ -97,7 +92,7 @@ void SyncSrvLogic::replyResource(lan_sync_header_t *header, NetworkConnCtx *ctx)
     Range range(range_str);
 
     char *uri = xhd_uri.data();
-    LOG_INFO("SyncSrvLogic::replyResource() : uri[{}] range:{} ", SERVICE_NAME_REQ_RESOURCE, uri, range.to_string());
+    LOG_INFO("SyncSrvLogic::replyResource() : uri[{}] range:{} ", uri, range.to_string());
 
     // TODO
     RsLocalManager &rlm = ResourceManager::getRsLocalManager();
@@ -105,7 +100,7 @@ void SyncSrvLogic::replyResource(lan_sync_header_t *header, NetworkConnCtx *ctx)
     if (rs == nullptr)
         return;
 
-    IoReadMonitor *monitor = new SyncIOReadMonitor(*ctx, rs); // reply msg in there
+    IoReadMonitor *monitor = new SyncIOReadMonitor(*ctx, rs, range); // reply msg in there
 
     IoUtil io;
     io.addReadMonitor(monitor);
@@ -114,5 +109,5 @@ void SyncSrvLogic::replyResource(lan_sync_header_t *header, NetworkConnCtx *ctx)
     void *data = io.readSize(rs->path, range.getStartPos(), range.getSize(), ret_len);
     free(data);
 
-    LOG_DEBUG("[SYNC SER] [{}] : uri[{}] file size:{} ", SERVICE_NAME_REPLY_REQ_RESOURCE, uri, ret_len);
+    LOG_DEBUG("SyncSrvLogic::replyResource()  : uri[{}] file size:{} ", uri, ret_len);
 }

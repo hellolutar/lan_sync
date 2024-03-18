@@ -12,6 +12,6 @@
 #include "cxxopts/cxxopts.hpp"
 #include "modules/rs_manager.h"
 
-void configure(int argc, char const *argv[]);
+void load_config(int argc, char const *argv[]);
 
 #endif

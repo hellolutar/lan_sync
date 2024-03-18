@@ -12,15 +12,16 @@
 #include "vo/dto/resource.h"
 #include "components/buf_base_on_event.h"
 
-
 class SyncIOReadMonitor : public IoReadMonitor
 {
 private:
     NetworkConnCtx &ctx;
     const struct Resource *rs;
+    Range &range;
 
 public:
-    SyncIOReadMonitor(NetworkConnCtx &ctx, const struct Resource *rs) : ctx(ctx), rs(rs){};
+    SyncIOReadMonitor(NetworkConnCtx &ctx, const struct Resource *rs, Range &range)
+        : ctx(ctx), rs(rs), range(range){};
     ~SyncIOReadMonitor(){};
     void monitor(uint64_t from_pos, void *data, uint64_t data_len) override;
 };

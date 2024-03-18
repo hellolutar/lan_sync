@@ -1,4 +1,4 @@
-include ../src/Makefile
+include ../../src/Makefile
 
 all := ${OBJS} ${BIN_TARGETS}
 
