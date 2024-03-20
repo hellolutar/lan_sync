@@ -5,6 +5,7 @@ SyncCliLogic sync_cli_logic;
 
 void configSyncCli()
 {
+    LOG_INFO("configSyncCli()...");
     LogicUdp &udplogic = sync_cli_logic;
     LogicTcp &tcplogic = sync_cli_logic;
 
@@ -41,6 +42,8 @@ void configSyncCli()
 
 void configSyncSrv()
 {
+    LOG_INFO("configSyncSrv()...");
+
     LogicTcp &tcplogic = sync_srv_logic;
     LogicUdp &udplogic = sync_srv_logic;
 
@@ -59,6 +62,7 @@ void configSyncSrv()
 
 int main(int argc, char const *argv[])
 {
+    configlog(spdlog::level::debug);
     load_config(argc, argv);
 
     struct event_base *base = event_base_new();
