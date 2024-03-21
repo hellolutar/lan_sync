@@ -2,6 +2,8 @@
 #define __MAIN_H_
 #include <cstdlib>
 
+#include <event2/thread.h>
+
 #include "utils/str_utils.h"
 #include "net/net_logic_container.h"
 #include "modules/concrete_net_setup.h"

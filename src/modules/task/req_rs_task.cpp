@@ -2,6 +2,8 @@
 
 using namespace std;
 
+std::default_random_engine e;
+
 void ReqRsTask::sendRsReq(NetworkConnCtx *ctx, Block b)
 {
     LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_RESOURCE);
@@ -38,7 +40,8 @@ void ReqRsTask::run()
     SyncRs rs = rsm.getAllUriRs()[uri];
 
     uint owner_size = rsm.getOwnerSize(uri);
-    if (owner_size == 0 || rsm.getBlockSize(uri) == 0 || rsm.getSyncingSize(uri) > 10){
+    if (owner_size == 0 || rsm.getBlockSize(uri) == 0 || rsm.getSyncingSize(uri) >= DOWNLOAD_LIMIT)
+    {
         LOG_INFO("ReqRsTask::run() : syncing!");
         return;
     }
@@ -46,23 +49,18 @@ void ReqRsTask::run()
     int num_block_per_owner = rsm.getBlockSize(uri) / owner_size + 1;
     LOG_INFO("ReqRsTask::run() : uri[{}]\towner_size[{}]\tnum_block_per_owner[{}]", uri, owner_size, num_block_per_owner);
 
-    for (int i = 0; i < owner_size; i++)
+    std::uniform_int_distribution<int> u(0, owner_size); // 左闭右闭区间
+    e.seed(time(0));
+    int who = u(e);
+
+    NetAddr peer = rs.owner[who];
+    Block b = rsm.regReqSyncRsAuto(peer, uri);
+    if (b.end != 0)
     {
-        NetAddr peer = rs.owner[i];
-        for (int i = 0; i < num_block_per_owner; i++)
-        {
-            Block b = rsm.regReqSyncRsAuto(peer, uri);
-            if (b.end == 0)
-                goto quickbreak;
-
-            auto ctx = idx[peer];
-
-            sendRsReq(ctx, b);
-
-            if (rsm.getSyncingSize(uri) > 10)
-                goto quickbreak;
-        }
+        auto ctx = idx[peer];
+        sendRsReq(ctx, b);
     }
+
 quickbreak:
     LOG_INFO("ReqRsTask::run() : done!");
     if (rsm.getBlockSize(uri) > 0)

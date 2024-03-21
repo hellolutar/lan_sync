@@ -29,4 +29,6 @@
 #define ONCE_MAX_READ_SIZE SIZE_1MByte * 2
 #define BLOCK_SIZE SIZE_1MByte // TODO(LUTAR, 123): support server reply block < sync_table block
 
+#define DOWNLOAD_LIMIT 5
+
 #endif

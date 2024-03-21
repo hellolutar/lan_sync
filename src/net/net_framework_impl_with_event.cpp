@@ -106,7 +106,7 @@ void NetFrameworkImplWithEvent::tcp_accept(evutil_socket_t listener, short event
     evutil_make_socket_nonblocking(peer_sock);
     evutil_make_listen_socket_reuseable_port(peer_sock);
 
-    struct bufferevent *bev = bufferevent_socket_new(base, peer_sock, BEV_OPT_CLOSE_ON_FREE);
+    struct bufferevent *bev = bufferevent_socket_new(base, peer_sock, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_THREADSAFE);
     size_t hw = 0;
     size_t lw = 0;
     bufferevent_getwatermark(bev, EV_WRITE, &lw, &hw);
@@ -245,7 +245,7 @@ NetworkConnCtx *NetFrameworkImplWithEvent::connectWithTcp(NetAbilityImplWithEven
         return nullptr;
     }
 
-    struct bufferevent *bev = bufferevent_socket_new(base, peer_sock, BEV_OPT_CLOSE_ON_FREE);
+    struct bufferevent *bev = bufferevent_socket_new(base, peer_sock, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_THREADSAFE);
 
     NetworkConnCtxWithEvent *nctx = new NetworkConnCtxWithEvent(&tcp_ctx, peer_ne, bev, peer_sock, peer_ne->getAddr());
     tcp_ctx.push_back(nctx);

@@ -34,7 +34,7 @@ BIN_TARGETS:= $(patsubst %.cpp,%.bin,$(SRC_C))
 CC=g++
 CXXFLAGS=-g -Wno-format-contains-nul -Wno-write-strings
 LDFLAGS:=
-LIBS:=-levent -lcrypto -lssl -lgtest -lfmt -lspdlog
+LIBS:=-levent -lcrypto -lssl -lgtest -lfmt -lspdlog -levent_pthreads
 CPLUS_INCLUDE_PATH +=${SRC_PATH}
 CPLUS_INCLUDE_PATH +=-I${WORKSPACE}/libs/include
 COMPILE_OPT:=DEV#RELEASE or DEV
@@ -49,30 +49,6 @@ all: ${OBJS} ${BIN_TARGETS}
 %.o: %.cpp
 	@echo $@
 	@$(CC) -I${CPLUS_INCLUDE_PATH} -c $(CXXFLAGS)  -D${COMPILE_OPT}  $<  -o $@
-
-sync_cli: sync_cli.o ${COMMON_OBJS} 
-ifneq (${COMPILE_OPT} , ${RELEASE})
-	@echo $@
-	@$(CC) -I${CPLUS_INCLUDE_PATH} $(CXXFLAGS) $(LDFLAGS) -D${COMPILE_OPT} $^ $(LIBS) -o $@
-else
-	@echo "skip sync_cli"
-endif
-
-sync_server: sync_server.o ${COMMON_OBJS} 
-ifneq (${COMPILE_OPT}, ${RELEASE})
-	@echo $@
-	@$(CC) -I${CPLUS_INCLUDE_PATH} $(CXXFLAGS) $(LDFLAGS) -D${COMPILE_OPT} $^ $(LIBS) -o $@
-else
-	@echo "skip sync_server"
-endif
-
-# sync: ${COMMON_OBJS} ${TARGET_OBJS}
-# ifeq (${COMPILE_OPT}, ${RELEASE})
-# 	@echo $@
-# 	@$(CC) -I${CPLUS_INCLUDE_PATH} -DRELEASE $(CXXFLAGS) -DRELEASE $(LDFLAGS) $^ $(LIBS) -o $@
-# else
-# 	@echo "skip sync"
-# endif
 
 
 wc:

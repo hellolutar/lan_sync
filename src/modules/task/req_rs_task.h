@@ -1,6 +1,8 @@
 #ifndef __REQ_RS_TASK_H_
 #define __REQ_RS_TASK_H_
 
+#include <random>
+
 #include "abs_task.h"
 #include "net/network_layer.h"
 #include "net/net_framework_impl_with_event.h"

@@ -27,6 +27,12 @@ int main(int argc, char const *argv[])
     configlog(spdlog::level::debug);
     load_config(argc, argv);
 
+    int ret = evthread_use_pthreads();
+    if (ret != 0)
+    {
+        printf("unsupport evthread_use_pthreads()\n");
+        return -1;
+    }
     struct event_base *base = event_base_new();
     NetFrameworkImplWithEvent::init(*base);
     TimerWithEvent::init(base);

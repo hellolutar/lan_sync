@@ -68,10 +68,9 @@ void SyncCliLogic::handleHelloAck(LanSyncPkt &pkt, NetworkConnCtx *ctx)
     if (st == STATE_DISCOVERING)
         st = STATE_SYNC_READY;
 
-
     NetAddr peer_tcp_addr = ctx->getPeer();
     peer_tcp_addr.setPort(peer_tcp_port);
-    LOG_DEBUG("SyncCliLogic::handleHelloAck() : receive hello ack, try to connect peer with tcp:{}",peer_tcp_addr.str());
+    LOG_DEBUG("SyncCliLogic::handleHelloAck() : receive hello ack, try to connect peer with tcp:{}", peer_tcp_addr.str());
 
     this->sync_tr->addConn(peer_tcp_addr);
 }
@@ -120,7 +119,7 @@ void SyncCliLogic::add_req_task(NetworkConnCtx *ctx)
     for (auto uriRs : rsm.getAllUriRs())
     {
         string uri = uriRs.first;
-        if (rsm.getSyncingSize(uri) == 0)
+        if (rsm.getSyncingSize(uri) < DOWNLOAD_LIMIT)
         {
             LOG_INFO("SyncCliLogic::add_req_task() : add ReqRsTask : {}", uri.data());
             TaskManager::getTaskManager()->addTask(new ReqRsTask(uri, uri));

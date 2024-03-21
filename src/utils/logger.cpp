@@ -5,7 +5,7 @@ void configlog(spdlog::level::level_enum level)
     std::vector<spdlog::sink_ptr> sinks;
 
     auto stdout_sink = std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>();
-    stdout_sink->set_level(spdlog::level::debug);
+    stdout_sink->set_level(spdlog::level::info);
     sinks.push_back(stdout_sink);
 
     auto daily_debug_sink = std::make_shared<spdlog::sinks::daily_file_format_sink_mt>("logs/log_debug.log", 2, 30);
