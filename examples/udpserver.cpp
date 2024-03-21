@@ -43,7 +43,7 @@ int main(int argc, char const *argv[])
     struct event_base *base = event_base_new();
     NetFrameworkImplWithEvent::init(*base);
 
-    NetFrameworkImplWithEvent::addUdpServer(new UdpServer(NetAddr("127.0.0.1:8080")));
+    NetFrameworkImplWithEvent::addUdpServer(new UdpServer(NetAddr(":58080")));
     NetFrameworkImplWithEvent::run();
     NetFrameworkImplWithEvent::free();
 

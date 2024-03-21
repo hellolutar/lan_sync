@@ -58,20 +58,21 @@ void SyncCliLogic::isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &wa
 void SyncCliLogic::handleHelloAck(LanSyncPkt &pkt, NetworkConnCtx *ctx)
 {
     string peer_tcp_port_str = pkt.queryXheader(XHEADER_TCPPORT);
-    uint16_t peer_tcp_port = atoi(peer_tcp_port_str.data());
-
-    uint32_t data_len = pkt.getTotalLen() - pkt.getHeaderLen();
-    if (data_len == 0)
+    if (peer_tcp_port_str.size() == 0)
+    {
+        LOG_WARN("SyncCliLogic::handleHelloAck() : tcp port is not found in reply header!");
         return;
-    
-
-    LOG_DEBUG("SyncCliLogic::handleHelloAck() : recive [HELLO ACK], data_len:{} , peer tcp port: {}", data_len, peer_tcp_port);
+    }
+    uint16_t peer_tcp_port = atoi(peer_tcp_port_str.data());
 
     if (st == STATE_DISCOVERING)
         st = STATE_SYNC_READY;
 
+
     NetAddr peer_tcp_addr = ctx->getPeer();
     peer_tcp_addr.setPort(peer_tcp_port);
+    LOG_DEBUG("SyncCliLogic::handleHelloAck() : receive hello ack, try to connect peer with tcp:{}",peer_tcp_addr.str());
+
     this->sync_tr->addConn(peer_tcp_addr);
 }
 

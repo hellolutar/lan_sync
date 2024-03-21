@@ -28,15 +28,16 @@ void SyncSrvLogic::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
     if (header->type == LAN_SYNC_TYPE_HELLO)
     {
         auto ports = LocalPort::query();
+#ifdef RELEASE
         if (LocalPort::existIp(ports, ctx->getPeer().getBeAddr().sin_addr))
             return;
-
+#endif
         LOG_DEBUG("[SYNC SER] UDP receive pkt : {}", SERVICE_NAME_DISCOVER_HELLO);
         // 启动TCP Server
         st = STATE_SYNC_READY;
 
         LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_HELLO_ACK);
-        pkt.addXheader(XHEADER_TCPPORT, ConfigManager::query(CONFIG_KEY_SYNC_SERVER_TCP_PORT));
+        pkt.addXheader(XHEADER_TCPPORT, ConfigManager::query(CONFIG_KEY_PROTO_SYNC_SERVER_TCP_PORT));
 
         BufBaseonEvent buf;
         pkt.write(buf);

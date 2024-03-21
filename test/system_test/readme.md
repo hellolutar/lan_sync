@@ -61,7 +61,6 @@ ip link set veth-3-br master vbridge
 
 bridge link
 
-
 ip netns exec ns1 ip addr add 192.168.233.101/24 dev veth-1
 ip netns exec ns2 ip addr add 192.168.233.102/24 dev veth-2
 ip netns exec ns3 ip addr add 192.168.233.103/24 dev veth-3

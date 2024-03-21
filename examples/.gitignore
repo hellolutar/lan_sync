@@ -1,5 +1,3 @@
 tcpserver
 udpserver
-cli.properties
 server.properties
-srv.properties

@@ -7,7 +7,6 @@ using namespace std;
 RsLocalManager::RsLocalManager(string path)
 {
     rsHome = path;
-    last_update_time = filesystem::file_time_type::clock::time_point(std::chrono::seconds(0));
 };
 
 RsLocalManager::~RsLocalManager()
@@ -51,6 +50,7 @@ const struct Resource *RsLocalManager::queryByUri(string uri)
 
 void RsLocalManager::refreshTable()
 {
+    table.clear();
     vector<struct Resource *> newer = genResources(rsHome);
     for (auto i = 0; i < newer.size(); i++)
     {
@@ -61,8 +61,6 @@ void RsLocalManager::refreshTable()
             free(old_rs);
         }
         table[new_rs->uri] = new_rs;
-
-        last_update_time = filesystem::file_time_type::clock::now();
     }
 }
 
@@ -92,7 +90,7 @@ vector<struct Resource *> RsLocalManager::recurPath(filesystem::path p)
         string uri = path.substr(index);
 
         auto tmprs = queryByUri(uri);
-        if (tmprs != nullptr && fileLastWriteTime < last_update_time)
+        if (tmprs != nullptr)
             return {};
 
         string hashRet = OpensslUtil::mdEncodeWithSHA3_512(pstr);

@@ -20,7 +20,7 @@ void configSyncCli()
         LocalPort port = ports[i];
         auto broadaddr = port.getBroadAddr();
         NetAddr addr = NetAddr::fromBe(broadaddr);
-        addr.setPort(atoi(ConfigManager::query(CONFIG_KEY_DISCOVER_SERVER_UDP_PORT).data()));
+        addr.setPort(atoi(ConfigManager::query(CONFIG_KEY_PROTO_DISCOVER_SERVER_UDP_PORT).data()));
         sync_cli_logic.getDiscoveryTrigger().addConn(addr);
     }
 
@@ -30,7 +30,7 @@ void configSyncCli()
         NetAddr addr(ip[i]);
         if (addr.getPort() == 0)
         {
-            addr.setPort(atoi(ConfigManager::query(CONFIG_KEY_DISCOVER_SERVER_UDP_PORT).data()));
+            addr.setPort(atoi(ConfigManager::query(CONFIG_KEY_PROTO_DISCOVER_SERVER_UDP_PORT).data()));
         }
         sync_cli_logic.getDiscoveryTrigger().addConn(addr);
     }
@@ -49,11 +49,11 @@ void configSyncSrv()
 
     string listen_udp = StringBuilder::builder()
                             .add(":")
-                            .add(ConfigManager::query(CONFIG_KEY_DISCOVER_SERVER_UDP_PORT))
+                            .add(ConfigManager::query(CONFIG_KEY_PROTO_DISCOVER_SERVER_UDP_PORT))
                             .str();
     string listen_tcp = StringBuilder::builder()
                             .add(":")
-                            .add(ConfigManager::query(CONFIG_KEY_SYNC_SERVER_TCP_PORT))
+                            .add(ConfigManager::query(CONFIG_KEY_PROTO_SYNC_SERVER_TCP_PORT))
                             .str();
 
     NetFrameworkImplWithEvent::addUdpServer(new NetSrvLogicContainer(listen_udp, udplogic));

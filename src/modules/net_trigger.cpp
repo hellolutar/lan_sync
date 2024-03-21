@@ -30,8 +30,7 @@ void NetTrigger::trigger()
             LOG_ERROR("NetTrigger::trigger() : {}", e.what());
 
             iter = conns.erase(iter);
-            LOG_ERROR("NetTrigger::trigger() : delete connection: {} <--> {}",
-                      meAddr.str().data(), peerAddr.str().data());
+            LOG_ERROR("NetTrigger::trigger() : delete connection: {} ", peerAddr.str().data());
             con->setCtx(nullptr);  // ctx release by itself, eg.~NetworkConnCtxWithEvent when ctx.write occur error
             delete con; // TODO there has a bug!
             continue;

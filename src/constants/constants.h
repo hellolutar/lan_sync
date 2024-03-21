@@ -13,8 +13,12 @@
 #define EVENT_KEY_CONFIG_REQ_RESOURCE_PERIODICALLY "config_req_resource_periodically"
 
 #define CONFIG_KEY_DISCOVER_IPS "ip.discovery"
-#define CONFIG_KEY_DISCOVER_SERVER_UDP_PORT "proto.udp.server.port"
-#define CONFIG_KEY_SYNC_SERVER_TCP_PORT "proto.tcp.server.port"
+#define CONFIG_KEY_PROTO_DISCOVER_SERVER_UDP_PORT "proto.udp.server.port"
+#define CONFIG_KEY_PROTO_SYNC_SERVER_TCP_PORT "proto.tcp.server.port"
+
+#define CONFIG_KEY_LOCAL_DISCOVER_SERVER_UDP_PORT "local.udp.server.port"
+#define CONFIG_KEY_LOCAL_SYNC_SERVER_TCP_PORT "local.tcp.server.port"
+
 #define CONFIG_KEY_RESOURCE_HOME "resource.home"
 #define CONFIG_DEFAULT_NAME "properties.properties"
 

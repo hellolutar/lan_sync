@@ -1,31 +1,26 @@
 #include "main.h"
 
-int main(int argc, char const *argv[])
+SyncCliLogic sync_cli_logic;
+
+void configSyncCli()
 {
-    load_config(argc, argv);
+    LOG_INFO("configSyncCli()...");
+    LogicUdp &udplogic = sync_cli_logic;
+    LogicTcp &tcplogic = sync_cli_logic;
 
-    struct event_base *base = event_base_new();
-    TimerWithEvent::init(base);
-    NetFrameworkImplWithEvent::init(*base);
+    NetTrigger *discover_tr = new UdpTrigger(Trigger::second(2), true, udplogic, sync_cli_logic.getDiscoverLogic());
 
-    SyncCliLogic main_logic;
-    LogicUdp &udplogic = main_logic;
-    LogicTcp &tcplogic = main_logic;
-
-    NetTrigger *discover_tr = new UdpTrigger(Trigger::second(2), true, udplogic, main_logic.getDiscoverLogic());
-
-    main_logic.setDiscoveryTrigger(discover_tr);
+    sync_cli_logic.setDiscoveryTrigger(discover_tr);
     TimerWithEvent::addTr(discover_tr);
 
     vector<LocalPort> ports = LocalPort::query();
-
     for (int i = 0; i < ports.size(); i++)
     {
         LocalPort port = ports[i];
         auto broadaddr = port.getBroadAddr();
         NetAddr addr = NetAddr::fromBe(broadaddr);
-        addr.setPort(atoi(ConfigManager::query(CONFIG_KEY_DISCOVER_SERVER_UDP_PORT).data()));
-        main_logic.getDiscoveryTrigger().addConn(addr);
+        addr.setPort(atoi(ConfigManager::query(CONFIG_KEY_PROTO_DISCOVER_SERVER_UDP_PORT).data()));
+        sync_cli_logic.getDiscoveryTrigger().addConn(addr);
     }
 
     vector<string> ip = ConfigManager::queryList(CONFIG_KEY_DISCOVER_IPS);
@@ -34,17 +29,30 @@ int main(int argc, char const *argv[])
         NetAddr addr(ip[i]);
         if (addr.getPort() == 0)
         {
-            addr.setPort(atoi(ConfigManager::query(CONFIG_KEY_DISCOVER_SERVER_UDP_PORT).data()));
+            addr.setPort(atoi(ConfigManager::query(CONFIG_KEY_PROTO_DISCOVER_SERVER_UDP_PORT).data()));
         }
-        main_logic.getDiscoveryTrigger().addConn(addr);
+        sync_cli_logic.getDiscoveryTrigger().addConn(addr);
     }
 
-    NetTrigger *sync_req_tr = new TcpTrigger(Trigger::second(2), true, tcplogic, main_logic.getSyncLogic());
-    main_logic.setSyncTrigger(sync_req_tr);
+    NetTrigger *sync_req_tr = new TcpTrigger(Trigger::second(2), true, tcplogic, sync_cli_logic.getSyncLogic());
+    sync_cli_logic.setSyncTrigger(sync_req_tr);
     TimerWithEvent::addTr(sync_req_tr);
+}
+
+int main(int argc, char const *argv[])
+{
+    configlog(spdlog::level::debug);
+    load_config(argc, argv);
+
+    struct event_base *base = event_base_new();
+    NetFrameworkImplWithEvent::init(*base);
+    TimerWithEvent::init(base);
+
+    configSyncCli();
 
     event_base_dispatch(base);
     event_base_free(base);
 
+    NetFrameworkImplWithEvent::free();
     return 0;
 }
