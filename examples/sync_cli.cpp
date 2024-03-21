@@ -35,7 +35,7 @@ void configSyncCli()
         sync_cli_logic.getDiscoveryTrigger().addConn(addr);
     }
 
-    NetTrigger *sync_req_tr = new TcpTrigger(Trigger::second(30), true, tcplogic, sync_cli_logic.getSyncLogic());
+    NetTrigger *sync_req_tr = new TcpTrigger(Trigger::second(10), true, tcplogic, sync_cli_logic.getSyncLogic());
     sync_cli_logic.setSyncTrigger(sync_req_tr);
     TimerWithEvent::addTr(sync_req_tr);
 }

@@ -31,7 +31,7 @@ void ReqRsTask::sendRsReq(NetworkConnCtx *ctx, Block b)
 
 void ReqRsTask::run()
 {
-    LOG_INFO("ReqRsTask::run() : start!");
+    LOG_DEBUG("ReqRsTask::run() : start!");
 
     map<NetAddr, NetworkConnCtx *> idx = NetFrameworkImplWithEvent::getAllTcpSession();
 
@@ -42,12 +42,12 @@ void ReqRsTask::run()
     uint owner_size = rsm.getOwnerSize(uri);
     if (owner_size == 0 || rsm.getBlockSize(uri) == 0 || rsm.getSyncingSize(uri) >= DOWNLOAD_LIMIT)
     {
-        LOG_INFO("ReqRsTask::run() : syncing!");
+        LOG_DEBUG("ReqRsTask::run() : syncing!");
         return;
     }
 
     int num_block_per_owner = rsm.getBlockSize(uri) / owner_size + 1;
-    LOG_INFO("ReqRsTask::run() : uri[{}]\towner_size[{}]\tnum_block_per_owner[{}]", uri, owner_size, num_block_per_owner);
+    LOG_DEBUG("ReqRsTask::run() : uri[{}]\towner_size[{}]\tnum_block_per_owner[{}]", uri, owner_size, num_block_per_owner);
 
     std::uniform_int_distribution<int> u(0, owner_size); // 左闭右闭区间
     e.seed(time(0));
@@ -59,12 +59,5 @@ void ReqRsTask::run()
     {
         auto ctx = idx[peer];
         sendRsReq(ctx, b);
-    }
-
-quickbreak:
-    LOG_INFO("ReqRsTask::run() : done!");
-    if (rsm.getBlockSize(uri) > 0)
-    {
-        TaskManager::getTaskManager()->addTask(new ReqRsTask(uri, uri));
     }
 }

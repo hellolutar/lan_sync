@@ -74,22 +74,37 @@ void NetFrameworkImplWithEvent::read_cb(struct bufferevent *bev, void *arg)
     if (recvLen == 0)
         return;
 
-    uint64_t data_len = evbuffer_get_length(in);
-    uint8_t *data = new uint8_t[data_len];
-    evbuffer_copyout(in, data, data_len);
+    uint8_t *data = new uint8_t[recvLen];
+    evbuffer_copyout(in, data, recvLen);
 
     NetworkConnCtxWithEvent *ctx = (NetworkConnCtxWithEvent *)arg;
     NetAbility *ne = ctx->getNetworkEndpoint();
 
+    int limit = 1024;
+    int i = 0;
     uint64_t ne_wanto_extra_len = 0;
-    ne->isExtraAllDataNow((void *)data, data_len, ne_wanto_extra_len);
-    if (ne_wanto_extra_len > 0)
+    int actual_extra_len = 0;
+    while (true)
     {
-        memset(data, 0, ne_wanto_extra_len);
-        ne_wanto_extra_len = evbuffer_remove(in, data, ne_wanto_extra_len);
+        ne->isExtraAllDataNow((void *)data, recvLen, ne_wanto_extra_len);
+        if (ne_wanto_extra_len == 0 || ne_wanto_extra_len > recvLen)
+            break;
 
-        ne->recv((void *)data, ne_wanto_extra_len, ctx);
+        memset(data, 0, recvLen);
+        actual_extra_len = evbuffer_remove(in, data, ne_wanto_extra_len);
+        LOG_INFO("buf_len:{} \t, want_extra_len:{}, actual_extra_len:{}\t remaind:{}", recvLen, ne_wanto_extra_len, actual_extra_len, evbuffer_get_length(in));
+
+        assert(actual_extra_len == ne_wanto_extra_len);
+        recvLen = evbuffer_get_length(in);
+
+        ne->recv((void *)data, actual_extra_len, ctx);
+        if (i++ >= limit)
+        {
+            LOG_WARN("NetFrameworkImplWithEvent::read_cb : READ TIMES must <= LIMIT({})", limit);
+            break;
+        }
     }
+
     delete[] data;
 }
 

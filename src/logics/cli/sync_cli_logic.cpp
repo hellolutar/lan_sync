@@ -153,10 +153,11 @@ void SyncCliLogic::handleLanSyncReplyResource(void *data, uint64_t data_len, Net
     {
         LOG_INFO("SyncCliLogic::handleLanSyncReplyResource() : {} : block save fail:[{},{})", uri, b.start, b.end);
         rsm.unregReqSyncRsByBlock(ctx->getPeer(), b, uri);
-        return;
-        // TODO(LUTAR, 20230315) send req immediately
+        goto handleLanSyncReplyResource_end_flag;
     }
     LOG_INFO("SyncCliLogic::handleLanSyncReplyResource() : {} : block save success:[{},{})", uri, b.start, b.end);
     rsm.syncingRangeDoneAndValid(ctx->getPeer(), uri, b, true);
-    // TODO(LUTAR, 20230315) send req immediately
+
+handleLanSyncReplyResource_end_flag:
+    add_req_task(ctx);
 }
