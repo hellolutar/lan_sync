@@ -10,8 +10,9 @@
 #include "modules/task/req_rs_task.h"
 #include "modules/task/task_manager.h"
 #include "logics/common_logic.h"
+#include "modules/conn/mod_conn.h"
 
-class SyncCliLogic : public LogicTcp, public LogicUdp
+class SyncCliLogic : public LogicTcp, public LogicUdp, public ModConnAbility
 {
 private:
     void handleHelloAck(LanSyncPkt &pkt, NetworkConnCtx *ctx);
@@ -28,18 +29,20 @@ private:
 
 public:
     enum state st;
-    SyncCliLogic();
+    SyncCliLogic(AbsModConnMediator &med, std::string name);
     ~SyncCliLogic(){};
     void recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
     void recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
     uint64_t isExtraAllDataNow(void *data, uint64_t data_len) override;
+
+    void mod_conn_recv(std::string from, std::string uri, void *data) override;
+    void mod_conn_send(std::string to, std::string uri, void *data) override;
 
     void setDiscoveryTrigger(NetTrigger *tr);
     NetTrigger &getDiscoveryTrigger();
 
     void setSyncTrigger(NetTrigger *tr);
     NetTrigger &getsSyncTrigger();
-
 
     SyncCliDiscoverLogic &getDiscoverLogic();
     SyncCliSyncLogic &getSyncLogic();

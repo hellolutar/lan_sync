@@ -1,9 +1,6 @@
 #include "main.h"
 
-SyncSrvLogic sync_srv_logic;
-SyncCliLogic sync_cli_logic;
-
-void configSyncCli()
+void configSyncCli(SyncCliLogic &sync_cli_logic)
 {
     LOG_INFO("configSyncCli()...");
     LogicUdp &udplogic = sync_cli_logic;
@@ -40,7 +37,7 @@ void configSyncCli()
     TimerWithEvent::addTr(sync_req_tr);
 }
 
-void configSyncSrv()
+void configSyncSrv(SyncSrvLogic &sync_srv_logic)
 {
     LOG_INFO("configSyncSrv()...");
 
@@ -62,8 +59,14 @@ void configSyncSrv()
 
 int main(int argc, char const *argv[])
 {
-    configlog(spdlog::level::debug);
     load_config(argc, argv);
+    configlog(ConfigManager::query(CONFIG_KEY_LOG_LEVEL));
+
+    SyncModConnMediator mediator;
+    SyncSrvLogic sync_srv_logic(mediator, MODULE_NAME_SYNC_SRV);
+    SyncCliLogic sync_cli_logic(mediator, MODULE_NAME_SYNC_SRV);
+    mediator.add(&sync_srv_logic);
+    mediator.add(&sync_cli_logic);
 
     int ret = evthread_use_pthreads();
     if (ret != 0)
@@ -75,8 +78,8 @@ int main(int argc, char const *argv[])
     NetFrameworkImplWithEvent::init(*base);
     TimerWithEvent::init(base);
 
-    configSyncCli();
-    configSyncSrv();
+    configSyncCli(sync_cli_logic);
+    configSyncSrv(sync_srv_logic);
 
     event_base_dispatch(base);
     event_base_free(base);

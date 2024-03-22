@@ -3,13 +3,6 @@
 
 #include <cstdint>
 
-#define SERVICE_NAME_DISCOVER_HELLO "discover_hello"
-
-#define SERVICE_NAME_REQ_TABLE_INDEX "req_table_index"
-#define SERVICE_NAME_REQ_RESOURCE "req_resource"
-#define SERVICE_NAME_REPLY_TABLE_INDEX "reply_table_index"
-#define SERVICE_NAME_REPLY_REQ_RESOURCE "reply_req_resource"
-
 #define EVENT_KEY_CONFIG_REQ_RESOURCE_PERIODICALLY "config_req_resource_periodically"
 
 #define CONFIG_KEY_DISCOVER_IPS "ip.discovery"
@@ -21,6 +14,7 @@
 
 #define CONFIG_KEY_RESOURCE_HOME "resource.home"
 #define CONFIG_DEFAULT_NAME "properties.properties"
+#define CONFIG_KEY_LOG_LEVEL "log.level"
 
 #define SIZE_1KByte 1024
 #define SIZE_50_KByte 50 * SIZE_1KByte
@@ -30,5 +24,11 @@
 #define BLOCK_SIZE SIZE_1MByte // TODO(LUTAR, 123): support server reply block < sync_table block
 
 #define DOWNLOAD_LIMIT 5
+
+
+#define MODULE_NAME_SYNC_SRV "mod_sync_srv"
+#define MODULE_NAME_SYNC_CLI "mod_sync_cli"
+
+#define MODULE_CONN_URI_DISCOVER_ADD "/discover/add"
 
 #endif

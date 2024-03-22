@@ -119,6 +119,13 @@ pending: 想要的同步的资源加入此表时，状态为pending
 
 
 
+#### 模块间通信
+mine.server 收到 peer.cli 的udp广播:
+- 此时mine.server 要告知 mine.cli 去发现peer.server，然后请求peer.server的资源。
+
+peer tcp 断开(此时mine与peer是邻居关系)
+- mine.server 要告知mine.cli应移除针对peer的广播（计数器实现）。 TODO
+
 
 
 ### p2p阶段 TODO 

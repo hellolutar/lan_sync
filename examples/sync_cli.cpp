@@ -1,9 +1,7 @@
 #include "main.h"
 #include "modules/task/task_manager.h"
 
-SyncCliLogic sync_cli_logic;
-
-void configSyncCli()
+void configSyncCli(SyncCliLogic &sync_cli_logic)
 {
     LOG_INFO("configSyncCli()...");
     LogicUdp &udplogic = sync_cli_logic;
@@ -64,8 +62,12 @@ public:
 
 int main(int argc, char const *argv[])
 {
-    configlog(spdlog::level::debug);
     load_config(argc, argv);
+    configlog(ConfigManager::query(CONFIG_KEY_LOG_LEVEL));
+
+    SyncModConnMediator mediator;
+    SyncCliLogic sync_cli_logic(mediator, MODULE_NAME_SYNC_CLI);
+    mediator.add(&sync_cli_logic);
 
     int ret = evthread_use_pthreads();
     if (ret != 0)
@@ -77,7 +79,7 @@ int main(int argc, char const *argv[])
     NetFrameworkImplWithEvent::init(*base);
     TimerWithEvent::init(base);
 
-    configSyncCli();
+    configSyncCli(sync_cli_logic);
 
     event_base_dispatch(base);
     event_base_free(base);

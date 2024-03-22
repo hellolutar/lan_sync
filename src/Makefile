@@ -9,6 +9,7 @@ SRC_COMPONENTS := $(wildcard ${SRC_PATH}/components/*.cpp)
 SRC_NETS := $(wildcard ${SRC_PATH}/net/*.cpp)
 SRC_TIMER:= $(wildcard ${SRC_PATH}/timer/*.cpp)
 SRC_MODULES:= $(wildcard ${SRC_PATH}/modules/*.cpp)
+SRC_MODULES_CONN:= $(wildcard ${SRC_PATH}/modules/conn/*.cpp)
 SRC_LOGICS:= $(wildcard ${SRC_PATH}/logics/*.cpp)
 SRC_LOGICS += $(wildcard ${SRC_PATH}/logics/cli/*.cpp)
 SRC_LOGICS += $(wildcard ${SRC_PATH}/logics/srv/*.cpp)
@@ -21,6 +22,7 @@ COMMON_OBJS += ${SRC_COMPONENTS:.cpp=.o}
 COMMON_OBJS += ${SRC_NETS:.cpp=.o}
 COMMON_OBJS += ${SRC_TIMER:.cpp=.o}
 COMMON_OBJS += ${SRC_MODULES:.cpp=.o}
+COMMON_OBJS += ${SRC_MODULES_CONN:.cpp=.o}
 COMMON_OBJS += ${SRC_LOGICS:.cpp=.o}
 COMMON_OBJS += ${SRC_VOS:.cpp=.o}
 COMMON_OBJS += ${SRC_DTOS:.cpp=.o}

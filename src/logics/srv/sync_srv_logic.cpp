@@ -1,6 +1,6 @@
 #include "sync_srv_logic.h"
 
-SyncSrvLogic::SyncSrvLogic()
+SyncSrvLogic::SyncSrvLogic(AbsModConnMediator &med, std::string name) : ModConnAbility(med, name)
 {
     st = STATE_DISCOVERING;
 }
@@ -21,7 +21,7 @@ void SyncSrvLogic::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
         if (LocalPort::existIp(ports, ctx->getPeer().getBeAddr().sin_addr))
             return;
 #endif
-        LOG_DEBUG("[SYNC SER] UDP receive pkt : {}", SERVICE_NAME_DISCOVER_HELLO);
+        LOG_DEBUG("SyncSrvLogic::recv_udp() : {}", "HELLO");
         // 启动TCP Server
         st = STATE_SYNC_READY;
 
@@ -31,9 +31,12 @@ void SyncSrvLogic::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
         BufBaseonEvent buf;
         pkt.write(buf);
         ctx->write(buf.data(), buf.size());
+
+        // 模块通信, 让cli.discover去发现并同步数据
+        mod_conn_send(MODULE_NAME_SYNC_CLI, MODULE_CONN_URI_DISCOVER_ADD, ctx);
     }
     else
-        LOG_WARN("[SYNC SER] UDP receive pkt[{}] : the type is unsupport : {}", ctx->getNetworkEndpoint()->getAddr().str().data(), header->type);
+        LOG_WARN("SyncSrvLogic::recv_udp(): [{}] : the type is unsupport : {}", ctx->getNetworkEndpoint()->getAddr().str().data(), header->type);
 }
 
 void SyncSrvLogic::recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
@@ -100,4 +103,13 @@ void SyncSrvLogic::replyResource(lan_sync_header_t *header, NetworkConnCtx *ctx)
     free(data);
 
     LOG_DEBUG("SyncSrvLogic::replyResource()  : uri[{}] file size:{} ", uri, ret_len);
+}
+
+void SyncSrvLogic::mod_conn_recv(std::string from, std::string uri, void *data)
+{
+    // todo
+}
+void SyncSrvLogic::mod_conn_send(std::string to, std::string uri, void *data)
+{
+    med.mod_tel(name, to, uri, data);
 }
