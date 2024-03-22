@@ -102,3 +102,12 @@ iptables -t nat -A POSTROUTING -s 192.168.233.0/24 -j MASQUERADE
 
 ip netns exec ns1 ping 8.8.8.8
 ```
+
+
+集成测试环境：
+
+常规测试：
+- 1. UDPSERVER/TCPSERVER 提供一个退出程序的接口
+- 2. 脚本利用ip netns 搭建网络环境。 搭建resourcehome环境（1kb、300MB、多级目录）。
+- 3. 脚本启动程序，并在60s后调用退出程序接口。
+- 4. 脚本验证文件数量、一致性。

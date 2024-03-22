@@ -1,13 +1,4 @@
 #!/usr/bin/bash
-function cleanup() {
-    # sudo ip netns del ns0
-    # sudo ip netns del ns1
-    # sudo ip link set dev vbridge down
-    # sudo brctl delbr vbridge
-    #  rm -rf cli
-    #  rm -rf srv
-    echo ""
-}
 
 function net_env_normal() {
     sudo ip netns add ns0
@@ -71,16 +62,16 @@ function env_app(){
 }
 
 function env_dir(){
-    rm -rf cli/*
-    rm -rf srv/*
-    # mkdir cli
-    # mkdir srv
+    rm -rf veth0
+    rm -rf veth1
+    mkdir veth0
+    mkdir veth1
     env_app
-    cp ../../src/main.bin cli/
-    cp ../../src/main.bin srv/
+    cp ../../src/main.bin veth0/
+    cp ../../src/main.bin veth1/
 
-    cp cli.properties cli/properties.properties
-    cp srv.properties srv/properties.properties
+    cp veth0.properties veth0/properties.properties
+    cp veth1.properties veth1/properties.properties
 }
 
 function run_app() {
