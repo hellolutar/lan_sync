@@ -28,16 +28,19 @@
 #include "components/sync_io_read_monitor.h"
 #include "modules/rs_manager.h"
 #include "modules/config_manager.h"
+#include "logics/common_logic.h"
 
 class SyncSrvLogic : public LogicTcp, public LogicUdp
 {
+private:
+    SyncCommonLoigc commonLogic;
 public:
     enum state st;
     SyncSrvLogic();
     ~SyncSrvLogic(){};
     void recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
     void recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
-    void isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len) override;
+    uint64_t isExtraAllDataNow(void *data, uint64_t data_len) override;
     void replyTableIndex(NetworkConnCtx *ctx);
     void replyResource(lan_sync_header_t *header, NetworkConnCtx *ctx);
 };

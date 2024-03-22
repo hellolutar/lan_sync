@@ -74,8 +74,7 @@ void NetFrameworkImplWithEvent::read_cb(struct bufferevent *bev, void *arg)
     if (recvLen == 0)
         return;
 
-    uint8_t *data = new uint8_t[recvLen];
-    evbuffer_copyout(in, data, recvLen);
+    uint8_t *head = new uint8_t[recvLen];
 
     NetworkConnCtxWithEvent *ctx = (NetworkConnCtxWithEvent *)arg;
     NetAbility *ne = ctx->getNetworkEndpoint();
@@ -86,7 +85,11 @@ void NetFrameworkImplWithEvent::read_cb(struct bufferevent *bev, void *arg)
     int actual_extra_len = 0;
     while (true)
     {
-        ne->isExtraAllDataNow((void *)data, recvLen, ne_wanto_extra_len);
+        recvLen = evbuffer_get_length(in);
+        uint8_t *data = head;
+        memset(data, 0, recvLen);
+        evbuffer_copyout(in, data, recvLen);
+        ne_wanto_extra_len = ne->isExtraAllDataNow((void *)data, recvLen);
         if (ne_wanto_extra_len == 0 || ne_wanto_extra_len > recvLen)
             break;
 
@@ -95,7 +98,6 @@ void NetFrameworkImplWithEvent::read_cb(struct bufferevent *bev, void *arg)
         LOG_INFO("buf_len:{} \t, want_extra_len:{}, actual_extra_len:{}\t remaind:{}", recvLen, ne_wanto_extra_len, actual_extra_len, evbuffer_get_length(in));
 
         assert(actual_extra_len == ne_wanto_extra_len);
-        recvLen = evbuffer_get_length(in);
 
         ne->recv((void *)data, actual_extra_len, ctx);
         if (i++ >= limit)
@@ -105,7 +107,7 @@ void NetFrameworkImplWithEvent::read_cb(struct bufferevent *bev, void *arg)
         }
     }
 
-    delete[] data;
+    delete[] head;
 }
 
 void NetFrameworkImplWithEvent::tcp_accept(evutil_socket_t listener, short event, void *ctx)

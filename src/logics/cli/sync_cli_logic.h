@@ -9,6 +9,7 @@
 #include "modules/rs_manager.h"
 #include "modules/task/req_rs_task.h"
 #include "modules/task/task_manager.h"
+#include "logics/common_logic.h"
 
 class SyncCliLogic : public LogicTcp, public LogicUdp
 {
@@ -19,6 +20,7 @@ private:
     NetTrigger *sync_tr;
     SyncCliDiscoverLogic discover_logic;
     SyncCliSyncLogic sync_logic;
+    SyncCommonLoigc commonLogic;
 
     void handleLanSyncReplyTableIndex(void *data, uint64_t data_len, NetworkConnCtx *ctx, lan_sync_header_t *header);
     void handleLanSyncReplyResource(void *data, uint64_t data_len, NetworkConnCtx *ctx, lan_sync_header_t *header);
@@ -30,7 +32,7 @@ public:
     ~SyncCliLogic(){};
     void recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
     void recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
-    void isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len) override;
+    uint64_t isExtraAllDataNow(void *data, uint64_t data_len) override;
 
     void setDiscoveryTrigger(NetTrigger *tr);
     NetTrigger &getDiscoveryTrigger();

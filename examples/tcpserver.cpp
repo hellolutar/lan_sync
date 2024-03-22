@@ -14,7 +14,7 @@ public:
     ~TcpServer();
 
     void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
-    void isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len) override;
+    uint64_t isExtraAllDataNow(void *data, uint64_t data_len) override;
 };
 
 TcpServer::~TcpServer()
@@ -34,9 +34,9 @@ void TcpServer::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 
     ctx->write(data, data_len);
 }
-void TcpServer::isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len)
+uint64_t TcpServer::isExtraAllDataNow(void *data, uint64_t data_len)
 {
-    want_to_extra_len = data_len;
+    return data_len;
 }
 
 int main(int argc, char const *argv[])

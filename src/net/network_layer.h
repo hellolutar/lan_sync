@@ -53,7 +53,7 @@ public:
     virtual ~NetAbility();
 
     virtual void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx) = 0;
-    virtual void isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len) = 0;
+    virtual uint64_t isExtraAllDataNow(void *data, uint64_t data_len) = 0;
 
     virtual NetAddr &getAddr();
     virtual void setSock(int sock);

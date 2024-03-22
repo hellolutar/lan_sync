@@ -17,8 +17,6 @@ uint64_t BufBaseonEvent::add(uint8_t *data_in, uint64_t len)
     {
         return 0;
     }
-    delete[] data_in;
-    
     return len;
 }
 

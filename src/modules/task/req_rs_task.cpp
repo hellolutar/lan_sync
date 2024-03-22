@@ -49,7 +49,7 @@ void ReqRsTask::run()
     int num_block_per_owner = rsm.getBlockSize(uri) / owner_size + 1;
     LOG_DEBUG("ReqRsTask::run() : uri[{}]\towner_size[{}]\tnum_block_per_owner[{}]", uri, owner_size, num_block_per_owner);
 
-    std::uniform_int_distribution<int> u(0, owner_size); // 左闭右闭区间
+    std::uniform_int_distribution<int> u(0, owner_size - 1); // 左闭右闭区间
     e.seed(time(0));
     int who = u(e);
 

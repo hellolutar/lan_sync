@@ -14,7 +14,7 @@ public:
     ~TcpCli();
 
     void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
-    void isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len) override;
+    uint64_t isExtraAllDataNow(void *data, uint64_t data_len) override;
 };
 
 TcpCli::~TcpCli()
@@ -35,9 +35,9 @@ void TcpCli::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
     ctx->write(data, data_len);
     count++;
 }
-void TcpCli::isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len)
+uint64_t TcpCli::isExtraAllDataNow(void *data, uint64_t data_len)
 {
-    want_to_extra_len = data_len;
+    return data_len;
 }
 
 int main(int argc, char const *argv[])

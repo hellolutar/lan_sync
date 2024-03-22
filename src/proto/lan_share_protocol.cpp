@@ -2,19 +2,6 @@
 
 using namespace std;
 
-void evbuffer_cb_for_free(struct evbuffer *buffer, const struct evbuffer_cb_info *info, void *arg)
-{
-    if (evbuffer_get_length(buffer) == 0)
-    {
-        if (arg)
-        {
-            evbuffer_remove_cb(buffer, evbuffer_cb_for_free, arg);
-            free(arg);
-            arg = nullptr;
-        }
-    }
-}
-
 void lan_sync_parseStructToMem()
 {
 }
@@ -150,7 +137,7 @@ LanSyncPkt::LanSyncPkt(lan_sync_header_t *header)
 void LanSyncPkt::write(AbsBuf &buf)
 {
 
-    lan_sync_header_t *hd = (lan_sync_header_t *)malloc(total_len); // free in evbuffer_cb_for_free
+    lan_sync_header_t *hd = (lan_sync_header_t *)malloc(total_len);
     memset(hd, 0, total_len);
 
     hd->version = version;
@@ -177,6 +164,7 @@ void LanSyncPkt::write(AbsBuf &buf)
     memcpy(datap, data, total_len - header_len);
 
     buf.add((uint8_t *)hd, total_len);
+    free(hd);
 }
 
 void LanSyncPkt::addXheader(const string key, const string value)

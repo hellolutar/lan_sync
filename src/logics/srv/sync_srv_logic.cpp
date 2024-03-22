@@ -5,26 +5,9 @@ SyncSrvLogic::SyncSrvLogic()
     st = STATE_DISCOVERING;
 }
 
-void SyncSrvLogic::isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len)
+uint64_t SyncSrvLogic::isExtraAllDataNow(void *data, uint64_t data_len)
 {
-    if (data_len < LEN_LAN_SYNC_HEADER_T)
-        want_to_extra_len = 0;
-
-    lan_sync_header_t *header = (lan_sync_header_t *)data;
-    if (header->version != LAN_SYNC_VER_0_1)
-    {
-        LOG_WARN("SyncSrvLogic::isExtraAllDataNow(): unkown this pkt!");
-        want_to_extra_len = 0;
-        return;
-    }
-
-    uint64_t hd_total_len = ntohl(header->total_len);
-    if (data_len < hd_total_len)
-        want_to_extra_len = 0;
-    else if (data_len > hd_total_len)
-        want_to_extra_len = hd_total_len;
-    else
-        want_to_extra_len = data_len;
+    return commonLogic.isExtraAllDataNow(data, data_len);
 }
 
 void SyncSrvLogic::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
