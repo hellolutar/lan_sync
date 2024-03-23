@@ -22,6 +22,8 @@ udp 读任务：
 - 利用ovs qos 做测试。
 
 
+bug:
+- tcpserver --getrs--> tcpcli
 
 
 

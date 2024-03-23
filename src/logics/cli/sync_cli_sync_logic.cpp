@@ -6,7 +6,9 @@ void SyncCliSyncLogic::reqTbIdx(NetworkConnCtx &ctx)
 
     BufBaseonEvent buf;
     pkt.write(buf);
-    ctx.write(buf.data(), buf.size());
+
+    LOG_DEBUG("SyncCliSyncLogic::reqTbIdx() : send GET_TABBLE_IDX");
+    ctx.write(buf.data(), buf.size()); // try catch in netrigger
 }
 
 void SyncCliSyncLogic::exec(NetworkConnCtx &ctx)

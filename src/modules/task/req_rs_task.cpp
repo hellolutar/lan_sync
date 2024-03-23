@@ -47,7 +47,8 @@ void ReqRsTask::run()
     }
 
     int num_block_per_owner = rsm.getBlockSize(uri) / owner_size + 1;
-    LOG_DEBUG("ReqRsTask::run() : uri[{}]\towner_size[{}]\tnum_block_per_owner[{}]", uri, owner_size, num_block_per_owner);
+    LOG_DEBUG("ReqRsTask::run() : taskinfo:\n\t\turi:{}\n\t\tsyncing/remained:{}/{}\n\t\towner_size:{}\n\t\tnum_block_per_owner:{}",
+              uri.data(), rsm.getSyncingSize(uri), rsm.getBlockSize(uri), owner_size, num_block_per_owner);
 
     std::uniform_int_distribution<int> u(0, owner_size - 1); // 左闭右闭区间
     e.seed(time(0));

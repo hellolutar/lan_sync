@@ -33,7 +33,7 @@ void SyncSrvLogic::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx)
         ctx->write(buf.data(), buf.size());
 
         // 模块通信, 让cli.discover去发现并同步数据
-        mod_conn_send(MODULE_NAME_SYNC_CLI, MODULE_CONN_URI_DISCOVER_ADD, ctx);
+        // mod_conn_send(MODULE_NAME_SYNC_CLI, MODULE_CONN_URI_DISCOVER_ADD, ctx);  TODO
     }
     else
         LOG_WARN("SyncSrvLogic::recv_udp(): [{}] : the type is unsupport : {}", ctx->getNetworkEndpoint()->getAddr().str().data(), header->type);

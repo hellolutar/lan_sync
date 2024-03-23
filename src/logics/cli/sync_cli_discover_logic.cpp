@@ -8,5 +8,7 @@ void SyncCliDiscoverLogic::exec(NetworkConnCtx &ctx)
 
     BufBaseonEvent buf;
     pkt.write(buf);
-    ctx.write(buf.data(), buf.size());
+
+    LOG_DEBUG("SyncCliDiscoverLogic::exec() : send HELLO");
+    ctx.write(buf.data(), buf.size()); // try catch in netrigger
 }

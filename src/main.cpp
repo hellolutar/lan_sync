@@ -32,7 +32,7 @@ void configSyncCli(SyncCliLogic &sync_cli_logic)
         sync_cli_logic.getDiscoveryTrigger().addConn(addr);
     }
 
-    NetTrigger *sync_req_tr = new TcpTrigger(Trigger::second(2), true, tcplogic, sync_cli_logic.getSyncLogic());
+    NetTrigger *sync_req_tr = new TcpTrigger(Trigger::second(10), true, tcplogic, sync_cli_logic.getSyncLogic());
     sync_cli_logic.setSyncTrigger(sync_req_tr);
     TimerWithEvent::addTr(sync_req_tr);
 }
@@ -64,7 +64,7 @@ int main(int argc, char const *argv[])
 
     SyncModConnMediator mediator;
     SyncSrvLogic sync_srv_logic(mediator, MODULE_NAME_SYNC_SRV);
-    SyncCliLogic sync_cli_logic(mediator, MODULE_NAME_SYNC_SRV);
+    SyncCliLogic sync_cli_logic(mediator, MODULE_NAME_SYNC_CLI);
     mediator.add(&sync_srv_logic);
     mediator.add(&sync_cli_logic);
 

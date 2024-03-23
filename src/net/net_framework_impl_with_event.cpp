@@ -95,7 +95,7 @@ void NetFrameworkImplWithEvent::read_cb(struct bufferevent *bev, void *arg)
 
         memset(data, 0, recvLen);
         actual_extra_len = evbuffer_remove(in, data, ne_wanto_extra_len);
-        LOG_INFO("buf_len:{} \t, want_extra_len:{}, actual_extra_len:{}\t remaind:{}", recvLen, ne_wanto_extra_len, actual_extra_len, evbuffer_get_length(in));
+        LOG_DEBUG("buf_len:{} \t, want_extra_len:{}, actual_extra_len:{}\t remaind:{}", recvLen, ne_wanto_extra_len, actual_extra_len, evbuffer_get_length(in));
 
         assert(actual_extra_len == ne_wanto_extra_len);
 
@@ -365,7 +365,7 @@ uint64_t NetworkConnCtxWithEvent::write(void *data, uint64_t data_len)
 
     int ret = bufferevent_write(bev, data, data_len);
 
-    LOG_DEBUG("NetworkConnCtxWithEvent::write: {}, sent [{}]", this->peer.str().data(), data_len);
+    LOG_DEBUG("[TCP] send [{}], len:{}", this->peer.str().data(), data_len);
     return ret;
 }
 
@@ -386,7 +386,7 @@ NetworkConnCtxWithEventForUDP::~NetworkConnCtxWithEventForUDP()
 
 uint64_t NetworkConnCtxWithEventForUDP::write(void *data, uint64_t data_len)
 {
-    LOG_DEBUG("[UDP] sendto [{}], len:{}", this->peer.str().data(), data_len);
+    LOG_DEBUG("[UDP] send [{}], len:{}", this->peer.str().data(), data_len);
     sockaddr_in be_addr = peer.getBeAddr();
     return sendto(peer_sock, data, data_len, 0, (struct sockaddr *)&be_addr, sizeof(struct sockaddr_in));
 }

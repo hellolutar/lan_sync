@@ -177,11 +177,15 @@ std::vector<struct Resource> RsLocalManager::cmpThenRetNeedToSyncTable(std::vect
             filtered.erase(local_rs->name);
             continue;
         }
-        if (rs.size == local_rs->size)
+        else if (rs.size == local_rs->size)
         {
             if (compareChar(rs.hash, local_rs->hash, strlen(rs.hash)))
                 filtered.erase(local_rs->name);
+            else
+                LOG_DEBUG("RsLocalManager::cmpThenRetNeedToSyncTable() : uri[{}] need to add to synctable, reason:{}", rs.uri, "hash is not eq!");
         }
+        else
+            LOG_DEBUG("RsLocalManager::cmpThenRetNeedToSyncTable() : uri[{}] need to add to synctable, reason:{}", rs.uri, "size: peer[{}] > local[{}]", rs.size, local_rs->size);
     }
 
     vector<struct Resource> want_to_sync;
