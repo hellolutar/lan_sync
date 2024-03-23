@@ -341,3 +341,30 @@ string Range::to_string()
 
     return ss.str();
 }
+
+
+
+std::string convert_lan_sync_type_enum(lan_sync_type_enum type)
+{
+    switch (type)
+    {
+    case LAN_SYNC_TYPE_HELLO:
+        return "HELLO";
+    case LAN_SYNC_TYPE_HELLO_ACK:
+        return "HELLO_ACK";
+    case LAN_SYNC_TYPE_GET_TABLE_INDEX:
+        return "GET_TB_IDX";
+    case LAN_SYNC_TYPE_REPLY_TABLE_INDEX:
+        return "REPLY_TB_IDX";
+    case LAN_SYNC_TYPE_GET_RESOURCE:
+        return "GET_RS";
+    case LAN_SYNC_TYPE_REPLY_RESOURCE:
+        return "REPLY_RS";
+    case LAN_SYNC_TYPE_UPDATE_RESOURCE:
+        return "UPDATE_RS";
+    case LAN_SYNC_TYPE_CLOSE:
+        return "CLOSE";
+    default:
+        return "UNKNOW";
+    }
+}

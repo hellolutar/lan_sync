@@ -25,10 +25,15 @@
 
 #define DOWNLOAD_LIMIT 5
 
-
 #define MODULE_NAME_SYNC_SRV "mod_sync_srv"
 #define MODULE_NAME_SYNC_CLI "mod_sync_cli"
+#define MODULE_NAME_SYNC_SERVICE "mod_syn_service"
+#define MODULE_NAME_DISCOVERY "mod_discovery"
+#define MODULE_NAME_PERIOD_REQ_TB_IDX "mod_req_table_idx"
 
 #define MODULE_CONN_URI_DISCOVER_ADD "/discover/add"
+#define MODULE_CONN_URI_DISCOVER_DEL "/discover/del"
+#define MODULE_CONN_URI_PERIOD_REQ_TB_IDX_ADD "/req_tb_idx/add"
+#define MODULE_CONN_URI_PERIOD_REQ_TB_IDX_DEL "/req_tb_idx/del"
 
 #endif

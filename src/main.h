@@ -15,5 +15,6 @@
 #include "components/sync_mod_conn_mediator.h"
 #include "logics/cli/sync_cli_logic.h"
 #include "logics/srv/sync_srv_logic.h"
+#include "logics/controllers/sync_controller.h"
 
 #endif

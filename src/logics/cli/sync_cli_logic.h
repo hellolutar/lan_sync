@@ -2,8 +2,7 @@
 #define __SYNC_CLI_LOGIC_H_
 
 #include "vo/want_to_sync_vo.h"
-#include "sync_cli_sync_logic.h"
-#include "sync_cli_discover_logic.h"
+#include "components/sync_trigger.h"
 #include "modules/net_trigger.h"
 #include "proto/lan_share_protocol.h"
 #include "modules/rs_manager.h"
@@ -29,14 +28,13 @@ private:
 
 public:
     enum state st;
-    SyncCliLogic(AbsModConnMediator &med, std::string name);
+    SyncCliLogic(AbsModConnMediator *med, std::string name);
     ~SyncCliLogic(){};
     void recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
     void recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
     uint64_t isExtraAllDataNow(void *data, uint64_t data_len) override;
 
     void mod_conn_recv(std::string from, std::string uri, void *data) override;
-    void mod_conn_send(std::string to, std::string uri, void *data) override;
 
     void setDiscoveryTrigger(NetTrigger *tr);
     NetTrigger &getDiscoveryTrigger();

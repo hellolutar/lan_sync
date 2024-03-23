@@ -38,7 +38,7 @@ private:
 
 public:
     enum state st;
-    SyncSrvLogic(AbsModConnMediator &med, std::string name);
+    SyncSrvLogic(AbsModConnMediator *med, std::string name);
     ~SyncSrvLogic(){};
     void recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
     void recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
@@ -48,7 +48,6 @@ public:
     void replyResource(lan_sync_header_t *header, NetworkConnCtx *ctx);
 
     void mod_conn_recv(std::string from, std::string uri, void *data) override;
-    void mod_conn_send(std::string to, std::string uri, void *data) override;
 };
 
 #endif

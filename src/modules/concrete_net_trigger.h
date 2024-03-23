@@ -11,7 +11,7 @@ private:
 public:
     UdpTrigger(struct timeval period, bool persist, AbstNetLogic &net_recv_logic, AbstNetConnTriggerBehavior &trigger_logic)
         : NetTrigger(period, persist, net_recv_logic, new UdpCliConnSetUp(trigger_logic)) {}
-    ~UdpTrigger(){};
+    virtual ~UdpTrigger(){};
 };
 
 class TcpTrigger : public NetTrigger
@@ -22,7 +22,7 @@ private:
 public:
     TcpTrigger(struct timeval period, bool persist, AbstNetLogic &net_recv_logic, AbstNetConnTriggerBehavior &trigger_logic)
         : NetTrigger(period, persist, net_recv_logic, new TcpCliConnSetUp(trigger_logic)) {}
-    ~TcpTrigger(){};
+    virtual ~TcpTrigger(){};
 };
 
 #endif

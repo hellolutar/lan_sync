@@ -31,8 +31,8 @@ void NetTrigger::trigger()
 
             iter = conns.erase(iter);
             LOG_ERROR("NetTrigger::trigger() : delete connection: {} ", peerAddr.str().data());
-            con->setCtx(nullptr);  // ctx release by itself, eg.~NetworkConnCtxWithEvent when ctx.write occur error
-            delete con; // TODO there has a bug!
+            con->setCtx(nullptr); // ctx release by itself, eg.~NetworkConnCtxWithEvent when ctx.write occur error
+            delete con;           // TODO there has a bug!
             continue;
         }
         iter++;
@@ -45,9 +45,16 @@ bool NetTrigger::addConn(NetAddr addr)
     if (netcli != nullptr)
         return false;
 
+    if (addr.getAddr().sin_addr.s_addr == 0)
+    {
+        return false;
+    }
+
     LOG_INFO("NetTrigger::addConn : {}", addr.str());
 
     netcli = trigger_behavior->setupConn(addr, recv_logic);
+    if (netcli == nullptr)
+        return false;
 
     conns[addr.str()] = netcli;
 
@@ -64,13 +71,3 @@ bool NetTrigger::delNetAddr(NetAddr addr)
 
     return true;
 }
-
-// NetTrigger &NetTrigger::operator=(const NetTrigger &nt){
-//     this->conns = nt.conns;
-//     this->cliconn = nt.cliconn;
-//     this->recv_logic = nt.recv_logic;
-//     this->period = nt.period;
-//     this->persist = nt.persist;
-
-//     return *this;
-// }

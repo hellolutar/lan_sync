@@ -13,15 +13,15 @@ public:
 class ModConnAbility
 {
 protected:
-    AbsModConnMediator &med;
+    AbsModConnMediator *med;
 
 public:
     std::string name;
-
-    ModConnAbility(AbsModConnMediator &med, std::string name) : med(med), name(name){};
+    ModConnAbility(){};
+    ModConnAbility(AbsModConnMediator *med, std::string name) : med(med), name(name){};
     virtual ~ModConnAbility(){};
     virtual void mod_conn_recv(std::string from, std::string uri, void *data) = 0;
-    virtual void mod_conn_send(std::string to, std::string uri, void *data) = 0;
+    virtual void mod_conn_send(std::string to, std::string uri, void *data);
 };
 
 #endif

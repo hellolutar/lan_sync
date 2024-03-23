@@ -1,6 +1,6 @@
 #include "sync_srv_logic.h"
 
-SyncSrvLogic::SyncSrvLogic(AbsModConnMediator &med, std::string name) : ModConnAbility(med, name)
+SyncSrvLogic::SyncSrvLogic(AbsModConnMediator *med, std::string name) : ModConnAbility(med, name)
 {
     st = STATE_DISCOVERING;
 }
@@ -108,8 +108,4 @@ void SyncSrvLogic::replyResource(lan_sync_header_t *header, NetworkConnCtx *ctx)
 void SyncSrvLogic::mod_conn_recv(std::string from, std::string uri, void *data)
 {
     // todo
-}
-void SyncSrvLogic::mod_conn_send(std::string to, std::string uri, void *data)
-{
-    med.mod_tel(name, to, uri, data);
 }

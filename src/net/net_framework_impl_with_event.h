@@ -46,7 +46,7 @@ public:
     static void cleanup();
     static void free();
 
-    static std::map<NetAddr,NetworkConnCtx*> getAllTcpSession();
+    static std::map<NetAddr, NetworkConnCtx *> getAllTcpSession();
 };
 
 class NetworkConnCtxWithEvent : public NetworkConnCtx
@@ -56,6 +56,7 @@ private:
     int peer_sock;
 
 public:
+    NetworkConnCtxWithEvent(){};
     NetworkConnCtxWithEvent(std::vector<NetworkConnCtx *> *head, NetAbility *ne, struct bufferevent *bev, int peer_sock, NetAddr peer)
         : NetworkConnCtx(head, ne, peer), bev(bev), peer_sock(peer_sock){};
 

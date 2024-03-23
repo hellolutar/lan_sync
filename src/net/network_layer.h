@@ -23,12 +23,13 @@ public:
 class NetworkConnCtx
 {
 protected:
-    NetAbility *ne;
+    NetAbility *ne = nullptr;
     std::vector<NetworkConnCtx *> *head;
     NetAddr peer;
-    bool active;
+    bool active = false;
 
 public:
+    NetworkConnCtx(){};
     NetworkConnCtx(std::vector<NetworkConnCtx *> *head, NetAbility *ne, NetAddr peer) : head(head), ne(ne), peer(peer), active(true){};
     /**
      *  resource release by the caller with trycatch

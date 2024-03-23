@@ -4,7 +4,9 @@ NetCliLogicContainer *TcpCliConnSetUp::setupConn(NetAddr peer, AbstNetLogic &rec
 {
     // LOG_INFO("TcpCliConnSetUp setupConn: {}",)
     NetCliLogicContainer *tcpcli = new NetCliLogicContainer(peer, recv_logic); // ne 何时释放
-    NetworkConnCtx *nctx = NetFrameworkImplWithEvent::connectWithTcp(tcpcli);                  // nctx 何时释放: 由NetworkLayerWithEvent负责释放
+    NetworkConnCtx *nctx = NetFrameworkImplWithEvent::connectWithTcp(tcpcli);
+    if (nctx==nullptr)
+        return nullptr;
     tcpcli->setCtx(nctx);
     return tcpcli;
 }

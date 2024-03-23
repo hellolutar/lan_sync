@@ -5,7 +5,7 @@
 
 #include "constants/constants.h"
 #include "logics/cli/sync_cli_logic.h"
-#include "logics/cli/sync_cli_discover_logic.h"
+#include "components/sync_trigger.h"
 #include "modules/concrete_net_setup.h"
 #include "modules/concrete_net_trigger.h"
 #include "modules/config_manager.h"

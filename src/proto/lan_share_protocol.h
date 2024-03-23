@@ -98,6 +98,8 @@ enum lan_sync_type_enum : uint8_t
     LAN_SYNC_TYPE_CLOSE,
 };
 
+std::string convert_lan_sync_type_enum(lan_sync_type_enum type);
+
 typedef struct lan_sync_header
 {
     enum lan_sync_version version;

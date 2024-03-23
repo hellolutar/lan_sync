@@ -1,6 +1,6 @@
 #include "sync_cli_logic.h"
 
-SyncCliLogic::SyncCliLogic(AbsModConnMediator &med, std::string name) : ModConnAbility(med, name)
+SyncCliLogic::SyncCliLogic(AbsModConnMediator *med, std::string name) : ModConnAbility(med, name)
 {
 }
 
@@ -147,7 +147,7 @@ handleLanSyncReplyResource_end_flag:
 
 void SyncCliLogic::mod_conn_recv(std::string from, std::string uri, void *data)
 {
-    LOG_INFO("SyncCliLogic::mod_conn_recv() : from:{},\turi:{}", from, uri);
+    LOG_DEBUG("SyncCliLogic::mod_conn_recv() : from:{},\turi:{}", from, uri);
     if (uri == MODULE_CONN_URI_DISCOVER_ADD)
     {
         NetworkConnCtx *ctx = (NetworkConnCtx *)data;
@@ -157,8 +157,4 @@ void SyncCliLogic::mod_conn_recv(std::string from, std::string uri, void *data)
     {
         LOG_WARN("SyncCliLogic::mod_conn_recv() : unsupport! from:{},\turi:{}", from, uri);
     }
-}
-void SyncCliLogic::mod_conn_send(std::string to, std::string uri, void *data)
-{
-    med.mod_tel(name, to, uri, data);
 }
