@@ -76,16 +76,12 @@ function env_dir(){
 
 function run_app() {
     echo "run application"
-    # sudo ip netns exec net0 ./main.bin -c ./cli.properties
-    # sudo ip netns exec net1 ./main.bin -c ./srv.properties
 }
 
 function prepare_env(){
     net_env_normal
     env_dir
     run_app
-
-    cleanup
 }
 
 prepare_env

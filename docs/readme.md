@@ -175,3 +175,7 @@ wanto_sync_dto为
   - cr
 
 若资源大于20MB，则向多个服务器请求资源，否则之请求一个资源
+
+
+// 要求tcpserver和tcpcli应该共用同一个协议处理逻辑
+- tcpserver与tcpcli建立连接后，此连接应该可以执行协议中所有的动作。

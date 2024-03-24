@@ -8,12 +8,13 @@
 #include "proto/lan_share_protocol.h"
 #include "components/buf_base_on_event.h"
 
-class SyncCliDiscoverLogic : public AbstNetConnTriggerBehavior
+class SyncCliDiscoverLogic : public AbstNetConnTriggerBehavior, public ModConnAbility
 {
 public:
     SyncCliDiscoverLogic(/* args */);
     ~SyncCliDiscoverLogic(){};
     void exec(NetworkConnCtx &ctx) override;
+    void mod_conn_recv(std::string from, std::string uri, void *data) override;
 };
 
 class DiscoveryTrigger : public UdpTrigger
@@ -25,13 +26,15 @@ public:
     virtual void mod_conn_recv(std::string from, std::string uri, void *data) override;
 };
 
-class SyncCliSyncLogic : public AbstNetConnTriggerBehavior
+class SyncCliSyncLogic : public AbstNetConnTriggerBehavior, public ModConnAbility
 {
 public:
     SyncCliSyncLogic(/* args */){};
     ~SyncCliSyncLogic(){};
     virtual void exec(NetworkConnCtx &ctx) override;
     void reqTbIdx(NetworkConnCtx &ctx);
+    void mod_conn_recv(std::string from, std::string uri, void *data) override;
+
 };
 
 class SyncReqTbIdxTrigger : public TcpTrigger

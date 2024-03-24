@@ -30,6 +30,9 @@
 #define MODULE_NAME_SYNC_SERVICE "mod_syn_service"
 #define MODULE_NAME_DISCOVERY "mod_discovery"
 #define MODULE_NAME_PERIOD_REQ_TB_IDX "mod_req_table_idx"
+#define MODULE_NAME_DISCOVER_LOGIC "mod_discovery_logic"
+#define MODULE_NAME_REQ_TB_IDX_LOGIC "mod_req_table_idx_logic"
+
 
 #define MODULE_CONN_URI_DISCOVER_ADD "/discover/add"
 #define MODULE_CONN_URI_DISCOVER_DEL "/discover/del"

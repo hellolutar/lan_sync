@@ -62,7 +62,14 @@ void *IoUtil::readSize(string path, uint64_t offset, uint64_t size, uint64_t &re
         for (size_t i = 0; i < readMonitors.size(); i++)
         {
             IoReadMonitor *rdm = readMonitors[i];
-            rdm->monitor(curpos, data_pos, actual_read);
+            try
+            {
+                rdm->monitor(curpos, data_pos, actual_read);
+            }
+            catch (const std::exception &e)
+            {
+                LOG_ERROR("IoUtil::readSize() : reason:{}", e.what());
+            }
         }
         curpos += actual_read;
         ret_len += actual_read;

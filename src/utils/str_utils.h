@@ -16,4 +16,17 @@ public:
     static StringBuilder builder();
     std::string str();
 };
+
+class StringUtils
+{
+private:
+    StringUtils(/* args */){};
+    ~StringUtils(){};
+
+public:
+    static bool eq(std::string l, std::string r);
+    static bool eqIgnoreCase(std::string l, std::string r);
+    static bool contains(std::string l, std::string sub);
+};
+
 #endif

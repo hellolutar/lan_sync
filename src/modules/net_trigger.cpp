@@ -35,6 +35,7 @@ void NetTrigger::trigger()
             delete con;           // TODO there has a bug!
             continue;
         }
+        // TODO if the trigger_behavior->exec handle exception innerly and call DelNetaddr.
         iter++;
     }
 }
@@ -69,5 +70,6 @@ bool NetTrigger::delNetAddr(NetAddr addr)
     else
         conns.erase(addr.str());
 
+    delete udpcli;
     return true;
 }

@@ -19,9 +19,6 @@ void SyncService::handleHello(SyncNetworkConnCtx *ctx)
     BufBaseonEvent buf;
     pkt.write(buf);
     ctx->write(buf.data(), buf.size());
-
-    // 模块通信, 让cli.discover去发现并同步数据
-    mod_conn_send(MODULE_NAME_DISCOVERY, MODULE_CONN_URI_DISCOVER_ADD, ctx);
 }
 
 void SyncService::handleHelloAck(SyncNetworkConnCtx *ctx)
@@ -85,10 +82,16 @@ void SyncService::handleReqResource(SyncNetworkConnCtx *ctx)
     io.addReadMonitor(monitor);
 
     uint64_t ret_len = 0;
-    void *data = io.readSize(rs->path, range.getStartPos(), range.getSize(), ret_len);
-    free(data);
-
-    LOG_DEBUG("SyncService::handleReqResource()  : uri[{}] file size:{} ", uri, ret_len);
+    try
+    {
+        void *data = io.readSize(rs->path, range.getStartPos(), range.getSize(), ret_len);
+        free(data);
+        LOG_DEBUG("SyncService::handleReqResource()  : uri[{}] file size:{} ", uri, ret_len);
+    }
+    catch (const std::exception &e)
+    {
+        LOG_ERROR("SyncService::handleReqResource() : reason:{}", e.what());
+    }
 }
 
 void SyncService::handleReplyTableIndex(void *data, uint64_t data_len, SyncNetworkConnCtx *ctx)

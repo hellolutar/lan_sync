@@ -16,8 +16,8 @@ public:
     SyncModConnMediator(/* args */){};
     ~SyncModConnMediator(){};
     bool mod_tel(std::string from, std::string to, std::string uri, void *data) override;
-    bool add(ModConnAbility *);
-    void del(std::string name);
+    bool add(ModConnAbility *) override;
+    void del(std::string name) override;
 };
 
 #endif

@@ -14,6 +14,7 @@
 #include <filesystem>
 
 #include "constants/constants.h"
+#include "utils/logger.h"
 
 class IoReadMonitor
 {
