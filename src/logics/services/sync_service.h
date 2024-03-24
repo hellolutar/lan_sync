@@ -30,6 +30,8 @@ public:
     void handleReplyTableIndex(void *data, uint64_t data_len, SyncNetworkConnCtx *ctx);
     void handleReplyResource(void *data, uint64_t data_len, SyncNetworkConnCtx *ctx);
     void add_req_task(SyncNetworkConnCtx *ctx);
+
+    void exit(void *data, uint64_t data_len, SyncNetworkConnCtx *ctx);
 };
 
 #endif

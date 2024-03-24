@@ -156,3 +156,9 @@ void SyncService::handleReplyResource(void *data, uint64_t data_len, SyncNetwork
 handleLanSyncReplyResource_end_flag:
     add_req_task(ctx);
 }
+
+void SyncService::exit(void *data, uint64_t data_len, SyncNetworkConnCtx *ctx)
+{
+    TaskManager::getTaskManager()->stop();
+    NetFrameworkImplWithEvent::shutdown();
+}
