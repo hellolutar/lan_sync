@@ -119,6 +119,13 @@ pending: 想要的同步的资源加入此表时，状态为pending
 
 
 
+#### 模块间通信
+mine.server 收到 peer.cli 的udp广播:
+- 此时mine.server 要告知 mine.cli 去发现peer.server，然后请求peer.server的资源。
+
+peer tcp 断开(此时mine与peer是邻居关系)
+- mine.server 要告知mine.cli应移除针对peer的广播（计数器实现）。 TODO
+
 
 
 ### p2p阶段 TODO 
@@ -149,3 +156,26 @@ pending: 想要的同步的资源加入此表时，状态为pending
 /usr/bin/openssl dgst -sha256 hello.txt
 
 ```
+
+
+20240314 需求
+- 一个资源被多个资源服务器拥有，即一个uri存在于多个资源服务器
+- 请求资源时，应从多个资源服务器请求资源，每个请求应该只请求部分资源，最后合并成一个资源。
+
+实现
+接收到table_Index后，形成sync_table. sync_table的entry为<uri, wanto_sync_dto>
+
+wanto_sync_dto为
+- uri
+- hash
+- size
+- server
+  - status
+  - netaddr
+  - cr
+
+若资源大于20MB，则向多个服务器请求资源，否则之请求一个资源
+
+
+// 要求tcpserver和tcpcli应该共用同一个协议处理逻辑
+- tcpserver与tcpcli建立连接后，此连接应该可以执行协议中所有的动作。

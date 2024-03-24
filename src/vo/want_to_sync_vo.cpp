@@ -19,7 +19,7 @@ string WantSyncResourceStatusEnumToString(WantSyncResourceStatusEnum status)
     }
 }
 
-WantToSyncVO::WantToSyncVO(std::string uri, enum WantSyncResourceStatusEnum status, Range range)
+SyncRsVO::SyncRsVO(std::string uri, enum WantSyncResourceStatusEnum status, Range range)
 {
     this->uri = uri;
     this->status = status;
@@ -29,34 +29,40 @@ WantToSyncVO::WantToSyncVO(std::string uri, enum WantSyncResourceStatusEnum stat
     time(&(this->last_update_time));
 }
 
-void WantToSyncVO::setStatus(WantSyncResourceStatusEnum status)
+void SyncRsVO::setStatus(WantSyncResourceStatusEnum status)
 {
     this->status = status;
 }
 
-void WantToSyncVO::setLastUpdateTime(time_t t)
+void SyncRsVO::setLastUpdateTime(time_t t)
 {
     this->last_update_time = t;
 }
 
-string WantToSyncVO::getUri()
+string SyncRsVO::getUri()
 {
     return uri;
 }
-enum WantSyncResourceStatusEnum WantToSyncVO::getStatus()
+enum WantSyncResourceStatusEnum SyncRsVO::getStatus()
 {
     return status;
 }
-Range WantToSyncVO::getRange()
+Range SyncRsVO::getRange()
 {
     return range;
 }
-time_t WantToSyncVO::getLast_update_time()
+time_t SyncRsVO::getLast_update_time()
 {
     return last_update_time;
 }
 
-uint32_t WantToSyncVO::getMaxDelay()
+uint32_t SyncRsVO::getMaxDelay()
 {
     return max_delay;
+}
+
+
+SyncPeer::~SyncPeer()
+{
+    delete syncvo;
 }
