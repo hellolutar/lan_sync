@@ -83,6 +83,7 @@
         "main": "cpp",
         "bitset": "cpp",
         "unordered_set": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "ios": "cpp"
     }
 }

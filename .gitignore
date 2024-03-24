@@ -11,3 +11,7 @@ src/sync
 .vscode/settings.json
 resources
 src/test/io_utils_test
+test/system_test/cli.properties
+test/system_test/srv.properties
+test/system_test/cli/properties.properties
+test/system_test/srv/properties.properties
