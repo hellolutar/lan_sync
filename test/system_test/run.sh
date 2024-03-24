@@ -20,7 +20,7 @@ function net_env_normal() {
         sudo ip link set veth-1 netns ns1
         sudo ip link set veth-1-br master vbridge
 
-        sudo bridge link
+        # sudo bridge link
 
         sudo ip netns exec ns0 ip addr add 192.168.233.101/24 dev veth-0
         sudo ip netns exec ns1 ip addr add 192.168.233.102/24 dev veth-1
@@ -35,7 +35,7 @@ function net_env_normal() {
         sudo ip netns exec ns0 ip route add default via 192.168.233.1
         sudo ip netns exec ns1 ip route add default via 192.168.233.1
 
-        sudo sudo ip netns exec ns0 ip route
+        # sudo sudo ip netns exec ns0 ip route
     fi
 
     ping -c 1 192.168.233.101 >/dev/null 2>&1
