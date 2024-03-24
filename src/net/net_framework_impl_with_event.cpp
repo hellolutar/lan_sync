@@ -3,13 +3,13 @@
 using namespace std;
 
 struct event_base *NetFrameworkImplWithEvent::base;
-std::vector<event *> NetFrameworkImplWithEvent::events; // only persist event need to add
-std::vector<NetworkConnCtx *> NetFrameworkImplWithEvent::tcp_ctx;
-std::vector<NetworkConnCtx *> NetFrameworkImplWithEvent::udp_ctx;
+std::vector<event *> NetFrameworkImplWithEvent::events;           // only persist event need to add
+std::vector<NetworkConnCtx *> NetFrameworkImplWithEvent::tcp_ctx; // release by user
+std::vector<NetworkConnCtx *> NetFrameworkImplWithEvent::udp_ctx; // release by user
 
-void NetFrameworkImplWithEvent::init(struct event_base *eb)
+void NetFrameworkImplWithEvent::init(struct event_base &eb)
 {
-    base = eb;
+    base = &eb;
 }
 
 void NetFrameworkImplWithEvent::init_check()
@@ -52,7 +52,7 @@ void NetFrameworkImplWithEvent::event_cb(struct bufferevent *bev, short events, 
     nctx->setActive(false);
     for (auto iter = tcp_ctx.begin(); iter != tcp_ctx.end(); iter++)
     {
-        if ((*iter) == nctx)
+        if (*iter == nctx)
         {
             LOG_INFO("NetFrameworkImplWithEvent::event_cb : remvoe tcp_ctx : {}", nctx->getPeer().str());
             tcp_ctx.erase(iter);
@@ -63,6 +63,7 @@ void NetFrameworkImplWithEvent::event_cb(struct bufferevent *bev, short events, 
 
 void NetFrameworkImplWithEvent::write_cb(struct bufferevent *bev, void *data)
 {
+    LOG_DEBUG("NetFrameworkImplWithEvent::write_cb: {}");
 }
 
 void NetFrameworkImplWithEvent::read_cb(struct bufferevent *bev, void *arg)
@@ -73,23 +74,40 @@ void NetFrameworkImplWithEvent::read_cb(struct bufferevent *bev, void *arg)
     if (recvLen == 0)
         return;
 
-    uint64_t data_len = evbuffer_get_length(in);
-    uint8_t *data = new uint8_t[data_len];
-    evbuffer_copyout(in, data, data_len);
+    uint8_t *head = new uint8_t[recvLen];
 
     NetworkConnCtxWithEvent *ctx = (NetworkConnCtxWithEvent *)arg;
     NetAbility *ne = ctx->getNetworkEndpoint();
 
+    int limit = 1024;
+    int i = 0;
     uint64_t ne_wanto_extra_len = 0;
-    ne->isExtraAllDataNow((void *)data, data_len, ne_wanto_extra_len);
-    if (ne_wanto_extra_len > 0)
+    int actual_extra_len = 0;
+    while (true)
     {
-        memset(data, 0, ne_wanto_extra_len);
-        ne_wanto_extra_len = evbuffer_remove(in, data, ne_wanto_extra_len);
+        recvLen = evbuffer_get_length(in);
+        uint8_t *data = head;
+        memset(data, 0, recvLen);
+        evbuffer_copyout(in, data, recvLen);
+        ne_wanto_extra_len = ne->isExtraAllDataNow((void *)data, recvLen);
+        if (ne_wanto_extra_len == 0 || ne_wanto_extra_len > recvLen)
+            break;
 
-        ne->recv((void *)data, ne_wanto_extra_len, ctx);
+        memset(data, 0, recvLen);
+        actual_extra_len = evbuffer_remove(in, data, ne_wanto_extra_len);
+        LOG_DEBUG("buf_len:{} \t, want_extra_len:{}, actual_extra_len:{}\t remaind:{}", recvLen, ne_wanto_extra_len, actual_extra_len, evbuffer_get_length(in));
+
+        assert(actual_extra_len == ne_wanto_extra_len);
+
+        ne->recv((void *)data, actual_extra_len, ctx);
+        if (i++ >= limit)
+        {
+            LOG_WARN("NetFrameworkImplWithEvent::read_cb : READ TIMES must <= LIMIT({})", limit);
+            break;
+        }
     }
-    delete[] data;
+
+    delete[] head;
 }
 
 void NetFrameworkImplWithEvent::tcp_accept(evutil_socket_t listener, short event, void *ctx)
@@ -105,7 +123,7 @@ void NetFrameworkImplWithEvent::tcp_accept(evutil_socket_t listener, short event
     evutil_make_socket_nonblocking(peer_sock);
     evutil_make_listen_socket_reuseable_port(peer_sock);
 
-    struct bufferevent *bev = bufferevent_socket_new(base, peer_sock, BEV_OPT_CLOSE_ON_FREE);
+    struct bufferevent *bev = bufferevent_socket_new(base, peer_sock, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_THREADSAFE);
     size_t hw = 0;
     size_t lw = 0;
     bufferevent_getwatermark(bev, EV_WRITE, &lw, &hw);
@@ -178,6 +196,7 @@ void NetFrameworkImplWithEvent::udp_read_cb(evutil_socket_t fd, short events, vo
     nctx->setNetAddr(NetAddr::fromBe(target_addr));
 
     NetAbility *ne = nctx->getNetworkEndpoint();
+
     ne->recv((void *)data, receive, nctx);
 }
 
@@ -243,7 +262,7 @@ NetworkConnCtx *NetFrameworkImplWithEvent::connectWithTcp(NetAbilityImplWithEven
         return nullptr;
     }
 
-    struct bufferevent *bev = bufferevent_socket_new(base, peer_sock, BEV_OPT_CLOSE_ON_FREE);
+    struct bufferevent *bev = bufferevent_socket_new(base, peer_sock, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_THREADSAFE);
 
     NetworkConnCtxWithEvent *nctx = new NetworkConnCtxWithEvent(&tcp_ctx, peer_ne, bev, peer_sock, peer_ne->getAddr());
     tcp_ctx.push_back(nctx);
@@ -304,24 +323,36 @@ void NetFrameworkImplWithEvent::cleanup()
         event_free(e);
         events.pop_back();
     }
+    LOG_INFO("NetFrameworkImplWithEvent::cleanup(): free events: done!");
 
     for (int i = tcp_ctx.size() - 1; i >= 0; i--)
     {
-        delete tcp_ctx[i];
         tcp_ctx.pop_back();
     }
+    LOG_INFO("NetFrameworkImplWithEvent::cleanup(): free tcp_ctx: done!");
 
     for (int i = udp_ctx.size() - 1; i >= 0; i--)
     {
-        delete udp_ctx[i];
         udp_ctx.pop_back();
     }
+    LOG_INFO("NetFrameworkImplWithEvent::cleanup(): free udp_ctx: done!");
 }
 
 void NetFrameworkImplWithEvent::free()
 {
+    LOG_INFO("NetFrameworkImplWithEvent::free(): free");
     cleanup();
-    event_base_free(base);
+}
+
+map<NetAddr, NetworkConnCtx *> NetFrameworkImplWithEvent::getAllTcpSession()
+{
+    map<NetAddr, NetworkConnCtx *> idx;
+    for (int i = 0; i < tcp_ctx.size(); i++)
+    {
+        auto tmp_ctx = tcp_ctx.at(i);
+        idx[tmp_ctx->getPeer()] = tmp_ctx;
+    }
+    return idx;
 }
 
 uint64_t NetworkConnCtxWithEvent::write(void *data, uint64_t data_len)
@@ -332,8 +363,9 @@ uint64_t NetworkConnCtxWithEvent::write(void *data, uint64_t data_len)
         throw NetworkConnCtxException();
     }
 
-    int ret = evbuffer_add(bufferevent_get_output(bev), data, data_len);
-    LOG_DEBUG("NetworkConnCtxWithEvent::write: {}, sent [{}]", this->peer.str().data(), data_len);
+    int ret = bufferevent_write(bev, data, data_len);
+
+    LOG_DEBUG("[TCP] send [{}], len:{}", this->peer.str().data(), data_len);
     return ret;
 }
 
@@ -354,7 +386,7 @@ NetworkConnCtxWithEventForUDP::~NetworkConnCtxWithEventForUDP()
 
 uint64_t NetworkConnCtxWithEventForUDP::write(void *data, uint64_t data_len)
 {
-    LOG_DEBUG("[UDP] sendto [{}], len:{}", this->peer.str().data(), data_len);
+    LOG_DEBUG("[UDP] send [{}], len:{}", this->peer.str().data(), data_len);
     sockaddr_in be_addr = peer.getBeAddr();
     return sendto(peer_sock, data, data_len, 0, (struct sockaddr *)&be_addr, sizeof(struct sockaddr_in));
 }

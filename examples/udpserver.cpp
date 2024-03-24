@@ -12,8 +12,8 @@ public:
     UdpServer(NetAddr addr) : NetAbilityImplWithEvent(addr){};
     ~UdpServer();
 
-    void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
-    void isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len);
+    void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
+    uint64_t isExtraAllDataNow(void *data, uint64_t data_len);
 };
 
 UdpServer::~UdpServer()
@@ -33,17 +33,17 @@ void UdpServer::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
 
     ctx->write(data, data_len);
 }
-void UdpServer::isExtraAllDataNow(void *data, uint64_t data_len, uint64_t &want_to_extra_len)
+uint64_t UdpServer::isExtraAllDataNow(void *data, uint64_t data_len)
 {
-    want_to_extra_len = data_len;
+    return data_len;
 }
 
 int main(int argc, char const *argv[])
 {
     struct event_base *base = event_base_new();
-    NetFrameworkImplWithEvent::init(base);
+    NetFrameworkImplWithEvent::init(*base);
 
-    NetFrameworkImplWithEvent::addUdpServer(new UdpServer(NetAddr("127.0.0.1:8080")));
+    NetFrameworkImplWithEvent::addUdpServer(new UdpServer(NetAddr(":58080")));
     NetFrameworkImplWithEvent::run();
     NetFrameworkImplWithEvent::free();
 
