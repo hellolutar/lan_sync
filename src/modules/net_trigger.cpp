@@ -13,21 +13,29 @@ NetTrigger::~NetTrigger()
 void NetTrigger::trigger()
 {
     if (conns.size() == 0)
-        LOG_WARN("NetTrigger::trigger() : can not trigger, beacuse the conns is empty!");
+        LOG_DEBUG("NetTrigger::trigger() : can not trigger, beacuse the conns is empty!");
 
     for (auto iter = conns.begin(); iter != conns.end();)
     {
+        NetCliLogicContainer *con = (*iter).second;
+        auto meAddr = con->getAddr();
+        auto peerAddr = con->getConnCtx().getPeer();
         try
         {
-            NetworkConnCtx& ctx =  (*iter).second->getConnCtx();
+            NetworkConnCtx &ctx = (*iter).second->getConnCtx();
             trigger_behavior->exec(ctx);
         }
         catch (const std::exception &e)
         {
             LOG_ERROR("NetTrigger::trigger() : {}", e.what());
+
             iter = conns.erase(iter);
+            LOG_ERROR("NetTrigger::trigger() : delete connection: {} ", peerAddr.str().data());
+            con->setCtx(nullptr); // ctx release by itself, eg.~NetworkConnCtxWithEvent when ctx.write occur error
+            delete con;           // TODO there has a bug!
             continue;
         }
+        // TODO if the trigger_behavior->exec handle exception innerly and call DelNetaddr.
         iter++;
     }
 }
@@ -38,9 +46,16 @@ bool NetTrigger::addConn(NetAddr addr)
     if (netcli != nullptr)
         return false;
 
+    if (addr.getAddr().sin_addr.s_addr == 0)
+    {
+        return false;
+    }
+
     LOG_INFO("NetTrigger::addConn : {}", addr.str());
 
     netcli = trigger_behavior->setupConn(addr, recv_logic);
+    if (netcli == nullptr)
+        return false;
 
     conns[addr.str()] = netcli;
 
@@ -55,15 +70,6 @@ bool NetTrigger::delNetAddr(NetAddr addr)
     else
         conns.erase(addr.str());
 
+    delete udpcli;
     return true;
 }
-
-// NetTrigger &NetTrigger::operator=(const NetTrigger &nt){
-//     this->conns = nt.conns;
-//     this->cliconn = nt.cliconn;
-//     this->recv_logic = nt.recv_logic;
-//     this->period = nt.period;
-//     this->persist = nt.persist;
-
-//     return *this;
-// }

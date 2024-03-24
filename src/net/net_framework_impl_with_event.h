@@ -30,7 +30,7 @@ private:
     static void init_check();
 
 public:
-    static void init(struct event_base *base);
+    static void init(struct event_base &base);
     static void event_cb(struct bufferevent *bev, short events, void *data);
     static void write_cb(struct bufferevent *bev, void *data);
     static void read_cb(struct bufferevent *bev, void *data);
@@ -45,6 +45,8 @@ public:
 
     static void cleanup();
     static void free();
+
+    static std::map<NetAddr, NetworkConnCtx *> getAllTcpSession();
 };
 
 class NetworkConnCtxWithEvent : public NetworkConnCtx
@@ -54,6 +56,7 @@ private:
     int peer_sock;
 
 public:
+    NetworkConnCtxWithEvent(){};
     NetworkConnCtxWithEvent(std::vector<NetworkConnCtx *> *head, NetAbility *ne, struct bufferevent *bev, int peer_sock, NetAddr peer)
         : NetworkConnCtx(head, ne, peer), bev(bev), peer_sock(peer_sock){};
 

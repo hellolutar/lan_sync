@@ -32,10 +32,10 @@
             "name": "server",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/src/sync_server.bin",
+            "program": "${fileDirname}/sync_server.bin",
             "args": [
                 "-c",
-                "${workspaceFolder}/src/srv.properties"
+                "${fileDirname}/srv.properties"
             ],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
@@ -59,10 +59,10 @@
             "name": "cli",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/src/sync_cli.bin",
+            "program": "${fileDirname}/sync_cli.bin",
             "args": [
                 "-c",
-                "${workspaceFolder}/src/cli.properties"
+                "${fileDirname}/cli.properties"
             ],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",

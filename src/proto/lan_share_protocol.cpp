@@ -1,72 +1,8 @@
 #include "lan_share_protocol.h"
 
-void evbuffer_cb_for_free(struct evbuffer *buffer, const struct evbuffer_cb_info *info, void *arg)
-{
-    if (evbuffer_get_length(buffer) == 0)
-    {
-        if (arg)
-        {
-            evbuffer_remove_cb(buffer, evbuffer_cb_for_free, arg);
-            free(arg);
-            arg = nullptr;
-        }
-    }
-}
+using namespace std;
 
 void lan_sync_parseStructToMem()
-{
-}
-
-struct cb_arg *cb_arg_new(struct event_base *base)
-{
-    assert(base);
-    struct cb_arg *arg = (struct cb_arg *)malloc(sizeof(struct cb_arg));
-    memset(arg, 0, sizeof(struct cb_arg));
-
-    struct evbuffer *buf = evbuffer_new();
-
-    struct sockaddr_in *target_addr = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in));
-    memset(target_addr, 0, sizeof(struct sockaddr_in));
-
-    arg->buf = buf;
-    arg->target_addr = target_addr;
-    arg->base = base;
-    return arg;
-}
-
-void cb_arg_free(struct cb_arg *arg)
-{
-    free(arg->target_addr);
-    free(arg->buf);
-    free(arg);
-}
-void writecb(evutil_socket_t fd, short events, void *ctx)
-{
-    struct cb_arg *arg = (struct cb_arg *)ctx;
-    uint16_t datalen = evbuffer_get_length(arg->buf);
-    char data[datalen + 1];
-    assert(evbuffer_copyout(arg->buf, data, datalen) == datalen);
-    data[datalen] = '\0';
-    uint32_t sent = sendto(fd, data, datalen, 0, (struct sockaddr *)arg->target_addr, sizeof(struct sockaddr_in));
-
-    if (sent < 0)
-    {
-        printf("[ERROR] [UDP] sent failed: reason: %s \n", strerror(errno));
-        cb_arg_free(arg);
-
-        return;
-    }
-
-    printf("\t>> sent to [%s:%d]: %d , data_len:%d \n", inet_ntoa(arg->target_addr->sin_addr), ntohs(arg->target_addr->sin_port), sent, datalen);
-
-    cb_arg_free(arg);
-}
-
-LocalPort::LocalPort(/* args */)
-{
-}
-
-LocalPort::~LocalPort()
 {
 }
 
@@ -198,10 +134,10 @@ LanSyncPkt::LanSyncPkt(lan_sync_header_t *header)
     memcpy(data, datap, data_len);
 }
 
-void LanSyncPkt::write(struct evbuffer *out)
+void LanSyncPkt::write(AbsBuf &buf)
 {
 
-    lan_sync_header_t *hd = (lan_sync_header_t *)malloc(total_len); // free in evbuffer_cb_for_free
+    lan_sync_header_t *hd = (lan_sync_header_t *)malloc(total_len);
     memset(hd, 0, total_len);
 
     hd->version = version;
@@ -227,15 +163,8 @@ void LanSyncPkt::write(struct evbuffer *out)
     char *datap = (char *)(xhdp + xhd_len);
     memcpy(datap, data, total_len - header_len);
 
-    evbuffer_add(out, hd, total_len);
-    evbuffer_add_cb(out, evbuffer_cb_for_free, hd);
-}
-
-void LanSyncPkt::write(struct bufferevent *bev)
-{
-    struct evbuffer *in = bufferevent_get_input(bev);
-    struct evbuffer *out = bufferevent_get_output(bev);
-    write(out);
+    buf.add((uint8_t *)hd, total_len);
+    free(hd);
 }
 
 void LanSyncPkt::addXheader(const string key, const string value)
@@ -294,7 +223,8 @@ uint32_t LanSyncPkt::getTotalLen()
 {
     return total_len;
 }
-uint32_t LanSyncPkt::getDataLen(){
+uint32_t LanSyncPkt::getDataLen()
+{
     return total_len - header_len;
 }
 
@@ -367,7 +297,7 @@ string ContentRange::to_string()
     return ss.str();
 }
 
- string Range::defaultStr = "0-0/0/last";
+string Range::defaultStr = "0-0/0/last";
 
 // str like : 0-500
 // str like : 0-
@@ -398,7 +328,6 @@ uint64_t Range::getSize()
     return size;
 }
 
-
 // str like : 0-500
 // str like : 0-
 string Range::to_string()
@@ -411,4 +340,31 @@ string Range::to_string()
     }
 
     return ss.str();
+}
+
+
+
+std::string convert_lan_sync_type_enum(lan_sync_type_enum type)
+{
+    switch (type)
+    {
+    case LAN_SYNC_TYPE_HELLO:
+        return "HELLO";
+    case LAN_SYNC_TYPE_HELLO_ACK:
+        return "HELLO_ACK";
+    case LAN_SYNC_TYPE_GET_TABLE_INDEX:
+        return "GET_TB_IDX";
+    case LAN_SYNC_TYPE_REPLY_TABLE_INDEX:
+        return "REPLY_TB_IDX";
+    case LAN_SYNC_TYPE_GET_RESOURCE:
+        return "GET_RS";
+    case LAN_SYNC_TYPE_REPLY_RESOURCE:
+        return "REPLY_RS";
+    case LAN_SYNC_TYPE_UPDATE_RESOURCE:
+        return "UPDATE_RS";
+    case LAN_SYNC_TYPE_CLOSE:
+        return "CLOSE";
+    default:
+        return "UNKNOW";
+    }
 }

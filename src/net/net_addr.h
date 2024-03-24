@@ -22,6 +22,7 @@ public:
     sockaddr_in getBeAddr();
     sockaddr_in getAddr();
     void setPort(int le_port);
+    uint16_t getPort();
     void setIp(std::string ip);
     friend bool operator<(const NetAddr &l, const NetAddr &r);
     bool operator==(NetAddr &p);
