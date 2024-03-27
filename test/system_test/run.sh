@@ -84,4 +84,5 @@ function prepare_env(){
     run_app
 }
 
+# echo -n -e "\x01\xff\x00\x08\x00\x00\x00\x08" | nc 127.0.0.1 58080
 prepare_env
