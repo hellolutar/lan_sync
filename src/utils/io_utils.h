@@ -50,6 +50,7 @@ public:
     void addReadMonitor(IoReadMonitor *monitor);
 
     uint64_t writeFile(std::string path, uint64_t offset, void *data, uint64_t size);
+    bool mkdirs(std::string path);
 };
 
 #endif
