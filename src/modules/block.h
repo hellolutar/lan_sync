@@ -2,6 +2,7 @@
 #define __LAN_SYNC_BLOCK_H_
 
 #include <cstdint>
+#include <string>
 
 class Block
 {
@@ -13,6 +14,7 @@ public:
     ~Block(){};
 
     bool operator==(const Block &other);
+    std::string str();
 };
 
 #endif

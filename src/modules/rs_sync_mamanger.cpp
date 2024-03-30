@@ -182,34 +182,33 @@ void RsSyncManager::syncingRangeDoneAndValid(NetAddr peer, string uri, Block blo
     for (auto iter = uriRs[uri].syncing.end() - 1; iter >= uriRs[uri].syncing.begin(); iter--)
     {
         SyncingRange syncing = (*iter);
-        if (syncing.peer == peer)
-        {
-            if (syncing.block == block)
-            {
-                uriRs[uri].syncing.erase(iter);
+        LOG_DEBUG("RsSyncManager::syncingRangeDoneAndValid() : syncing.block[{}]  block[{}]", syncing.block.str().data(), block.str().data());
 
-                // sync complete
-                if (uriRs[uri].block.size() == 0 && uriRs[uri].syncing.size() == 0)
-                {
-                    LOG_INFO("RsSyncManager::syncingRangeDoneAndValid() : [{}] SYNC COMPLETE!", uri);
-                    uriRs[uri].success = true;
-                    if (valid)
-                    {
-                        bool ret = rlm.validRes(uri, uriRs[uri].hash);
-                        if (ret)
-                            LOG_INFO("RsSyncManager::syncingRangeDoneAndValid() : [{}] SYNC SUCCESS! HASH IS VALID!", uri);
-                        else
-                            LOG_WARN("RsSyncManager::syncingRangeDoneAndValid() : [{}] SYNC FAIL! HASH IS INVALID!", uri);
-                    }
-                    uriRs.erase(uri);
-                }
-                break;
-            }
-            else
+        if (syncing.block == block)
+        {
+            uriRs[uri].syncing.erase(iter);
+
+            // sync complete
+            if (uriRs[uri].block.size() == 0 && uriRs[uri].syncing.size() == 0)
             {
-                // LOG_INFO("RsSyncManager::syncingRangeDoneAndValid() : block is not eq!");
-                // 需要一个buffer。
+                LOG_INFO("RsSyncManager::syncingRangeDoneAndValid() : [{}] SYNC COMPLETE!", uri);
+                uriRs[uri].success = true;
+                if (valid)
+                {
+                    bool ret = rlm.validRes(uri, uriRs[uri].hash);
+                    if (ret)
+                        LOG_INFO("RsSyncManager::syncingRangeDoneAndValid() : [{}] SYNC SUCCESS! HASH IS VALID!", uri);
+                    else
+                        LOG_WARN("RsSyncManager::syncingRangeDoneAndValid() : [{}] SYNC FAIL! HASH IS INVALID!", uri);
+                }
+                uriRs.erase(uri);
             }
+            break;
+        }
+        else
+        {
+            // LOG_INFO("RsSyncManager::syncingRangeDoneAndValid() : block is not eq!");
+            // 需要一个buffer。
         }
     }
 }

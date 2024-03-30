@@ -10,30 +10,44 @@ void SyncService::mod_conn_recv(std::string from, std::string uri, void *data)
     // TODO
 }
 
+int SyncService::queryPeerTcpServerPort(LanSyncPkt &pkt)
+{
+    string peer_tcp_port_str = pkt.queryXheader(XHEADER_TCP_SRV_PORT);
+    if (peer_tcp_port_str.size() == 0)
+    {
+        LOG_WARN("SyncService::handleHelloAck() : tcp port is not found in reply header!");
+        return 0;
+    }
+    uint16_t peer_tcp_port = atoi(peer_tcp_port_str.data());
+    return peer_tcp_port;
+}
+
 void SyncService::handleHello(SyncNetworkConnCtx *ctx)
 {
     // 启动TCP Server
     LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_HELLO_ACK);
-    pkt.addXheader(XHEADER_TCPPORT, ConfigManager::query(CONFIG_KEY_PROTO_SYNC_SERVER_TCP_PORT));
+    pkt.addXheader(XHEADER_TCP_SRV_PORT, ConfigManager::query(CONFIG_KEY_PROTO_SYNC_SERVER_TCP_PORT));
 
     BufBaseonEvent buf;
     pkt.write(buf);
     ctx->write(buf.data(), buf.size());
+
+    int peerTcpServerPort = queryPeerTcpServerPort(pkt);
+    if (peerTcpServerPort > 1024)
+    {
+        NetAddr peer_tcp_addr = ctx->getPeer();
+        peer_tcp_addr.setPort(peerTcpServerPort);
+        mod_conn_send(MODULE_NAME_PERIOD_REQ_TB_IDX, MODULE_CONN_URI_PERIOD_REQ_TB_IDX_ADD, &peer_tcp_addr);
+    }
 }
 
 void SyncService::handleHelloAck(SyncNetworkConnCtx *ctx)
 {
     LanSyncPkt &pkt = ctx->getPktInfo();
-    string peer_tcp_port_str = pkt.queryXheader(XHEADER_TCPPORT);
-    if (peer_tcp_port_str.size() == 0)
-    {
-        LOG_WARN("SyncService::handleHelloAck() : tcp port is not found in reply header!");
-        return;
-    }
-    uint16_t peer_tcp_port = atoi(peer_tcp_port_str.data());
 
+    int peerTcpServerPort = queryPeerTcpServerPort(pkt);
     NetAddr peer_tcp_addr = ctx->getPeer();
-    peer_tcp_addr.setPort(peer_tcp_port);
+    peer_tcp_addr.setPort(peerTcpServerPort);
     LOG_DEBUG("SyncService::handleHelloAck() : receive hello ack, try to connect peer with tcp:{}", peer_tcp_addr.str());
 
     mod_conn_send(MODULE_NAME_PERIOD_REQ_TB_IDX, MODULE_CONN_URI_PERIOD_REQ_TB_IDX_ADD, &peer_tcp_addr);
@@ -120,6 +134,10 @@ void SyncService::add_req_task(SyncNetworkConnCtx *ctx)
             LOG_INFO("SyncService::add_req_task() : add ReqRsTask : {}", uri.data());
             TaskManager::getTaskManager()->addTask(new ReqRsTask(uri, uri));
         }
+        else
+        {
+            LOG_INFO("SyncService::add_req_task() : [{}] download limit : {}", uri.data(), rsm.getSyncingSize(uri));
+        }
     }
 }
 
@@ -138,22 +156,9 @@ void SyncService::handleReplyResource(void *data, uint64_t data_len, SyncNetwork
     LOG_INFO("SyncService::handleLanSyncReplyResource() : uri:{}; cr:{}", uri.data(), cr.to_string());
 
     uint8_t *data_pos = (uint8_t *)data + pkt.getHeaderLen();
-    RsSyncManager &rsm = ResourceManager::getRsSyncManager();
-    RsLocalManager &rlm = ResourceManager::getRsLocalManager();
 
-    bool write_ret = rlm.saveLocal(uri, data_pos, cr.getStartPos(), cr.getSize());
+    ResourceManager::save(ctx->getPeer(), uri, data_pos, cr.getStartPos(), cr.getSize());
 
-    Block b(cr.getStartPos(), cr.getStartPos() + cr.getSize());
-    if (!write_ret)
-    {
-        LOG_INFO("SyncService::handleLanSyncReplyResource() : {} : block save fail:[{},{})", uri, b.start, b.end);
-        rsm.unregReqSyncRsByBlock(ctx->getPeer(), b, uri);
-        goto handleLanSyncReplyResource_end_flag;
-    }
-    LOG_INFO("SyncService::handleLanSyncReplyResource() : {} : block save success:[{},{})", uri, b.start, b.end);
-    rsm.syncingRangeDoneAndValid(ctx->getPeer(), uri, b, true);
-
-handleLanSyncReplyResource_end_flag:
     add_req_task(ctx);
 }
 

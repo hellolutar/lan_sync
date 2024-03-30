@@ -38,3 +38,20 @@ RsSyncManager &ResourceManager::getRsSyncManager()
     }
     return *rsm;
 }
+
+void ResourceManager::save(NetAddr &peer, std::string uri, void *data, uint64_t offset, uint64_t data_len)
+{
+    bool write_ret = rlm.saveLocal(uri, data, offset, data_len);
+
+    Block b(offset, offset + data_len);
+    if (!write_ret)
+    {
+        LOG_INFO("SyncService::handleLanSyncReplyResource() : {} : block save fail:[{},{})", uri, b.start, b.end);
+        rsm->unregReqSyncRsByBlock(peer, b, uri);
+    }
+    else
+    {
+        LOG_INFO("SyncService::handleLanSyncReplyResource() : {} : block save success:[{},{})", uri, b.start, b.end);
+        rsm->syncingRangeDoneAndValid(peer, uri, b, true);
+    }
+}

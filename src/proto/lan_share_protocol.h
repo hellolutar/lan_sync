@@ -28,7 +28,7 @@
 
 #define XHEADER_URI "uri"
 #define XHEADER_HASH "hash"
-#define XHEADER_TCPPORT "tcpport"
+#define XHEADER_TCP_SRV_PORT "tcp_srv_port"
 /**
  * format:
  *      content-range:${first byte pos}-${last byte pos}\0

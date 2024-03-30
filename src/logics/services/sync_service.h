@@ -14,7 +14,7 @@
 class SyncService : public ModConnAbility
 {
 private:
-    /* data */
+    int queryPeerTcpServerPort(LanSyncPkt &pkt);
 public:
     SyncService(AbsModConnMediator *med) : ModConnAbility(med, MODULE_NAME_SYNC_SERVICE){};
     ~SyncService();

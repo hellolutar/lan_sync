@@ -13,6 +13,8 @@ public:
     static RsSyncManager &getRsSyncManager();
     static void init(std::string home);
     static void cleanup();
+
+    static void save(NetAddr &peer,std::string uri, void *data, uint64_t offset, uint64_t data_len);
 };
 
 

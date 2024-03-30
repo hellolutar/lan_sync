@@ -89,7 +89,7 @@ TEST(LanSyncPktTest, addXheader)
 
 TEST(LanSyncPktTest, addXheader2)
 {
-    string key = XHEADER_TCPPORT;
+    string key = XHEADER_TCP_SRV_PORT;
     string value = to_string(58081);
 
     LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_HELLO_ACK);
