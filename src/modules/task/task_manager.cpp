@@ -71,4 +71,5 @@ void TaskManager::rmTask(AbsTask *t)
 void TaskManager::stop()
 {
     stopFlg = true;
+    cond.notify_all();
 }

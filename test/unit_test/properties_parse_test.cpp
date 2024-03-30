@@ -1,4 +1,6 @@
 #include <gtest/gtest.h>
+
+#include "constants/constants.h"
 #include "utils/properties_parse.h"
 
 TEST(HelloTest, BasicAssertions)
@@ -8,10 +10,10 @@ TEST(HelloTest, BasicAssertions)
 
 TEST(PropertiesParseTest, queryTest)
 {
-    PropertiesParse pp("../src/properties.properties");
-    string tcp_port = pp.query("tcp.port");
-    string udp_port = pp.query("udp.port");
-    string rs_home = pp.query("resource.home");
+    PropertiesParse pp("../../src/properties.properties");
+    string tcp_port = pp.query(CONFIG_KEY_PROTO_SYNC_SERVER_TCP_PORT);
+    string udp_port = pp.query(CONFIG_KEY_PROTO_DISCOVER_SERVER_UDP_PORT);
+    string rs_home = pp.query(CONFIG_KEY_RESOURCE_HOME);
     ASSERT_STREQ("58081", tcp_port.data());
     ASSERT_STREQ("58080", udp_port.data());
     ASSERT_GT(rs_home.size(), 0);

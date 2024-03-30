@@ -96,6 +96,7 @@ enum lan_sync_type_enum : uint8_t
     LAN_SYNC_TYPE_REPLY_RESOURCE,
     LAN_SYNC_TYPE_UPDATE_RESOURCE,
     LAN_SYNC_TYPE_CLOSE,
+    LAN_SYNC_TYPE_EXIT = 255,
 };
 
 std::string convert_lan_sync_type_enum(lan_sync_type_enum type);

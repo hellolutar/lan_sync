@@ -50,6 +50,8 @@ void SyncController::recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *nct
         syncService.handleReplyTableIndex(data, data_len, ctx);
     else if (header->type == LAN_SYNC_TYPE_REPLY_RESOURCE)
         syncService.handleReplyResource(data, data_len, ctx);
+    else if (header->type == LAN_SYNC_TYPE_EXIT)
+        syncService.exit(data, data_len, ctx);
     else
         LOG_WARN("SyncController::recv_tcp() : the type is unsupport!");
 }
