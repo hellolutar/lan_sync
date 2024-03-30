@@ -112,6 +112,15 @@ uint64_t IoUtil::writeFile(string path, uint64_t offset, void *data, uint64_t si
     return ret_len;
 }
 
+bool IoUtil::mkdirs(std::string path)
+{
+    filesystem::path p(path);
+    if (!filesystem::exists(p))
+        return filesystem::create_directories(p);
+
+    return false;
+}
+
 IoReadMonitor::~IoReadMonitor()
 {
 }

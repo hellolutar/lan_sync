@@ -1,3 +1,4 @@
+#!/usr/bin/bash
 
 function check_hash(){
     f1=$1
@@ -25,8 +26,3 @@ function check_hash(){
         echo "         ${f2_hash} | ${f2}"
     fi
 }
-
-worksapce=/home/lutar/code/c/lan_sync
-check_hash ${worksapce}/src/static/cli/big.txt ${worksapce}/src/static/server/big.txt
-check_hash ${worksapce}/src/static/cli/network/small.txt ${worksapce}/src/static/server/network/small.txt
-check_hash ${worksapce}/src/static/cli/深入理解计算机系统_e2.pdf ${worksapce}/src/static/server/深入理解计算机系统_e2.pdf

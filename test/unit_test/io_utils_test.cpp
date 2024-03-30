@@ -9,23 +9,23 @@
 
 using namespace std;
 
-string dic = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
-std::default_random_engine e;
-std::uniform_int_distribution<int> u(1, dic.size() * SIZE_1KByte); // 左闭右闭区间
+static string dic = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+static std::default_random_engine e;
+static std::uniform_int_distribution<int> u(1, dic.size() * SIZE_1KByte); // 左闭右闭区间
 
 TEST(HelloTest, BasicAssertions)
 {
     EXPECT_STRNE("hello", "world");
 }
 
-string genFname()
+static string genFname()
 {
     time_t now = time(0);
     string fname = to_string(now) + ".txt";
     return fname;
 }
 
-string generateData()
+static string generateData()
 {
     e.seed(time(0));
     int randV = u(e);
@@ -43,7 +43,7 @@ string generateData()
     return datastr;
 }
 
-void setup(string path)
+static void setup(string path)
 {
     filesystem::path p;
     if (filesystem::exists(p))
@@ -60,14 +60,14 @@ void setup(string path)
     io.writeFile(path, 0, datastr.data(), datastr.size());
 }
 
-void tearDown(string path)
+static void tearDown(string path)
 {
     filesystem::path p(path);
     if (filesystem::exists(p))
         filesystem::remove(p);
 }
 
-uint8_t *readFile(string path, uint64_t fsize)
+static uint8_t *readFile(string path, uint64_t fsize)
 {
     ifstream ifs;
     ifs.open(path, ios::in);

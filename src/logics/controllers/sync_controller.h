@@ -5,6 +5,7 @@
 #include "logics/services/sync_service.h"
 #include "net/abst_net_logic.h"
 #include "modules/conn/mod_conn.h"
+#include "modules/task/task_manager.h"
 
 class SyncController : public LogicTcp, public LogicUdp
 {

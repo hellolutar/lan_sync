@@ -2,7 +2,7 @@
 
 using namespace std;
 
-std::default_random_engine e;
+static std::default_random_engine e;
 
 void ReqRsTask::sendRsReq(NetworkConnCtx *ctx, Block b)
 {
