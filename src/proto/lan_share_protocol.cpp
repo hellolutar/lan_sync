@@ -360,10 +360,6 @@ std::string convert_lan_sync_type_enum(lan_sync_type_enum type)
         return "GET_RS";
     case LAN_SYNC_TYPE_REPLY_RESOURCE:
         return "REPLY_RS";
-    case LAN_SYNC_TYPE_UPDATE_RESOURCE:
-        return "UPDATE_RS";
-    case LAN_SYNC_TYPE_CLOSE:
-        return "CLOSE";
     case LAN_SYNC_TYPE_EXIT:
         return "EXIT";
     default:
