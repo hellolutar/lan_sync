@@ -162,20 +162,17 @@ peer tcp 断开(此时mine与peer是邻居关系)
 - 一个资源被多个资源服务器拥有，即一个uri存在于多个资源服务器
 - 请求资源时，应从多个资源服务器请求资源，每个请求应该只请求部分资源，最后合并成一个资源。
 
-实现
-接收到table_Index后，形成sync_table. sync_table的entry为<uri, wanto_sync_dto>
-
-wanto_sync_dto为
-- uri
-- hash
-- size
-- server
-  - status
-  - netaddr
-  - cr
-
-若资源大于20MB，则向多个服务器请求资源，否则之请求一个资源
 
 
-// 要求tcpserver和tcpcli应该共用同一个协议处理逻辑
-- tcpserver与tcpcli建立连接后，此连接应该可以执行协议中所有的动作。
+gui
+
+| syncing/remainded | owner            | modify time         | uri        |
+| 13/50             | ip:port, ip:port | 2024-01-01 15:00:00 | /small.txt |
+| 13/50             | ip:port          | 2024-01-01 15:00:00 | /big.txt   |
+| 0/0               | ip:port, ip:port | 2024-01-01 15:00:00 | /small.txt |
+| 0/0               | ip:port          | 2024-01-01 15:00:00 | /big.txt   |
+
+
+
+
+

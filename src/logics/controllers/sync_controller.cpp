@@ -23,6 +23,8 @@ void SyncController::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *nct
         syncService.handleHello(ctx);
     else if (pkt.getType() == LAN_SYNC_TYPE_HELLO_ACK)
         syncService.handleHelloAck(ctx);
+    else if (pkt.getType() == LAN_SYNC_TYPE_GET_SYNC_GUI)
+        syncService.getSyncGui(ctx);
     else
         LOG_WARN(" SyncController::recv_udp() : {}", "unsupport type, do not reply ", header->type);
 }

@@ -52,6 +52,10 @@ void SyncService::handleHelloAck(SyncNetworkConnCtx *ctx)
 
     mod_conn_send(MODULE_NAME_PERIOD_REQ_TB_IDX, MODULE_CONN_URI_PERIOD_REQ_TB_IDX_ADD, &peer_tcp_addr);
 }
+void SyncService::getSyncGui(SyncNetworkConnCtx *ctx)
+{
+    LanSyncPkt &pkt = ctx->getPktInfo();
+}
 
 void SyncService::handleReqTableIndex(SyncNetworkConnCtx *ctx)
 {

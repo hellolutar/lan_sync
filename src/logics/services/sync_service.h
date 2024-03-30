@@ -23,6 +23,7 @@ public:
 
     void handleHello(SyncNetworkConnCtx *ctx);
     void handleHelloAck(SyncNetworkConnCtx *ctx);
+    void getSyncGui(SyncNetworkConnCtx *ctx);
 
     void handleReqTableIndex(SyncNetworkConnCtx *ctx);
     void handleReqResource(SyncNetworkConnCtx *ctx);
