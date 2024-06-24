@@ -43,7 +43,7 @@ void checkLanSyncPktSerialize(LanSyncPkt &pkt)
 
 TEST(LanSyncPktTest, setData)
 {
-    LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_REPLY_TABLE_INDEX);
+    LanSyncPkt pkt(lan_sync_version::VER_0_1, LAN_SYNC_TYPE_REPLY_TABLE_INDEX);
     pkt.addXheader("hello", "world");
 
     ASSERT_EQ(pkt.getHeaderLen(), strlen("hello:world ") + LEN_LAN_SYNC_HEADER_T);
@@ -70,7 +70,7 @@ TEST(LanSyncPktTest, addXheader)
     uint32_t xheader_len = data_len + key_len + value_len + FLAG_KEY_VALUE_SPLIT;
     uint32_t expect_total_len = LEN_LAN_SYNC_HEADER_T + xheader_len;
 
-    LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_REPLY_TABLE_INDEX);
+    LanSyncPkt pkt(lan_sync_version::VER_0_1, LAN_SYNC_TYPE_REPLY_TABLE_INDEX);
     pkt.addXheader(key, value);
     pkt.setData(data, data_len);
 
@@ -92,7 +92,7 @@ TEST(LanSyncPktTest, addXheader2)
     string key = XHEADER_TCPPORT;
     string value = to_string(58081);
 
-    LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_HELLO_ACK);
+    LanSyncPkt pkt(lan_sync_version::VER_0_1, LAN_SYNC_TYPE_HELLO_ACK);
     pkt.addXheader(key, value);
     ASSERT_EQ(22, pkt.getHeaderLen());
     checkLanSyncPktSerialize(pkt);
@@ -106,7 +106,7 @@ TEST(LanSyncPktTest, queryXheader)
     string key2 = "path";
     string value2 = "/home/lutar/code/c/lan_sync/demo/resources/server/network";
 
-    LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_REPLY_TABLE_INDEX);
+    LanSyncPkt pkt(lan_sync_version::VER_0_1, LAN_SYNC_TYPE_REPLY_TABLE_INDEX);
     pkt.addXheader(key, value);
     pkt.addXheader(key2, value2);
 
@@ -120,7 +120,7 @@ TEST(LanSyncPktTest, constructor)
     string uri = "static/cli/network/springmvc.docx";
     string cr = "1024000-1038835/1038835/last";
     string hash = "4b32c3eb86b796b05abcec4d9f3d910a4122dbac351cf80c9eb9299c94cdf3a245a394ac015e8308672d31de6853f94160a5176a207397e7d94974aa3818fb04";
-    LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_REPLY_TABLE_INDEX);
+    LanSyncPkt pkt(lan_sync_version::VER_0_1, LAN_SYNC_TYPE_REPLY_TABLE_INDEX);
     pkt.addXheader(XHEADER_URI, uri);
     pkt.addXheader(XHEADER_CONTENT_RANGE, cr);
     pkt.addXheader("demo", "demo");

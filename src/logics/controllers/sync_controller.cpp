@@ -24,7 +24,7 @@ void SyncController::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *nct
     else if (pkt.getType() == LAN_SYNC_TYPE_HELLO_ACK)
         syncService.handleHelloAck(ctx);
     else
-        LOG_WARN(" SyncController::recv_udp() : {}", "unsupport type, do not reply ", header->type);
+        LOG_WARN(" SyncController::recv_udp() : {}", "unsupport type, do not reply ", static_cast<int>(header->type));
 }
 
 void SyncController::recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *nctx)
@@ -63,9 +63,9 @@ uint64_t SyncController::isExtraAllDataNow(void *data, uint64_t data_len)
 
     lan_sync_header_t *header = (lan_sync_header_t *)data;
 
-    if (header->version != LAN_SYNC_VER_0_1)
+    if (header->version != lan_sync_version::VER_0_1)
     {
-        LOG_WARN("SyncController::isExtraAllDataNow() : the protocol is unsupport! : {}", header->version);
+        LOG_WARN("SyncController::isExtraAllDataNow() : the protocol is unsupport! : {}", static_cast<int>(header->version));
         return 0;
     }
 

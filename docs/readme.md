@@ -1,4 +1,31 @@
 
+``` shell
+git clone --depth=1 https://github.com/libevent/libevent.git
+cmake -S libevent/ -B libevent/build
+cmake --build libevent/build
+sudo cmake --install libevent/build
+
+git clone --depth=1 https://github.com/gabime/spdlog.git
+cmake -S spdlog/ -B spdlog/build
+cmake --build spdlog/build
+sudo cmake --install spdlog/build
+
+git clone --depth=1 https://github.com/openssl/openssl.git
+cd openssl/ 
+./Configure
+make -j12
+sudo make install
+
+git clone --depth=1 https://github.com/google/googletest.git
+cmake -S googletest/ -B googletest/build
+cmake --build googletest/build
+sudo cmake --install googletest/build
+
+apt-get install bridge-utils
+
+sudo ldconfig
+
+```
 
 
 ``` mermaid

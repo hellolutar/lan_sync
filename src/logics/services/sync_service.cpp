@@ -13,7 +13,7 @@ void SyncService::mod_conn_recv(std::string from, std::string uri, void *data)
 void SyncService::handleHello(SyncNetworkConnCtx *ctx)
 {
     // 启动TCP Server
-    LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_HELLO_ACK);
+    LanSyncPkt pkt(lan_sync_version::VER_0_1, LAN_SYNC_TYPE_HELLO_ACK);
     pkt.addXheader(XHEADER_TCPPORT, ConfigManager::query(CONFIG_KEY_PROTO_SYNC_SERVER_TCP_PORT));
 
     BufBaseonEvent buf;
@@ -47,7 +47,7 @@ void SyncService::handleReqTableIndex(SyncNetworkConnCtx *ctx)
 
     struct Resource *reply_table = Resource::vecToArr(table);
 
-    LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_REPLY_TABLE_INDEX);
+    LanSyncPkt pkt(lan_sync_version::VER_0_1, LAN_SYNC_TYPE_REPLY_TABLE_INDEX);
     pkt.setData(reply_table, table_len);
 
     BufBaseonEvent buf;

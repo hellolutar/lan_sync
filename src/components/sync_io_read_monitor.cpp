@@ -4,7 +4,7 @@ using namespace std;
 
 void SyncIOReadMonitor::monitor(uint64_t from_pos, void *data, uint64_t data_len)
 {
-    LanSyncPkt reply_pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_REPLY_RESOURCE);
+    LanSyncPkt reply_pkt(lan_sync_version::VER_0_1, LAN_SYNC_TYPE_REPLY_RESOURCE);
 
     reply_pkt.addXheader(XHEADER_HASH, rs->hash);
     reply_pkt.addXheader(XHEADER_URI, rs->uri);

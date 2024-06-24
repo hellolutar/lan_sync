@@ -6,7 +6,7 @@ static std::default_random_engine e;
 
 void ReqRsTask::sendRsReq(NetworkConnCtx *ctx, Block b)
 {
-    LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_RESOURCE);
+    LanSyncPkt pkt(lan_sync_version::VER_0_1, LAN_SYNC_TYPE_GET_RESOURCE);
 
     string range_hdr = Range(b.start, b.end - b.start).to_string();
     pkt.addXheader(XHEADER_URI, uri);

@@ -14,7 +14,7 @@ void SyncCliDiscoverLogic::mod_conn_recv(std::string from, std::string uri, void
 
 void SyncCliDiscoverLogic::exec(NetworkConnCtx &ctx)
 {
-    LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_HELLO);
+    LanSyncPkt pkt(lan_sync_version::VER_0_1, LAN_SYNC_TYPE_HELLO);
 
     BufBaseonEvent buf;
     pkt.write(buf);
@@ -79,7 +79,7 @@ void SyncCliSyncLogic::mod_conn_recv(std::string from, std::string uri, void *da
 
 void SyncCliSyncLogic::reqTbIdx(NetworkConnCtx &ctx)
 {
-    LanSyncPkt pkt(LAN_SYNC_VER_0_1, LAN_SYNC_TYPE_GET_TABLE_INDEX);
+    LanSyncPkt pkt(lan_sync_version::VER_0_1, LAN_SYNC_TYPE_GET_TABLE_INDEX);
 
     BufBaseonEvent buf;
     pkt.write(buf);

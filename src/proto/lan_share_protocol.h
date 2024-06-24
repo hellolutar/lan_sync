@@ -81,9 +81,9 @@ enum state : uint8_t
     STATE_SYNC_READY = 2,
 };
 
-enum lan_sync_version : uint8_t
+enum class lan_sync_version : uint8_t
 {
-    LAN_SYNC_VER_0_1 = 1,
+    VER_0_1 = 1,
 };
 
 enum lan_sync_type_enum : uint8_t
