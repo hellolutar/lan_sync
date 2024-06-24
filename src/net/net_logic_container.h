@@ -8,18 +8,18 @@
 class NetCliLogicContainer : public NetAbilityImplWithEvent
 {
 private:
-    NetworkConnCtx *net_ctx;
+    std::shared_ptr<NetworkConnCtx> net_ctx;
     AbstNetLogic &recv_logic;
 
 public:
     NetCliLogicContainer(NetAddr addr, AbstNetLogic &recv_logic) : NetAbilityImplWithEvent(addr), recv_logic(recv_logic){};
     virtual ~NetCliLogicContainer();
 
-    virtual void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx);
+    virtual void recv(void *data, uint64_t data_len, std::shared_ptr<NetworkConnCtx> ctx);
     virtual uint64_t isExtraAllDataNow(void *data, uint64_t data_len);
-    virtual void setCtx(NetworkConnCtx *ctx);
+    virtual void setCtx(std::shared_ptr<NetworkConnCtx> ctx);
 
-    NetworkConnCtx &getConnCtx();
+    std::shared_ptr<NetworkConnCtx>& getConnCtx();
 };
 
 class NetSrvLogicContainer : public NetAbilityImplWithEvent
@@ -31,7 +31,7 @@ public:
     NetSrvLogicContainer(NetAddr addr, AbstNetLogic &recv_logic) : NetAbilityImplWithEvent(addr), recv_logic(recv_logic){};
     ~NetSrvLogicContainer(){};
 
-    virtual void recv(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
+    virtual void recv(void *data, uint64_t data_len, std::shared_ptr<NetworkConnCtx> ctx) override;
     virtual uint64_t isExtraAllDataNow(void *data, uint64_t data_len) override;
 };
 

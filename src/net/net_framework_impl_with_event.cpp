@@ -3,9 +3,9 @@
 using namespace std;
 
 struct event_base *NetFrameworkImplWithEvent::base;
-std::vector<event *> NetFrameworkImplWithEvent::events;           // only persist event need to add
-std::vector<NetworkConnCtx *> NetFrameworkImplWithEvent::tcp_ctx; // release by user
-std::vector<NetworkConnCtx *> NetFrameworkImplWithEvent::udp_ctx; // release by user
+std::vector<event *> NetFrameworkImplWithEvent::events;                          // only persist event need to add
+std::vector<std::shared_ptr<NetworkConnCtx>> NetFrameworkImplWithEvent::tcp_ctx; // release by user
+std::vector<std::shared_ptr<NetworkConnCtx>> NetFrameworkImplWithEvent::udp_ctx; // release by user
 
 void NetFrameworkImplWithEvent::init(struct event_base &eb)
 {
@@ -48,11 +48,11 @@ void NetFrameworkImplWithEvent::event_cb(struct bufferevent *bev, short events, 
         break;
     }
 
-    NetworkConnCtx *nctx = (NetworkConnCtx *)data;
+    std::shared_ptr<NetworkConnCtx> nctx = *(std::shared_ptr<NetworkConnCtx> *)data;
     nctx->setActive(false);
     for (auto iter = tcp_ctx.begin(); iter != tcp_ctx.end(); iter++)
     {
-        if (*iter == nctx)
+        if ((*iter).get() == nctx.get())
         {
             LOG_INFO("NetFrameworkImplWithEvent::event_cb : remvoe tcp_ctx : {}", nctx->getPeer().str());
             tcp_ctx.erase(iter);
@@ -76,7 +76,7 @@ void NetFrameworkImplWithEvent::read_cb(struct bufferevent *bev, void *arg)
 
     uint8_t *head = new uint8_t[recvLen];
 
-    NetworkConnCtxWithEvent *ctx = (NetworkConnCtxWithEvent *)arg;
+    std::shared_ptr<NetworkConnCtx> ctx = *(std::shared_ptr<NetworkConnCtxWithEvent> *)arg;
     NetAbility *ne = ctx->getNetworkEndpoint();
 
     int limit = 1024;
@@ -124,14 +124,20 @@ void NetFrameworkImplWithEvent::tcp_accept(evutil_socket_t listener, short event
     evutil_make_listen_socket_reuseable_port(peer_sock);
 
     struct bufferevent *bev = bufferevent_socket_new(base, peer_sock, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_THREADSAFE);
+    if (bev == nullptr)
+    {
+        LOG_ERROR("NetFrameworkImplWithEvent::tcp_accept(): bufferevent_socket_new has a error: {}", strerror(errno));
+        exit(-1);
+    }
+
     size_t hw = 0;
     size_t lw = 0;
     bufferevent_getwatermark(bev, EV_WRITE, &lw, &hw);
     bufferevent_setwatermark(bev, EV_WRITE, 0, hw);
 
-    NetworkConnCtxWithEvent *nctx = new NetworkConnCtxWithEvent(&tcp_ctx, ne, bev, peer_sock, NetAddr::fromBe(peer));
+    shared_ptr<NetworkConnCtxWithEvent> nctx = make_shared<NetworkConnCtxWithEvent>(&tcp_ctx, ne, bev, peer_sock, NetAddr::fromBe(peer));
     tcp_ctx.push_back(nctx);
-    bufferevent_setcb(bev, read_cb, write_cb, event_cb, nctx);
+    bufferevent_setcb(bev, read_cb, write_cb, event_cb, &(tcp_ctx.back()));
     bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
 
@@ -191,7 +197,7 @@ void NetFrameworkImplWithEvent::udp_read_cb(evutil_socket_t fd, short events, vo
         LOG_WARN("[SYNC SER] cannot receive anything !");
         return;
     }
-    NetworkConnCtxWithEventForUDP *nctx = (NetworkConnCtxWithEventForUDP *)arg;
+    std::shared_ptr<NetworkConnCtx> nctx = *(std::shared_ptr<NetworkConnCtx> *)arg;
 
     nctx->setNetAddr(NetAddr::fromBe(target_addr));
 
@@ -233,15 +239,15 @@ void NetFrameworkImplWithEvent::addUdpServer(NetAbilityImplWithEvent *ne)
     LOG_INFO("UDP listen: {}", ne->getAddr().str().data());
 
     NetAddr addr_will_be_udpate_follow;
-    NetworkConnCtxWithEventForUDP *nctx = new NetworkConnCtxWithEventForUDP(&udp_ctx, ne, udp_sock, addr_will_be_udpate_follow); // udp_sock close many time: 1.NetworkEndpointWithEvent; 2.NetworkConnCtx
+    shared_ptr<NetworkConnCtxWithEventForUDP> nctx = make_shared<NetworkConnCtxWithEventForUDP>(&udp_ctx, ne, udp_sock, addr_will_be_udpate_follow); // udp_sock close many time: 1.NetworkEndpointWithEvent; 2.NetworkConnCtx
     udp_ctx.push_back(nctx);
 
-    struct event *read_e = event_new(base, udp_sock, EV_READ | EV_PERSIST, udp_read_cb, nctx);
+    struct event *read_e = event_new(base, udp_sock, EV_READ | EV_PERSIST, udp_read_cb, &(udp_ctx.back()));
     event_add(read_e, nullptr);
     ne->setEvent(read_e);
 }
 
-NetworkConnCtx *NetFrameworkImplWithEvent::connectWithTcp(NetAbilityImplWithEvent *peer_ne)
+std::shared_ptr<NetworkConnCtx> NetFrameworkImplWithEvent::connectWithTcp(NetAbilityImplWithEvent *peer_ne)
 {
     init_check();
 
@@ -263,16 +269,21 @@ NetworkConnCtx *NetFrameworkImplWithEvent::connectWithTcp(NetAbilityImplWithEven
     }
 
     struct bufferevent *bev = bufferevent_socket_new(base, peer_sock, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_THREADSAFE);
+    if (bev == nullptr)
+    {
+        LOG_ERROR("NetFrameworkImplWithEvent::tcp_accept(): bufferevent_socket_new has a error: {}", strerror(errno));
+        exit(-1);
+    }
 
-    NetworkConnCtxWithEvent *nctx = new NetworkConnCtxWithEvent(&tcp_ctx, peer_ne, bev, peer_sock, peer_ne->getAddr());
+    std::shared_ptr<NetworkConnCtxWithEvent> nctx = make_shared<NetworkConnCtxWithEvent>(&tcp_ctx, peer_ne, bev, peer_sock, peer_ne->getAddr());
     tcp_ctx.push_back(nctx);
-    bufferevent_setcb(bev, read_cb, write_cb, event_cb, nctx);
+    bufferevent_setcb(bev, read_cb, write_cb, event_cb, &tcp_ctx.back());
     bufferevent_enable(bev, EV_READ | EV_WRITE);
 
     return nctx; // todo determine delete
 }
 
-NetworkConnCtx *NetFrameworkImplWithEvent::connectWithUdp(NetAbilityImplWithEvent *peer_ne)
+std::shared_ptr<NetworkConnCtx> NetFrameworkImplWithEvent::connectWithUdp(NetAbilityImplWithEvent *peer_ne)
 {
     init_check();
 
@@ -292,10 +303,11 @@ NetworkConnCtx *NetFrameworkImplWithEvent::connectWithUdp(NetAbilityImplWithEven
 
     LOG_INFO("UDP connect : {}", peer_ne->getAddr().str().data());
 
-    NetworkConnCtxWithEventForUDP *nctx = new NetworkConnCtxWithEventForUDP(&udp_ctx, peer_ne, peer_sock, peer_ne->getAddr()); // todo &peer_ne maybe a problem
+    std::shared_ptr<NetworkConnCtxWithEventForUDP> nctx = make_shared<NetworkConnCtxWithEventForUDP>(&udp_ctx, peer_ne, peer_sock, peer_ne->getAddr()); // todo &peer_ne maybe a problem
+
     udp_ctx.push_back(nctx);
 
-    struct event *read_e = event_new(base, peer_sock, EV_READ | EV_PERSIST, udp_read_cb, nctx);
+    struct event *read_e = event_new(base, peer_sock, EV_READ | EV_PERSIST, udp_read_cb, &(udp_ctx.back()));
     event_add(read_e, nullptr);
     peer_ne->setEvent(read_e);
 
@@ -344,9 +356,9 @@ void NetFrameworkImplWithEvent::free()
     cleanup();
 }
 
-map<NetAddr, NetworkConnCtx *> NetFrameworkImplWithEvent::getAllTcpSession()
+map<NetAddr, std::shared_ptr<NetworkConnCtx>> NetFrameworkImplWithEvent::getAllTcpSession()
 {
-    map<NetAddr, NetworkConnCtx *> idx;
+    map<NetAddr, std::shared_ptr<NetworkConnCtx>> idx;
     for (int i = 0; i < tcp_ctx.size(); i++)
     {
         auto tmp_ctx = tcp_ctx.at(i);

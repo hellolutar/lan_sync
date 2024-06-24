@@ -4,7 +4,7 @@ using namespace std;
 
 static std::default_random_engine e;
 
-void ReqRsTask::sendRsReq(NetworkConnCtx *ctx, Block b)
+void ReqRsTask::sendRsReq(std::shared_ptr<NetworkConnCtx> ctx, Block b)
 {
     LanSyncPkt pkt(lan_sync_version::VER_0_1, LAN_SYNC_TYPE_GET_RESOURCE);
 
@@ -24,7 +24,6 @@ void ReqRsTask::sendRsReq(NetworkConnCtx *ctx, Block b)
     {
         std::cerr << e.what() << '\n';
         ResourceManager::getRsSyncManager().unregAllReqSyncRsByPeer(peer, uri);
-        delete ctx;
         ctx = nullptr;
     }
 }
@@ -33,7 +32,7 @@ void ReqRsTask::run()
 {
     LOG_DEBUG("ReqRsTask::run() : start!");
 
-    map<NetAddr, NetworkConnCtx *> idx = NetFrameworkImplWithEvent::getAllTcpSession();
+    map<NetAddr, std::shared_ptr<NetworkConnCtx>> idx = NetFrameworkImplWithEvent::getAllTcpSession();
 
     RsSyncManager &rsm = ResourceManager::getRsSyncManager();
 

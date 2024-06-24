@@ -4,7 +4,7 @@ SyncController::~SyncController()
 {
 }
 
-void SyncController::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *nctx)
+void SyncController::recv_udp(void *data, uint64_t data_len, std::shared_ptr<NetworkConnCtx> nctx)
 {
     lan_sync_header_t *header = (lan_sync_header_t *)data;
     LanSyncPkt pkt(header);
@@ -27,7 +27,7 @@ void SyncController::recv_udp(void *data, uint64_t data_len, NetworkConnCtx *nct
         LOG_WARN(" SyncController::recv_udp() : {}", "unsupport type, do not reply ", static_cast<int>(header->type));
 }
 
-void SyncController::recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *nctx)
+void SyncController::recv_tcp(void *data, uint64_t data_len, std::shared_ptr<NetworkConnCtx> nctx)
 {
     lan_sync_header_t *header = (lan_sync_header_t *)data;
     LanSyncPkt pkt(header);

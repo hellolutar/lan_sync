@@ -23,8 +23,8 @@ class NetFrameworkImplWithEvent : public AbstNetFramework
 private:
     static struct event_base *base;
     static std::vector<event *> events; // only persist event need to add
-    static std::vector<NetworkConnCtx *> tcp_ctx;
-    static std::vector<NetworkConnCtx *> udp_ctx;
+    static std::vector<std::shared_ptr<NetworkConnCtx>> tcp_ctx;
+    static std::vector<std::shared_ptr<NetworkConnCtx>> udp_ctx;
 
     static void tcp_accept(evutil_socket_t listener, short event, void *ctx);
     static void init_check();
@@ -38,15 +38,15 @@ public:
 
     static void addTcpServer(NetAbilityImplWithEvent *ne);
     static void addUdpServer(NetAbilityImplWithEvent *ne);
-    static NetworkConnCtx *connectWithTcp(NetAbilityImplWithEvent *ne);
-    static NetworkConnCtx *connectWithUdp(NetAbilityImplWithEvent *peer);
+    static std::shared_ptr<NetworkConnCtx> connectWithTcp(NetAbilityImplWithEvent *ne);
+    static std::shared_ptr<NetworkConnCtx> connectWithUdp(NetAbilityImplWithEvent *peer);
     static void run();
     static void shutdown();
 
     static void cleanup();
     static void free();
 
-    static std::map<NetAddr, NetworkConnCtx *> getAllTcpSession();
+    static std::map<NetAddr, std::shared_ptr<NetworkConnCtx>> getAllTcpSession();
 };
 
 class NetworkConnCtxWithEvent : public NetworkConnCtx
@@ -57,7 +57,7 @@ private:
 
 public:
     NetworkConnCtxWithEvent(){};
-    NetworkConnCtxWithEvent(std::vector<NetworkConnCtx *> *head, NetAbility *ne, struct bufferevent *bev, int peer_sock, NetAddr peer)
+    NetworkConnCtxWithEvent(std::vector<std::shared_ptr<NetworkConnCtx>> *head, NetAbility *ne, struct bufferevent *bev, int peer_sock, NetAddr peer)
         : NetworkConnCtx(head, ne, peer), bev(bev), peer_sock(peer_sock){};
 
     ~NetworkConnCtxWithEvent();
@@ -70,7 +70,7 @@ private:
     int peer_sock;
 
 public:
-    NetworkConnCtxWithEventForUDP(std::vector<NetworkConnCtx *> *head, NetAbility *ne, int peer_sock, NetAddr peer_addr)
+    NetworkConnCtxWithEventForUDP(std::vector<std::shared_ptr<NetworkConnCtx>> *head, NetAbility *ne, int peer_sock, NetAddr peer_addr)
         : NetworkConnCtx(head, ne, peer_addr), peer_sock(peer_sock){};
     ~NetworkConnCtxWithEventForUDP();
 

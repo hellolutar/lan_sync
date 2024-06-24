@@ -26,7 +26,7 @@ NetworkConnCtx::~NetworkConnCtx()
 {
     for (auto iter = head->end() - 1; iter >= head->begin(); iter--)
     {
-        if (*iter == this)
+        if ((*iter).get() == this)
         {
             head->erase(iter);
             break;

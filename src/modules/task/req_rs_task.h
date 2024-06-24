@@ -15,7 +15,7 @@ class ReqRsTask : public AbsTask
 {
 private:
     std::string uri;
-    void sendRsReq(NetworkConnCtx *ctx, Block b);
+    void sendRsReq(std::shared_ptr<NetworkConnCtx> ctx, Block b);
 
 public:
     ReqRsTask(std::string name, std::string uri)

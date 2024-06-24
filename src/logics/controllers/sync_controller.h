@@ -16,8 +16,8 @@ public:
     SyncController(SyncService &service) : syncService(service){};
     ~SyncController();
 
-    void recv_udp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
-    void recv_tcp(void *data, uint64_t data_len, NetworkConnCtx *ctx) override;
+    void recv_udp(void *data, uint64_t data_len, std::shared_ptr<NetworkConnCtx> ctx) override;
+    void recv_tcp(void *data, uint64_t data_len, std::shared_ptr<NetworkConnCtx> ctx) override;
     uint64_t isExtraAllDataNow(void *data, uint64_t data_len) override;
 };
 

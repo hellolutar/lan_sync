@@ -3,10 +3,10 @@
 NetCliLogicContainer::~NetCliLogicContainer()
 {
     if (net_ctx != nullptr)
-        delete net_ctx;
+        net_ctx = nullptr;
 }
 
-void NetCliLogicContainer::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
+void NetCliLogicContainer::recv(void *data, uint64_t data_len, std::shared_ptr<NetworkConnCtx> ctx)
 {
     recv_logic.recv(data, data_len, ctx);
 }
@@ -15,17 +15,17 @@ uint64_t NetCliLogicContainer::isExtraAllDataNow(void *data, uint64_t data_len)
     return recv_logic.isExtraAllDataNow(data, data_len);
 }
 
-void NetCliLogicContainer::setCtx(NetworkConnCtx *ctx)
+void NetCliLogicContainer::setCtx(std::shared_ptr<NetworkConnCtx> ctx)
 {
     this->net_ctx = ctx;
 }
 
-NetworkConnCtx &NetCliLogicContainer::getConnCtx()
+std::shared_ptr<NetworkConnCtx> &NetCliLogicContainer::getConnCtx()
 {
-    return *net_ctx;
+    return net_ctx;
 }
 
-void NetSrvLogicContainer::recv(void *data, uint64_t data_len, NetworkConnCtx *ctx)
+void NetSrvLogicContainer::recv(void *data, uint64_t data_len, std::shared_ptr<NetworkConnCtx> ctx)
 {
     recv_logic.recv(data, data_len, ctx);
 };

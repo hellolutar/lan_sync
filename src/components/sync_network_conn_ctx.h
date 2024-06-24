@@ -10,10 +10,10 @@ class SyncNetworkConnCtx : public NetworkConnCtx
 {
 private:
     LanSyncPkt &pkt;
-    NetworkConnCtx *nctx;
+    std::shared_ptr<NetworkConnCtx> nctx;
 
 public:
-    SyncNetworkConnCtx(NetworkConnCtx *nctx, LanSyncPkt &pkt) : nctx(nctx), pkt(pkt){};
+    SyncNetworkConnCtx(std::shared_ptr<NetworkConnCtx> nctx, LanSyncPkt &pkt) : nctx(nctx), pkt(pkt){};
     ~SyncNetworkConnCtx();
 
     uint64_t write(void *data, uint64_t data_len) override;
