@@ -7,7 +7,7 @@ class AbstNetConnTriggerBehavior
 {
 public:
     virtual ~AbstNetConnTriggerBehavior(){};
-    virtual void exec(NetworkConnCtx &ctx) = 0;
+    virtual void exec(std::shared_ptr<NetworkConnCtx> &ctx) = 0;
 };
 
 class NetCliConnSetupTriggerBehavior : public AbstNetConnSetup, public AbstNetConnTriggerBehavior
@@ -27,7 +27,7 @@ public:
     TcpCliConnSetUp(AbstNetConnTriggerBehavior &trigger_logic) : NetCliConnSetupTriggerBehavior(trigger_logic){};
     ~TcpCliConnSetUp(){};
     NetCliLogicContainer *setupConn(NetAddr peer, AbstNetLogic &recv_logic) override;
-    void exec(NetworkConnCtx &ctx) override;
+    void exec(std::shared_ptr<NetworkConnCtx> &ctx) override;
 };
 
 class UdpCliConnSetUp : public NetCliConnSetupTriggerBehavior
@@ -37,7 +37,7 @@ public:
     UdpCliConnSetUp(AbstNetConnTriggerBehavior &trigger_logic) : NetCliConnSetupTriggerBehavior(trigger_logic){};
     ~UdpCliConnSetUp(){};
     NetCliLogicContainer *setupConn(NetAddr peer, AbstNetLogic &recv_logic) override;
-    void exec(NetworkConnCtx &ctx) override;
+    void exec(std::shared_ptr<NetworkConnCtx> &ctx) override;
 };
 
 #endif

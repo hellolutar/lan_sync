@@ -6,9 +6,11 @@ cmake --build libevent/build
 sudo cmake --install libevent/build
 
 git clone --depth=1 https://github.com/gabime/spdlog.git
-cmake -S spdlog/ -B spdlog/build
+cmake -DBUILD_SHARED_LIBS=ON -S spdlog/ -B spdlog/build
 cmake --build spdlog/build
 sudo cmake --install spdlog/build
+
+
 
 git clone --depth=1 https://github.com/openssl/openssl.git
 cd openssl/ 

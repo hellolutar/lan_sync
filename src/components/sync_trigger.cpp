@@ -12,7 +12,7 @@ void SyncCliDiscoverLogic::mod_conn_recv(std::string from, std::string uri, void
     throw "SyncCliSyncLogic::mod_conn_recv() : unsupport";
 }
 
-void SyncCliDiscoverLogic::exec(NetworkConnCtx &ctx)
+void SyncCliDiscoverLogic::exec(shared_ptr<NetworkConnCtx> &ctx)
 {
     LanSyncPkt pkt(lan_sync_version::VER_0_1, LAN_SYNC_TYPE_HELLO);
 
@@ -22,7 +22,7 @@ void SyncCliDiscoverLogic::exec(NetworkConnCtx &ctx)
     LOG_DEBUG("SyncCliDiscoverLogic::exec() : send HELLO");
     try
     {
-        ctx.write(buf.data(), buf.size());
+        ctx->write(buf.data(), buf.size());
     }
     catch (const std::exception &e)
     {
@@ -77,7 +77,7 @@ void SyncCliSyncLogic::mod_conn_recv(std::string from, std::string uri, void *da
     throw "SyncCliSyncLogic::mod_conn_recv() : unsupport";
 }
 
-void SyncCliSyncLogic::reqTbIdx(NetworkConnCtx &ctx)
+void SyncCliSyncLogic::reqTbIdx(shared_ptr<NetworkConnCtx> &ctx)
 {
     LanSyncPkt pkt(lan_sync_version::VER_0_1, LAN_SYNC_TYPE_GET_TABLE_INDEX);
 
@@ -87,7 +87,7 @@ void SyncCliSyncLogic::reqTbIdx(NetworkConnCtx &ctx)
     LOG_DEBUG("SyncCliSyncLogic::reqTbIdx() : send GET_TABBLE_IDX");
     try
     {
-        ctx.write(buf.data(), buf.size()); // try catch in netrigger
+        ctx->write(buf.data(), buf.size()); // try catch in netrigger
     }
     catch (const std::exception &e)
     {
@@ -97,7 +97,7 @@ void SyncCliSyncLogic::reqTbIdx(NetworkConnCtx &ctx)
     }
 }
 
-void SyncCliSyncLogic::exec(NetworkConnCtx &ctx)
+void SyncCliSyncLogic::exec(shared_ptr<NetworkConnCtx> &ctx)
 {
     reqTbIdx(ctx);
 }
@@ -127,7 +127,7 @@ void SyncReqTbIdxTrigger::mod_conn_recv(std::string from, std::string uri, void 
     }
     else if (StringUtils::eq(MODULE_CONN_URI_PERIOD_REQ_TB_IDX_DEL, uri))
     {
-        NetworkConnCtx *ctx = (NetworkConnCtx *)data;
+        shared_ptr<NetworkConnCtx> ctx = *(shared_ptr<NetworkConnCtx> *)data;
         delNetAddr(ctx->getPeer());
     }
     else

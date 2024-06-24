@@ -19,10 +19,10 @@ void NetTrigger::trigger()
     {
         NetCliLogicContainer *con = (*iter).second;
         auto meAddr = con->getAddr();
-        auto peerAddr = con->getConnCtx().getPeer();
+        auto peerAddr = con->getConnCtx()->getPeer();
         try
         {
-            NetworkConnCtx &ctx = (*iter).second->getConnCtx();
+            shared_ptr<NetworkConnCtx> &ctx = con->getConnCtx();
             trigger_behavior->exec(ctx);
         }
         catch (const std::exception &e)

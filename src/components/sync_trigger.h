@@ -2,6 +2,7 @@
 #define __SYNC_TRIGGER_H_
 
 #include <string>
+#include <memory>
 
 #include "constants/constants.h"
 #include "modules/concrete_net_trigger.h"
@@ -13,7 +14,7 @@ class SyncCliDiscoverLogic : public AbstNetConnTriggerBehavior, public ModConnAb
 public:
     SyncCliDiscoverLogic(/* args */);
     ~SyncCliDiscoverLogic(){};
-    void exec(NetworkConnCtx &ctx) override;
+    void exec(std::shared_ptr<NetworkConnCtx> &ctx) override;
     void mod_conn_recv(std::string from, std::string uri, void *data) override;
 };
 
@@ -31,8 +32,8 @@ class SyncCliSyncLogic : public AbstNetConnTriggerBehavior, public ModConnAbilit
 public:
     SyncCliSyncLogic(/* args */){};
     ~SyncCliSyncLogic(){};
-    virtual void exec(NetworkConnCtx &ctx) override;
-    void reqTbIdx(NetworkConnCtx &ctx);
+    virtual void exec(std::shared_ptr<NetworkConnCtx> &ctx) override;
+    void reqTbIdx(std::shared_ptr<NetworkConnCtx> &ctx);
     void mod_conn_recv(std::string from, std::string uri, void *data) override;
 
 };

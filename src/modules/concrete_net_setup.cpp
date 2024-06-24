@@ -11,7 +11,7 @@ NetCliLogicContainer *TcpCliConnSetUp::setupConn(NetAddr peer, AbstNetLogic &rec
     return tcpcli;
 }
 
-void TcpCliConnSetUp::exec(NetworkConnCtx &ctx)
+void TcpCliConnSetUp::exec(std::shared_ptr<NetworkConnCtx> &ctx)
 {
     trigger_logic.exec(ctx);
 }
@@ -25,7 +25,7 @@ NetCliLogicContainer *UdpCliConnSetUp::setupConn(NetAddr peer, AbstNetLogic &rec
     return udpcli;
 }
 
-void UdpCliConnSetUp::exec(NetworkConnCtx &ctx)
+void UdpCliConnSetUp::exec(std::shared_ptr<NetworkConnCtx> &ctx)
 {
     trigger_logic.exec(ctx);
 }

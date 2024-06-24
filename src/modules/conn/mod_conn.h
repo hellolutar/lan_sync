@@ -3,8 +3,14 @@
 
 #include <string>
 
+/**
+ * 模块间通信能力抽象
+ */
 class ModConnAbility;
 
+/**
+ * 中介者：模块间通信的核心组件抽象
+ */
 class AbsModConnMediator
 {
 public:
@@ -14,6 +20,9 @@ public:
     virtual void del(std::string name) = 0;
 };
 
+/**
+ * 模块间通信能力抽象
+ */
 class ModConnAbility
 {
 protected:
