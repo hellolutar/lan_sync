@@ -52,6 +52,14 @@ std::map<std::string, SyncRs> &RsSyncManager::getAllUriRs()
     return uriRs;
 }
 
+bool RsSyncManager::isSyncSuccess(std::string uri)
+{
+    if (uriRs.find(uri) == uriRs.end())
+        return true;
+    else
+        return uriRs[uri].success;
+}
+
 void RsSyncManager::refreshSyncingRsByTbIdx(NetAddr peer, struct Resource *table, uint64_t rs_size)
 {
     std::vector<struct Resource> need_to_sync_table = rlm.cmpThenRetNeedToSyncTable(table, rs_size);

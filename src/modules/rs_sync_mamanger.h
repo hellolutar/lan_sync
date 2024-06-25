@@ -54,6 +54,7 @@ public:
     ~RsSyncManager(){};
 
     std::map<std::string, SyncRs> &getAllUriRs();
+    bool isSyncSuccess(std::string);
 
     void refreshSyncingRsByTbIdx(NetAddr peer, struct Resource *table, uint64_t rs_size);
     bool regSyncRs(NetAddr peer, std::string uri, std::string hash, uint64_t size);

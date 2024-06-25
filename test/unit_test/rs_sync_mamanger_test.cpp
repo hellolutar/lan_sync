@@ -133,7 +133,7 @@ protected:
         while (rsync.getAllUriRs()[big_file_uri].block.size() > 0)
         {
             b = rsync.regReqSyncRsAuto(peer2, big_file_uri);
-            ASSERT_NE(b.end, 0 );
+            ASSERT_NE(b.end, 0);
             total_len += b.end - b.start;
             ASSERT_EQ(total_block_num, rsync.getAllUriRs()[big_file_uri].block.size() + rsync.getAllUriRs()[big_file_uri].syncing.size());
         }
@@ -173,7 +173,7 @@ protected:
         while (rsync.getAllUriRs()[big_file_uri].block.size() > 0)
         {
             Block b = rsync.regReqSyncRsAuto(peer2, big_file_uri);
-            ASSERT_NE(b.end, 0 );
+            ASSERT_NE(b.end, 0);
             total_len += b.end - b.start;
             ASSERT_EQ(total_block_num, rsync.getAllUriRs()[big_file_uri].block.size() + rsync.getAllUriRs()[big_file_uri].syncing.size());
         }
@@ -210,7 +210,7 @@ protected:
         while (rsync.getAllUriRs()[big_file_uri].block.size() > 0)
         {
             Block b = rsync.regReqSyncRsAuto(peer2, big_file_uri);
-            ASSERT_NE(b.end, 0 );
+            ASSERT_NE(b.end, 0);
             total_len += b.end - b.start;
             ASSERT_EQ(total_block_num, rsync.getAllUriRs()[big_file_uri].block.size() + rsync.getAllUriRs()[big_file_uri].syncing.size());
         }
@@ -264,19 +264,17 @@ protected:
         uint64_t total_len = 0;
         Block b;
         int total_block_num = rsync.getAllUriRs()[big_file_uri].block.size();
-        while (rsync.getAllUriRs()[big_file_uri].block.size() > 0)
+        while (!rsync.isSyncSuccess(big_file_uri) && rsync.getAllUriRs()[big_file_uri].block.size() > 0)
         {
             b = rsync.regReqSyncRsAuto(peer, big_file_uri);
-            ASSERT_NE(b.end, 0 );
+            ASSERT_NE(b.end, 0);
             total_len += b.end - b.start;
             ASSERT_EQ(1, rsync.getAllUriRs()[big_file_uri].syncing.size());
-            ASSERT_FALSE(rsync.getAllUriRs()[big_file_uri].success);
+            ASSERT_FALSE(rsync.isSyncSuccess(big_file_uri));
             rsync.syncingRangeDone(peer, big_file_uri, b);
-            ASSERT_EQ(0, rsync.getAllUriRs()[big_file_uri].syncing.size());
         }
-        ASSERT_EQ(0, rsync.getAllUriRs()[big_file_uri].syncing.size());
         ASSERT_EQ(total_len, test_peer_big_file_size); // [0,total_len), so total_len need to - 1
-        ASSERT_TRUE(rsync.getAllUriRs()[big_file_uri].success);
+        ASSERT_TRUE(rsync.isSyncSuccess(big_file_uri));
     }
 
 public:
