@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <string>
+
 #include "proto/lan_share_protocol.h"
 #include "components/buf_base_on_event.h"
 
@@ -60,11 +62,11 @@ TEST(LanSyncPktTest, setData)
 
 TEST(LanSyncPktTest, addXheader)
 {
-    char *data = "hello world, nihao shijie!\r\n\0";
+    string data = "hello world, nihao shijie!\r\n\0";
     string key = XHEADER_URI;
     string value = "/network/TCPIP卷1.txt";
-    char *expect_xheader = "uri:/network/TCPIP卷1.txt\0";
-    uint32_t data_len = strlen(data);
+    // string expect_xheader = "uri:/network/TCPIP卷1.txt\0";
+    uint32_t data_len = data.size();
     uint32_t key_len = key.size();
     uint32_t value_len = value.size();
     uint32_t xheader_len = data_len + key_len + value_len + FLAG_KEY_VALUE_SPLIT;
@@ -72,7 +74,7 @@ TEST(LanSyncPktTest, addXheader)
 
     LanSyncPkt pkt(lan_sync_version::VER_0_1, LAN_SYNC_TYPE_REPLY_TABLE_INDEX);
     pkt.addXheader(key, value);
-    pkt.setData(data, data_len);
+    pkt.setData(data.data(), data_len);
 
     ASSERT_EQ(expect_total_len, pkt.getTotalLen());
 
@@ -81,7 +83,7 @@ TEST(LanSyncPktTest, addXheader)
 
     // verify data
     char *ret_data = (char *)(pkt.getData());
-    ASSERT_STREQ(data, ret_data);
+    ASSERT_STREQ(data.data(), ret_data);
     // verify data end
 
     checkLanSyncPktSerialize(pkt);
@@ -100,7 +102,7 @@ TEST(LanSyncPktTest, addXheader2)
 
 TEST(LanSyncPktTest, queryXheader)
 {
-    char *data = "hello world, nihao shijie!\r\n\0";
+    string data = "hello world, nihao shijie!\r\n\0";
     string key = XHEADER_URI;
     string value = "/network/TCPIP卷1.txt";
     string key2 = "path";
@@ -116,7 +118,7 @@ TEST(LanSyncPktTest, queryXheader)
 
 TEST(LanSyncPktTest, constructor)
 {
-    char *data = "hello world";
+    string data = "hello world";
     string uri = "static/cli/network/springmvc.docx";
     string cr = "1024000-1038835/1038835/last";
     string hash = "4b32c3eb86b796b05abcec4d9f3d910a4122dbac351cf80c9eb9299c94cdf3a245a394ac015e8308672d31de6853f94160a5176a207397e7d94974aa3818fb04";
@@ -125,7 +127,7 @@ TEST(LanSyncPktTest, constructor)
     pkt.addXheader(XHEADER_CONTENT_RANGE, cr);
     pkt.addXheader("demo", "demo");
     pkt.addXheader(XHEADER_HASH, hash);
-    pkt.setData(data, strlen(data));
+    pkt.setData(data.data(), strlen(data.data()));
     checkLanSyncPktSerialize(pkt);
 }
 

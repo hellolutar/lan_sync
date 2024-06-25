@@ -31,7 +31,7 @@ filesystem::path test_big_file("test_dir/big.txt");
 
 string dic = "ABCDEFGHIJKLMNOPQRSTUVWSYZ1234567890abcdefghijklmnopqrstuvwsy";
 
-class DemoTest : public testing::Test
+class RsSyncManagerTest : public testing::Test
 {
 
 protected:
@@ -282,7 +282,7 @@ protected:
 public:
 };
 
-TEST_F(DemoTest, Add)
+TEST_F(RsSyncManagerTest, Add)
 {
     TestCaseNormal();
     TestCaseFoundBetterRsWhileSyncing();

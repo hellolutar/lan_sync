@@ -11,7 +11,7 @@ public:
     }
 };
 
-class DemoTest : public testing::Test
+class RsSyncManagerTest : public testing::Test
 {
 protected:
     void SetUp() override
@@ -31,7 +31,7 @@ public:
     }
 };
 
-TEST_F(DemoTest, Add)
+TEST_F(RsSyncManagerTest, Add)
 {
     DemoAdd demo;
     int j = 5;
