@@ -57,3 +57,8 @@ void NetworkConnCtx::setActive(bool status)
 {
     active = status;
 }
+
+bool NetworkConnCtx::operator<(const NetworkConnCtx &ctx) const
+{
+    return peer < ctx.peer;
+}

@@ -58,6 +58,19 @@ bool NetAddr::operator==(NetAddr &other)
 
     return true;
 }
+bool NetAddr::operator!=(const NetAddr &other)
+{
+     if (this->le_addr.sin_addr.s_addr != other.le_addr.sin_addr.s_addr)
+        return true;
+
+    if (this->le_addr.sin_family != other.le_addr.sin_family)
+        return true;
+
+    if (this->le_addr.sin_port != other.le_addr.sin_port)
+        return true;
+
+    return false;
+}
 sockaddr_in NetAddr::getBeAddr()
 {
     sockaddr_in be_addr;

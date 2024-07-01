@@ -26,6 +26,7 @@ public:
     void setIp(std::string ip);
     friend bool operator<(const NetAddr &l, const NetAddr &r);
     bool operator==(NetAddr &p);
+    bool operator!=(const NetAddr &p);
 
     std::string str();
 

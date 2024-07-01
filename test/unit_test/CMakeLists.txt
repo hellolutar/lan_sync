@@ -30,5 +30,6 @@ ttest(openssl_utils_test)
 ttest(properties_parse_test)
 ttest(resource_manager_test)
 ttest(rs_sync_mamanger_test)
+ttest(task_test)
 
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure --stop-on-failure --timeout 12)

@@ -38,8 +38,8 @@ protected:
     bool active = false;
 
 public:
-    NetworkConnCtx(){};
-    NetworkConnCtx(std::vector<std::shared_ptr<NetworkConnCtx>> *head, NetAbility *ne, NetAddr peer) : head(head), ne(ne), peer(peer), active(true){};
+    NetworkConnCtx() {};
+    NetworkConnCtx(std::vector<std::shared_ptr<NetworkConnCtx>> *head, NetAbility *ne, NetAddr peer) : head(head), ne(ne), peer(peer), active(true) {};
     /**
      *  resource release by the caller with trycatch
      */
@@ -50,6 +50,8 @@ public:
     virtual void setNetAddr(NetAddr peer);
     virtual bool isActive();
     virtual void setActive(bool status);
+
+    bool operator<(const NetworkConnCtx &ctx) const;
 };
 
 /**
@@ -62,7 +64,7 @@ protected:
     int sock = 0;
 
 public:
-    NetAbility(NetAddr addr) : addr(addr){};
+    NetAbility(NetAddr addr) : addr(addr) {};
     virtual ~NetAbility();
 
     virtual void recv(void *data, uint64_t data_len, std::shared_ptr<NetworkConnCtx> ctx) = 0;
