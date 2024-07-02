@@ -7,7 +7,7 @@ void ResourceManager::init(string home)
     if (home.size() == 0)
     {
         LOG_ERROR("ResourceManager::init() : strlen(home) is 0!");
-        return;
+        exit(-1);
     }
 
     LOG_INFO("ResourceManager::init() : resource.home is : {}", home);

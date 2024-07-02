@@ -17,6 +17,15 @@ int main(int argc, char const *argv[])
 
     SyncModConnMediator mediator;
 
+    shared_ptr<TaskManager2> tmp = make_shared<TaskManager2>();
+    TaskCoordinator coor(tmp);
+    TaskCoordinatorTrigger trg(Trigger::second(10), true, coor);
+    TaskCoordinatorTriggerModconn coorTrgMod(&mediator, trg);
+
+    TimerWithEvent::addTr(&trg);
+
+    mediator.add(&coorTrgMod);
+
     SyncService service(&mediator);
     SyncController cntrl(service);
 
@@ -49,12 +58,8 @@ int main(int argc, char const *argv[])
         discover_tr.addConn(addr);
     }
 
-    SyncReqTbIdxTrigger sync_req_tr(Trigger::second(10), true, tcplogic, &mediator);
-    TimerWithEvent::addTr(&sync_req_tr);
-
     mediator.add(&service);
     mediator.add(&discover_tr);
-    mediator.add(&sync_req_tr);
 
     string listen_udp = StringBuilder::builder()
                             .add(":")

@@ -13,7 +13,7 @@ void load_config(int argc, char const *argv[])
     options.add_options()("c,config", "config path", cxxopts::value<std::string>()->default_value(default_config_file));
 
     auto result = options.parse(argc, argv);
-    if (result.count("help"))
+    if (argc == 1 || result.count("help"))
     {
         std::cout << options.help() << std::endl;
         exit(0);

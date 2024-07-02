@@ -9,7 +9,7 @@
 #include "modules/task2/task.h"
 #include "modules/task2/resource.h"
 
-class Coordinator
+class TaskCoordinator
 {
 private:
     std::shared_ptr<TaskManager2> tm_;
@@ -22,8 +22,8 @@ private:
 
 
 public:
-    Coordinator(std::shared_ptr<TaskManager2> tm) : tm_(tm){};
-    ~Coordinator();
+    TaskCoordinator(std::shared_ptr<TaskManager2> tm) : tm_(tm){};
+    ~TaskCoordinator();
 
     void tick(std::uint64_t tick);
 
@@ -36,7 +36,7 @@ public:
      */
     void add_resource(std::string uri, Range2 range, std::shared_ptr<NetworkConnCtx> ctx);
 
-    void reAssignTask(const std::string uri, const Block blk, const std::shared_ptr<NetworkConnCtx> oldCtx);
+    void reAssignTask(const std::string uri, const Block2 blk, const std::shared_ptr<NetworkConnCtx> oldCtx);
 };
 
 #endif

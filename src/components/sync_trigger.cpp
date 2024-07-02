@@ -1,6 +1,7 @@
 #include "sync_trigger.h"
 
 using namespace std;
+using namespace module_conn_uri;
 
 SyncCliDiscoverLogic::SyncCliDiscoverLogic(/* args */)
 {
@@ -28,7 +29,7 @@ void SyncCliDiscoverLogic::exec(shared_ptr<NetworkConnCtx> &ctx)
     {
         std::cerr << e.what() << '\n';
         LOG_ERROR("SyncCliDiscoverLogic::exec() : reason:{}", e.what());
-        mod_conn_send(MODULE_NAME_DISCOVERY, MODULE_CONN_URI_DISCOVER_DEL, &ctx); // ctx由DiscoveryTrigger#delNetAddr --> delete udpcli负责释放
+        mod_conn_send(MODULE_NAME_DISCOVERY, DISCOVER_DEL, &ctx); // ctx由DiscoveryTrigger#delNetAddr --> delete udpcli负责释放
     }
 }
 
@@ -51,12 +52,12 @@ void DiscoveryTrigger::mod_conn_recv(std::string from, std::string uri, void *da
 {
     LOG_DEBUG("DiscoveryTrigger::mod_conn_recv() : from:{},\turi:{}", from, uri);
 
-    if (StringUtils::eq(MODULE_CONN_URI_DISCOVER_ADD, uri))
+    if (DISCOVER_ADD == uri)
     {
         NetworkConnCtx *ctx = (NetworkConnCtx *)data;
         addConn(ctx->getPeer());
     }
-    else if (StringUtils::eq(MODULE_CONN_URI_DISCOVER_DEL, uri))
+    else if (DISCOVER_DEL == uri)
     {
         NetworkConnCtx *ctx = (NetworkConnCtx *)data;
         delNetAddr(ctx->getPeer());
@@ -93,7 +94,7 @@ void SyncCliSyncLogic::reqTbIdx(shared_ptr<NetworkConnCtx> &ctx)
     {
         std::cerr << e.what() << '\n';
         LOG_ERROR("SyncCliSyncLogic::reqTbIdx() : reason:{}", e.what());
-        mod_conn_send(MODULE_NAME_PERIOD_REQ_TB_IDX, MODULE_CONN_URI_PERIOD_REQ_TB_IDX_DEL, &ctx); // ctx由DiscoveryTrigger#delNetAddr --> delete udpcli负责释放
+        mod_conn_send(MODULE_NAME_PERIOD_REQ_TB_IDX, PERIOD_REQ_TB_IDX_DEL, &ctx); // ctx由DiscoveryTrigger#delNetAddr --> delete udpcli负责释放
     }
 }
 
@@ -120,12 +121,12 @@ void SyncReqTbIdxTrigger::mod_conn_recv(std::string from, std::string uri, void 
 {
     LOG_DEBUG("SyncReqTbIdxTrigger::mod_conn_recv() : from:{},\turi:{}", from, uri);
 
-    if (StringUtils::eq(MODULE_CONN_URI_PERIOD_REQ_TB_IDX_ADD, uri))
+    if (PERIOD_REQ_TB_IDX_ADD == uri)
     {
         NetAddr *addr = (NetAddr *)data;
         addConn(*addr);
     }
-    else if (StringUtils::eq(MODULE_CONN_URI_PERIOD_REQ_TB_IDX_DEL, uri))
+    else if (PERIOD_REQ_TB_IDX_DEL == uri)
     {
         shared_ptr<NetworkConnCtx> ctx = *(shared_ptr<NetworkConnCtx> *)data;
         delNetAddr(ctx->getPeer());

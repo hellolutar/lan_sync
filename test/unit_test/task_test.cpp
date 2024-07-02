@@ -4,7 +4,7 @@
 #include <memory>
 #include <algorithm>
 
-#include "modules/task2/coordinator.h"
+#include "modules/task2/task_coordinator.h"
 #include "test_task_manager.h"
 #include "net/net_logic_container.h"
 using namespace std;
@@ -41,10 +41,10 @@ class CoordinatorSimpleTest : public testing::Test
 protected:
     TaskManagerForTest *tmft = new TaskManagerForTest();
     shared_ptr<TaskManager2> tm{tmft};
-    Coordinator *cor;
+    TaskCoordinator *cor;
     void SetUp() override
     {
-        cor = new Coordinator(tm);
+        cor = new TaskCoordinator(tm);
         printf("SetUp \n");
     }
 
@@ -69,7 +69,7 @@ public:
         vector<std::shared_ptr<NetworkCtxConcrete>> ctxs;
         for (size_t i = 0; i < ctx_num; i++)
         {
-            std::shared_ptr<NetworkConnCtx> ctx = std::make_shared<NetworkCtxConcrete>(&head, &na, NetAddr(to_string(1)));
+            std::shared_ptr<NetworkConnCtx> ctx = std::make_shared<NetworkCtxConcrete>(&head, &na, NetAddr(to_string(i)));
             cor->add_resource(uri, Range2(0, size), ctx);
         }
 
@@ -88,7 +88,7 @@ public:
             for (; i < DOWNLOAD_LIMIT; i++)
             {
                 uint64_t end = min(size, offset + BLOCK_SIZE);
-                tm->success(uri, Block(offset, end));
+                tm->success(uri, Block2(offset, end));
                 offset = end;
                 if (offset >= size)
                     break;
@@ -100,7 +100,7 @@ public:
         for (; i < blk_nums; i++)
         {
             uint64_t end = min(size, offset + BLOCK_SIZE);
-            tm->success(uri, Block(offset, end));
+            tm->success(uri, Block2(offset, end));
             offset = end;
             if (offset >= size)
                 break;
@@ -123,7 +123,7 @@ public:
         vector<std::shared_ptr<NetworkCtxConcrete>> ctxs;
         for (size_t i = 0; i < ctx_num; i++)
         {
-            std::shared_ptr<NetworkCtxConcrete> ctx = make_shared<NetworkCtxConcrete>(&head, &na, NetAddr(to_string(1)));
+            std::shared_ptr<NetworkCtxConcrete> ctx = make_shared<NetworkCtxConcrete>(&head, &na, NetAddr(to_string(i)));
             cor->add_resource(uri, Range2(0, size), ctx);
         }
 
@@ -150,8 +150,8 @@ public:
                 }
                 for (size_t j = 0; j < DOWNLOAD_LIMIT; j++)
                 {
-                    uint64_t start = Block::bitPos(i + j);
-                    tm->success(uri, Block(start, start + BLOCK_SIZE));
+                    uint64_t start = Block2::bitPos(i + j);
+                    tm->success(uri, Block2(start, start + BLOCK_SIZE));
                 }
             }
 
@@ -178,15 +178,15 @@ public:
 
             for (; pos < 5;)
             {
-                uint64_t start = Block::bitPos(pos++);
-                tm->success(uri, Block(start, start + BLOCK_SIZE));
+                uint64_t start = Block2::bitPos(pos++);
+                tm->success(uri, Block2(start, start + BLOCK_SIZE));
             }
         }
 
         while (!tm->isSuccess(uri))
         {
-            uint64_t start = Block::bitPos(pos++);
-            tm->success(uri, Block(start, start + BLOCK_SIZE));
+            uint64_t start = Block2::bitPos(pos++);
+            tm->success(uri, Block2(start, start + BLOCK_SIZE));
         }
 
         ASSERT_EQ(ctx_num, tmft->tasks_ctx_num(uri));

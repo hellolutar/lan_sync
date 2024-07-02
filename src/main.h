@@ -14,5 +14,6 @@
 #include "components/common.h"
 #include "components/sync_mod_conn_mediator.h"
 #include "logics/controllers/sync_controller.h"
+#include "modules/task2/task_coordinator_trigger_modconn.h"
 
 #endif

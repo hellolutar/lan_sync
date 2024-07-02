@@ -1,5 +1,7 @@
 #include "sync_service.h"
 
+using namespace module_conn_uri;
+
 SyncService::~SyncService()
 {
 }
@@ -36,7 +38,7 @@ void SyncService::handleHelloAck(SyncNetworkConnCtx *ctx)
     peer_tcp_addr.setPort(peer_tcp_port);
     LOG_DEBUG("SyncService::handleHelloAck() : receive hello ack, try to connect peer with tcp:{}", peer_tcp_addr.str());
 
-    mod_conn_send(MODULE_NAME_PERIOD_REQ_TB_IDX, MODULE_CONN_URI_PERIOD_REQ_TB_IDX_ADD, &peer_tcp_addr);
+    mod_conn_send(MODULE_NAME_PERIOD_REQ_TB_IDX, PERIOD_REQ_TB_IDX_ADD, &peer_tcp_addr);
 }
 
 void SyncService::handleReqTableIndex(SyncNetworkConnCtx *ctx)

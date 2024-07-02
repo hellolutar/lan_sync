@@ -1,8 +1,8 @@
-#include "modules/task2/coordinator.h"
+#include "modules/task2/task_coordinator.h"
 
 using namespace std;
 
-void Coordinator::analysis_resource(ResourceInfo info, std::shared_ptr<NetworkConnCtx> ctx)
+void TaskCoordinator::analysis_resource(ResourceInfo info, std::shared_ptr<NetworkConnCtx> ctx)
 {
     std::string uri = info.getUri();
     auto r_iter = res_.find(uri);
@@ -29,7 +29,7 @@ void Coordinator::analysis_resource(ResourceInfo info, std::shared_ptr<NetworkCo
     assignTask(r); // 指派任务
 }
 
-void Coordinator::assignTask(ResourceInfo &info)
+void TaskCoordinator::assignTask(ResourceInfo &info)
 {
     const std::vector<std::shared_ptr<NetworkConnCtx>> &ctxs = info.getCtxs();
     if (ctxs.size() == 0)
@@ -45,7 +45,7 @@ void Coordinator::assignTask(ResourceInfo &info)
     {
         string uri = info.getUri();
         std::shared_ptr<NetworkConnCtx> ctx = ctxs[who]; // 可能存在拷贝陷进
-        tm_->addTask({uri, Block(0, info.size()), ctx});
+        tm_->addTask({uri, Block2(0, info.size()), ctx});
     }
     else
     {
@@ -54,41 +54,41 @@ void Coordinator::assignTask(ResourceInfo &info)
         {
             if (who >= ctxs.size())
                 who = 0;
-            uint64_t bitPos = Block::bitPos(i);
+            uint64_t bitPos = Block2::bitPos(i);
             if (bitPos >= info.size())
                 break;
 
             uint64_t end = min(info.size(), bitPos + BLOCK_SIZE);
             string uri = info.getUri();
             std::shared_ptr<NetworkConnCtx> ctx = ctxs[who++]; // 可能存在拷贝陷进
-            tm_->addTask({uri, Block(bitPos, end), ctx});
+            tm_->addTask({uri, Block2(bitPos, end), ctx});
         }
     }
 }
 
-Coordinator::~Coordinator()
+TaskCoordinator::~TaskCoordinator()
 {
 }
 
-void Coordinator::tick(std::uint64_t t)
+void TaskCoordinator::tick(std::uint64_t t)
 {
-    auto f = bind(&Coordinator::reAssignTask, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    auto f = bind(&TaskCoordinator::reAssignTask, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     tm_->tick(t, f);
 }
 
-std::shared_ptr<TaskManager2> &Coordinator::taskManager()
+std::shared_ptr<TaskManager2> &TaskCoordinator::taskManager()
 {
     return tm_;
 }
 
-void Coordinator::add_resource(std::string uri, Range2 range, std::shared_ptr<NetworkConnCtx> ctx)
+void TaskCoordinator::add_resource(std::string uri, Range2 range, std::shared_ptr<NetworkConnCtx> ctx)
 {
     ResourceInfo r{uri, range};
     r.addNetCtx(ctx);
     analysis_resource(r, ctx);
 }
 
-void Coordinator::reAssignTask(const std::string uri, const Block blk, const std::shared_ptr<NetworkConnCtx> oldCtx)
+void TaskCoordinator::reAssignTask(const std::string uri, const Block2 blk, const std::shared_ptr<NetworkConnCtx> oldCtx)
 {
     auto r_iter = res_.find(uri);
     ResourceInfo &r = r_iter->second;
