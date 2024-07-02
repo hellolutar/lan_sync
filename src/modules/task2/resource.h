@@ -9,17 +9,6 @@
 #include "net/network_layer.h"
 
 
-// class SyncingInfo
-// {
-// private:
-//     Range range_;
-//     NetworkConnCtx &ctx_;
-
-// public:
-//     SyncingInfo(Range range, NetworkConnCtx &ctx) : range_(range), ctx_(ctx) {}
-//     ~SyncingInfo() {}
-// };
-
 class ResourceInfo
 {
 private:

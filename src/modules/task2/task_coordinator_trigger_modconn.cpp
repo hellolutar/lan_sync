@@ -11,4 +11,8 @@ void TaskCoordinatorTriggerModconn::mod_conn_recv(std::string from, std::string 
         ModconnTaskDto *dto = static_cast<ModconnTaskDto *>(data);
         coor.add_resource(dto->uri, dto->range, dto->ctx);
     }
+    else if (uri == TASK_COORDINATOR_TRIGGER_MODCONN_STOP)
+    {
+        // todo
+    }
 }

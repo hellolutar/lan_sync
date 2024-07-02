@@ -17,7 +17,8 @@ struct Resource
     char hash[NAME_MAX_SIZE];
     std::uint64_t size;
 
-    static struct Resource *vecToArr(std::vector<struct Resource*> rs_table);
+    static struct Resource *vecToArr(std::vector<struct Resource *> rs_table);
+    static struct std::vector<Resource> arrToVec(struct Resource *rs_table, uint64_t size);
 };
 
 #endif

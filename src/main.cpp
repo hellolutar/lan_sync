@@ -26,7 +26,7 @@ int main(int argc, char const *argv[])
 
     mediator.add(&coorTrgMod);
 
-    SyncService service(&mediator);
+    SyncService service(&mediator, coor);
     SyncController cntrl(service);
 
     LogicUdp &udplogic = cntrl;

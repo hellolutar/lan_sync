@@ -142,15 +142,6 @@ bool RsLocalManager::validRes(string uri, string hash)
         return false;
 }
 
-std::vector<struct Resource> RsLocalManager::cmpThenRetNeedToSyncTable(struct Resource *table, uint64_t table_entry_num)
-{
-    vector<struct Resource> peer_table;
-
-    for (size_t i = 0; i < table_entry_num; i++)
-        peer_table.push_back(table[i]);
-
-    return cmpThenRetNeedToSyncTable(peer_table);
-}
 std::vector<struct Resource> RsLocalManager::cmpThenRetNeedToSyncTable(std::vector<struct Resource> peer_table)
 {
     map<string, Resource> filtered;

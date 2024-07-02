@@ -9,6 +9,10 @@
 #include "modules/task2/task.h"
 #include "modules/task2/resource.h"
 
+/**
+ * 负责协调任务
+ * - 由TaskManager2具体管理任务
+ */
 class TaskCoordinator
 {
 private:
@@ -20,7 +24,6 @@ private:
 
     void assignTask(ResourceInfo &info);
 
-
 public:
     TaskCoordinator(std::shared_ptr<TaskManager2> tm) : tm_(tm){};
     ~TaskCoordinator();
@@ -29,11 +32,6 @@ public:
 
     std::shared_ptr<TaskManager2> &taskManager();
 
-    /**
-     * case1: 新增一个资源服务器
-     * case2: 在已有的资源服务器上，新增一个资源服务器
-     * case3：在已有的资源服务器上，新增一个更新的资源服务器
-     */
     void add_resource(std::string uri, Range2 range, std::shared_ptr<NetworkConnCtx> ctx);
 
     void reAssignTask(const std::string uri, const Block2 blk, const std::shared_ptr<NetworkConnCtx> oldCtx);

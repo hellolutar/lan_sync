@@ -18,3 +18,23 @@ struct Resource *Resource::vecToArr(std::vector<struct Resource *> rs_table)
     }
     return ret;
 }
+
+std::vector<Resource> Resource::arrToVec(Resource *table, uint64_t size)
+{
+    std::vector<Resource> ret;
+
+    Resource *table_p = table;
+
+    for (uint64_t i = 0; i < size; i++)
+    {
+        Resource rs;
+        memcpy(&(rs.name), table_p->name, NAME_MAX_SIZE);
+        memcpy(&(rs.uri), table_p->uri, NAME_MAX_SIZE);
+        memcpy(&(rs.path), table_p->path, NAME_MAX_SIZE);
+        memcpy(&(rs.hash), table_p->hash, NAME_MAX_SIZE);
+        rs.size = table_p->size;
+        table_p += 1;
+        ret.push_back(rs);
+    }
+    return ret;
+}

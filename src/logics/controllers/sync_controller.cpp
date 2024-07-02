@@ -1,4 +1,4 @@
-#include "sync_controller.h"
+#include "logics/controllers/sync_controller.h"
 
 SyncController::~SyncController()
 {
@@ -8,7 +8,7 @@ void SyncController::recv_udp(void *data, uint64_t data_len, std::shared_ptr<Net
 {
     lan_sync_header_t *header = (lan_sync_header_t *)data;
     LanSyncPkt pkt(header);
-    SyncNetworkConnCtx *ctx = new SyncNetworkConnCtx(nctx, pkt);
+    std::shared_ptr<SyncNetworkConnCtx> ctx = make_shared<SyncNetworkConnCtx>(nctx, pkt);
 
 #ifdef RELEASE
     auto ports = LocalPort::query();
@@ -31,7 +31,7 @@ void SyncController::recv_tcp(void *data, uint64_t data_len, std::shared_ptr<Net
 {
     lan_sync_header_t *header = (lan_sync_header_t *)data;
     LanSyncPkt pkt(header);
-    SyncNetworkConnCtx *ctx = new SyncNetworkConnCtx(nctx, pkt);
+    std::shared_ptr<SyncNetworkConnCtx> ctx = make_shared<SyncNetworkConnCtx>(nctx, pkt);
 
 #ifdef RELEASE
     auto ports = LocalPort::query();

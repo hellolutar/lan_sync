@@ -40,7 +40,8 @@ namespace module_conn_uri
     const std::string PERIOD_REQ_TB_IDX_ADD = "/req_tb_idx/add";
     const std::string PERIOD_REQ_TB_IDX_DEL = "/req_tb_idx/del";
 
-    const std::string TASK_COORDINATOR_TRIGGER_MODCONN_ADD_RESOURCE = "/resource/add";
+    const std::string TASK_COORDINATOR_TRIGGER_MODCONN_ADD_RESOURCE = "task_trigger/resource/add";
+    const std::string TASK_COORDINATOR_TRIGGER_MODCONN_STOP = "task_trigger/stop";
 }
 
 #endif

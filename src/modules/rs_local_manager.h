@@ -40,7 +40,6 @@ public:
 
     std::vector<struct Resource *> genResources(std::string p);
     std::vector<struct Resource> cmpThenRetNeedToSyncTable(std::vector<struct Resource> peer_table);
-    std::vector<struct Resource> cmpThenRetNeedToSyncTable(struct Resource *table, uint64_t rs_size);
     std::string resourcePosition(std::string uri);
     bool saveLocal(std::string uri, void *data, uint64_t offset, uint64_t data_len);
 };

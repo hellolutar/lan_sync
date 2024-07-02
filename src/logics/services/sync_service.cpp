@@ -1,4 +1,4 @@
-#include "sync_service.h"
+#include "logics/services/sync_service.h"
 
 using namespace module_conn_uri;
 
@@ -12,7 +12,7 @@ void SyncService::mod_conn_recv(std::string from, std::string uri, void *data)
     // TODO
 }
 
-void SyncService::handleHello(SyncNetworkConnCtx *ctx)
+void SyncService::handleHello(std::shared_ptr<SyncNetworkConnCtx> ctx)
 {
     // 启动TCP Server
     LanSyncPkt pkt(lan_sync_version::VER_0_1, LAN_SYNC_TYPE_HELLO_ACK);
@@ -23,7 +23,7 @@ void SyncService::handleHello(SyncNetworkConnCtx *ctx)
     ctx->write(buf.data(), buf.size());
 }
 
-void SyncService::handleHelloAck(SyncNetworkConnCtx *ctx)
+void SyncService::handleHelloAck(std::shared_ptr<SyncNetworkConnCtx> ctx)
 {
     LanSyncPkt &pkt = ctx->getPktInfo();
     string peer_tcp_port_str = pkt.queryXheader(XHEADER_TCPPORT);
@@ -41,7 +41,7 @@ void SyncService::handleHelloAck(SyncNetworkConnCtx *ctx)
     mod_conn_send(MODULE_NAME_PERIOD_REQ_TB_IDX, PERIOD_REQ_TB_IDX_ADD, &peer_tcp_addr);
 }
 
-void SyncService::handleReqTableIndex(SyncNetworkConnCtx *ctx)
+void SyncService::handleReqTableIndex(std::shared_ptr<SyncNetworkConnCtx> ctx)
 {
     RsLocalManager &rlm = ResourceManager::getRsLocalManager();
     vector<struct Resource *> table = rlm.getTable();
@@ -61,7 +61,7 @@ void SyncService::handleReqTableIndex(SyncNetworkConnCtx *ctx)
     LOG_INFO("SyncService::handleReqTableIndex() : entry num: {} ", table.size());
 }
 
-void SyncService::handleReqResource(SyncNetworkConnCtx *ctx)
+void SyncService::handleReqResource(std::shared_ptr<SyncNetworkConnCtx> ctx)
 {
     LanSyncPkt &pkt = ctx->getPktInfo();
 
@@ -96,36 +96,27 @@ void SyncService::handleReqResource(SyncNetworkConnCtx *ctx)
     }
 }
 
-void SyncService::handleReplyTableIndex(void *data, uint64_t data_len, SyncNetworkConnCtx *ctx)
+void SyncService::handleReplyTableIndex(void *data, uint64_t data_len, std::shared_ptr<SyncNetworkConnCtx> ctx)
 {
     LanSyncPkt &pkt = ctx->getPktInfo();
 
-    uint64_t res_size = pkt.getDataLen() / sizeof(struct Resource);
+    uint64_t table_size = pkt.getDataLen() / sizeof(struct Resource);
 
-    struct Resource *table = (struct Resource *)pkt.getData();
-    RsSyncManager &rsm = ResourceManager::getRsSyncManager();
-    rsm.refreshSyncingRsByTbIdx(ctx->getPeer(), table, res_size);
+    struct Resource *tablep = (struct Resource *)pkt.getData();
+    vector<Resource> table = Resource::arrToVec(tablep, table_size);
 
-    // req rs
-    add_req_task(ctx);
-}
-
-void SyncService::add_req_task(SyncNetworkConnCtx *ctx)
-{
-    RsSyncManager &rsm = ResourceManager::getRsSyncManager();
-
-    for (auto uriRs : rsm.getAllUriRs())
+    RsLocalManager &rlm = ResourceManager::getRsLocalManager();
+    std::vector<Resource> need_to_sync_table = rlm.cmpThenRetNeedToSyncTable(table);
+    for (auto i = 0; i < need_to_sync_table.size(); i++)
     {
-        string uri = uriRs.first;
-        if (rsm.getSyncingSize(uri) < DOWNLOAD_LIMIT)
-        {
-            LOG_INFO("SyncService::add_req_task() : add ReqRsTask : {}", uri.data());
-            TaskManager::getTaskManager()->addTask(new ReqRsTask(uri, uri));
-        }
+        Resource rs = need_to_sync_table[i];
+        string uri(rs.uri);
+        Range2 range(0, rs.size);
+        coor_.add_resource(uri, range, ctx);
     }
 }
 
-void SyncService::handleReplyResource(void *data, uint64_t data_len, SyncNetworkConnCtx *ctx)
+void SyncService::handleReplyResource(void *data, uint64_t data_len, std::shared_ptr<SyncNetworkConnCtx> ctx)
 {
     LanSyncPkt &pkt = ctx->getPktInfo();
     string uri = pkt.queryXheader(XHEADER_URI);
@@ -140,27 +131,17 @@ void SyncService::handleReplyResource(void *data, uint64_t data_len, SyncNetwork
     LOG_INFO("SyncService::handleLanSyncReplyResource() : uri:{}; cr:{}", uri.data(), cr.to_string());
 
     uint8_t *data_pos = (uint8_t *)data + pkt.getHeaderLen();
-    RsSyncManager &rsm = ResourceManager::getRsSyncManager();
     RsLocalManager &rlm = ResourceManager::getRsLocalManager();
 
     bool write_ret = rlm.saveLocal(uri, data_pos, cr.getStartPos(), cr.getSize());
 
-    Block b(cr.getStartPos(), cr.getStartPos() + cr.getSize());
+    Block2 b(cr.getStartPos(), cr.getStartPos() + cr.getSize());
     if (!write_ret)
-    {
         LOG_INFO("SyncService::handleLanSyncReplyResource() : {} : block save fail:[{},{})", uri, b.start, b.end);
-        rsm.unregReqSyncRsByBlock(ctx->getPeer(), b, uri);
-        goto handleLanSyncReplyResource_end_flag;
-    }
-    LOG_INFO("SyncService::handleLanSyncReplyResource() : {} : block save success:[{},{})", uri, b.start, b.end);
-    rsm.syncingRangeDoneAndValid(ctx->getPeer(), uri, b, true);
-
-handleLanSyncReplyResource_end_flag:
-    add_req_task(ctx);
 }
 
-void SyncService::exit(void *data, uint64_t data_len, SyncNetworkConnCtx *ctx)
+void SyncService::exit(void *data, uint64_t data_len, std::shared_ptr<SyncNetworkConnCtx> ctx)
 {
-    TaskManager::getTaskManager()->stop();
+    mod_conn_send(MODULE_NAME_TASK_COORDINATOR_TRIGGER_MODCONN, TASK_COORDINATOR_TRIGGER_MODCONN_STOP, nullptr);
     NetFrameworkImplWithEvent::shutdown();
 }
